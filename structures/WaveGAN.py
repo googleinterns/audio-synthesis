@@ -40,7 +40,7 @@ class Generator(Model):
     four seconds of 16kHz audio.
     """
     
-    def __init__(self, name='generator'):
+    def __init__(self, name='generator', signal_length=2**14):
         super(Generator, self).__init__()
         layers = []
         layers.append(Dense(16 * 1024))
@@ -54,8 +54,9 @@ class Generator(Model):
         layers.append(ReLU())
         layers.append(Conv1DTranspose(filters=64, strides=4, kernel_size=24))
         layers.append(ReLU())
-        layers.append(Conv1DTranspose(filters=64, strides=4, kernel_size=24))
-        layers.append(ReLU())
+        if signal_length == 2**16:
+            layers.append(Conv1DTranspose(filters=64, strides=4, kernel_size=24))
+            layers.append(ReLU())
         layers.append(Conv1DTranspose(filters=1, strides=4, kernel_size=24))
 
         self.l = Sequential(layers, name=name)
@@ -74,7 +75,7 @@ class Discriminator(Model):
     output.
     """
     
-    def __init__(self, name='discriminator'):
+    def __init__(self, name='discriminator', signal_length=2**14):
         super(Discriminator, self).__init__()
         layers = []
         layers.append(Conv1D(64, kernel_size=24, strides=4))
@@ -87,8 +88,9 @@ class Discriminator(Model):
         layers.append(LeakyReLU(alpha=0.2))
         layers.append(Conv1D(1024, kernel_size=24, strides=4))
         layers.append(LeakyReLU(alpha=0.2))
-        layers.append(Conv1D(2014, kernel_size=24, strides=4))
-        layers.append(LeakyReLU(alpha=0.2))
+        if signal_length == 2**16: 
+            layers.append(Conv1D(2014, kernel_size=24, strides=4))
+            layers.append(LeakyReLU(alpha=0.2))
         layers.append(Flatten())
         layers.append(Dense(1))
 
