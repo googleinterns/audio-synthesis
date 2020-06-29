@@ -11,6 +11,30 @@ import sys
 os.environ["CUDA_VISIBLE_DEVICES"] = '2'
 print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
+
+"""
+  Griffin-Lim phase estimation from magnitude spectrum
+"""
+def invert_spectra_griffin_lim(X_mag, nfft, nhop, ngl):
+    X = tf.complex(X_mag, tf.zeros_like(X_mag))
+
+    def b(i, X_best):
+        x = tf.signal.inverse_stft(X_best, nfft, nhop)
+        X_est = tf.signal.stft(x, nfft, nhop)
+        phase = X_est / tf.cast(tf.maximum(1e-8, tf.abs(X_est)), tf.complex64)
+        X_best = X * phase
+        return i + 1, X_best
+
+    i = tf.constant(0)
+    c = lambda i, _: tf.less(i, ngl)
+    _, X = tf.while_loop(c, b, [i, X], back_prop=False)
+
+    x = tf.signal.inverse_stft(X, nfft, nhop)
+    #x = x[:, :_SLICE_LEN]
+
+    return x
+
+
 # Setup Paramaters
 D_updates_per_g = 5
 Z_dim = 64
@@ -32,7 +56,7 @@ discriminator = Discriminator()
 generator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
 discriminator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
 
-checkpoint_dir = '_results/representation_study/SpecGAN/training_checkpoints/'
+checkpoint_dir = '_results/representation_study/SpecPhaseGAN/training_checkpoints/'
 checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")
 checkpoint = tf.train.Checkpoint(generator_optimizer=generator_optimizer,
                                  discriminator_optimizer=discriminator_optimizer,
@@ -62,7 +86,7 @@ def train_step(X, train_generator=True, train_discriminator=True):
             D_interp = discriminator(interp, training=True)
             
         grad = t.gradient(D_interp, [interp])[0]
-        slopes = tf.sqrt(tf.reduce_sum(tf.square(grad), axis=[2,1]))
+        slopes = tf.sqrt(tf.reduce_sum(tf.square(grad), axis=[3,2,1]))
         gp = tf.reduce_mean((slopes - 1.0) ** 2.0)
             
         G_loss = tf.reduce_mean(D_fake)
@@ -77,6 +101,18 @@ def train_step(X, train_generator=True, train_discriminator=True):
         discriminator_optimizer.apply_gradients(zip(gradients_of_discriminator, discriminator.trainable_variables))
     return G_loss, D_loss
 
+def save_mag_spec_audio(log_mag_spec, name):
+    magnitude = tf.exp(log_mag_spec)
+    generations = []
+    for m in magnitude:
+        m = np.reshape(m, (128, 256))
+        m = np.pad(m, [[0,0], [0,1]])
+        generations.append(invert_spectra_griffin_lim(m, 512, 128, 16))
+    generations = np.array(generations)
+    generations = np.reshape(generations, (-1))
+
+    sf.write('_results/representation_study/SpecPhaseGAN/audio/' + name + '.wav', generations, 16000)
+
 def save_audio(data, name):
     data = np.pad(data, [[0,0],[0,0],[0,1],[0,0]])
     print(data.shape)
@@ -89,7 +125,7 @@ def save_audio(data, name):
     log_magnitude = np.reshape(log_magnitude, (-1, 128, 257))
     
     magnitude = np.exp(log_magnitude)
-    angle = np.array(ins_freq).cumsum(axis=-1)
+    angle = np.array(ins_freq).cumsum(axis=-2)
     phase = (angle + np.pi) % (2 * np.pi) - np.pi
     
     real = magnitude * np.cos(phase)
@@ -105,6 +141,7 @@ def save_audio(data, name):
 def generate_and_save_audio(model, epoch, test_input):
     generations = model(test_input, training=False)
     save_audio(generations, 'gen_' + str(epoch))
+    save_mag_spec_audio(generations[:,:,:,0], 'gen_grflim_' + str(epoch))
 
   
 
