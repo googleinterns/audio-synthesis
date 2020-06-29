@@ -15,7 +15,6 @@
 import tensorflow as tf
 from tensorflow.keras.layers import Dense, ReLU, LeakyReLU, Conv2D, Conv2DTranspose, Reshape, AveragePooling1D, Flatten
 from tensorflow.keras import Model, Sequential
-from utils.Layers import Conv1DTranspose
 
 class Generator(Model):
     def __init__(self, channels=1, d=4):
@@ -25,17 +24,17 @@ class Generator(Model):
         layers.append(Dense(256*d))
         layers.append(Reshape((4, 4, 16*d)))
         layers.append(ReLU())
-        layers.append(Conv2DTranspose(filters=8*d, kernel_size=(4,4), strides=(2,2), padding='same'))
+        layers.append(Conv2DTranspose(filters=8*d, kernel_size=(6,6), strides=(2,2), padding='same'))
         layers.append(ReLU())
-        layers.append(Conv2DTranspose(filters=4*d, kernel_size=(4,4), strides=(2,2), padding='same'))
+        layers.append(Conv2DTranspose(filters=4*d, kernel_size=(6,6), strides=(2,2), padding='same'))
         layers.append(ReLU())
-        layers.append(Conv2DTranspose(filters=2*d, kernel_size=(4,4), strides=(2,2), padding='same'))
+        layers.append(Conv2DTranspose(filters=2*d, kernel_size=(6,6), strides=(2,2), padding='same'))
         layers.append(ReLU())
-        layers.append(Conv2DTranspose(filters=1*d, kernel_size=(4,4), strides=(2,2), padding='same'))
+        layers.append(Conv2DTranspose(filters=1*d, kernel_size=(6,6), strides=(2,2), padding='same'))
         layers.append(ReLU())
-        layers.append(Conv2DTranspose(filters=channels, kernel_size=(4,4), strides=(2,2), padding='same'))
+        layers.append(Conv2DTranspose(filters=channels, kernel_size=(6,6), strides=(2,2), padding='same'))
         layers.append(ReLU())
-        layers.append(Conv2DTranspose(filters=channels, kernel_size=(4,4), strides=(1,2), padding='same'))
+        layers.append(Conv2DTranspose(filters=channels, kernel_size=(6,6), strides=(1,2), padding='same'))
         
         self.l = Sequential(layers)
         
@@ -47,18 +46,19 @@ class Discriminator(Model):
         super(Discriminator, self).__init__()
         
         layers = []
-        layers.append(Conv2D(filters=d, kernel_size=(4,4), strides=(2,2)))
+        layers.append(Conv2D(filters=d, kernel_size=(6,6), strides=(2,2)))
         layers.append(LeakyReLU(alpha=0.2))
-        layers.append(Conv2D(filters=2*d, kernel_size=(4,4), strides=(2,2)))
+        layers.append(Conv2D(filters=2*d, kernel_size=(6,6), strides=(2,2)))
         layers.append(LeakyReLU(alpha=0.2))
-        layers.append(Conv2D(filters=4*d, kernel_size=(4,4), strides=(2,2)))
+        layers.append(Conv2D(filters=4*d, kernel_size=(6,6), strides=(2,2)))
         layers.append(LeakyReLU(alpha=0.2))
-        layers.append(Conv2D(filters=8*d, kernel_size=(4,4), strides=(2,2)))
+        layers.append(Conv2D(filters=8*d, kernel_size=(6,6), strides=(2,2)))
         layers.append(LeakyReLU(alpha=0.2))
-        layers.append(Conv2D(filters=16*d, kernel_size=(4,4), strides=(2,2)))
+        layers.append(Conv2D(filters=16*d, kernel_size=(6,6), strides=(2,2)))
         layers.append(LeakyReLU(alpha=0.2))
         
         self.l = Sequential(layers)
         
     def call(self, x):
         return self.l(x)
+    
