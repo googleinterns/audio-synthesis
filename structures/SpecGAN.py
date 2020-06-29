@@ -42,20 +42,22 @@ class Generator(Model):
         return self.l(z)
         
 class Discriminator(Model):
-    def __init__(self, channels=1, d=4):
+    def __init__(self, d=4):
         super(Discriminator, self).__init__()
         
         layers = []
-        layers.append(Conv2D(filters=d, kernel_size=(6,6), strides=(2,2)))
+        layers.append(Conv2D(filters=d, kernel_size=(6,6), strides=(2,2), padding='same'))
         layers.append(LeakyReLU(alpha=0.2))
-        layers.append(Conv2D(filters=2*d, kernel_size=(6,6), strides=(2,2)))
+        layers.append(Conv2D(filters=2*d, kernel_size=(6,6), strides=(2,2), padding='same'))
         layers.append(LeakyReLU(alpha=0.2))
-        layers.append(Conv2D(filters=4*d, kernel_size=(6,6), strides=(2,2)))
+        layers.append(Conv2D(filters=4*d, kernel_size=(6,6), strides=(2,2), padding='same'))
         layers.append(LeakyReLU(alpha=0.2))
-        layers.append(Conv2D(filters=8*d, kernel_size=(6,6), strides=(2,2)))
+        layers.append(Conv2D(filters=8*d, kernel_size=(6,6), strides=(2,2), padding='same'))
         layers.append(LeakyReLU(alpha=0.2))
-        layers.append(Conv2D(filters=16*d, kernel_size=(6,6), strides=(2,2)))
+        layers.append(Conv2D(filters=16*d, kernel_size=(6,6), strides=(1,2), padding='same'))
         layers.append(LeakyReLU(alpha=0.2))
+        layers.append(Flatten())
+        layers.append(Dense(1))
         
         self.l = Sequential(layers)
         
