@@ -76,6 +76,6 @@ def save_examples(epoch, real, generated):
     sf.write('_results/WaveGANRWD/audio/gen_' + str(epoch) + '.wav', gen_waveforms, 16000)
 
     
-WaveGAN = WGAN(raw_nsynth, [-1, 2**16], [-1, 2**16, 1], generator, discriminator, Z_dim, generator_optimizer, discriminator_optimizer, generator_training_ratio=D_updates_per_g, batch_size=BATCH_SIZE, epochs=EPOCHS, checkpoint_dir=checkpoint_dir, fn_save_examples=save_examples)
+WaveGAN = WGAN(raw_nsynth, [-1, 2**16], [-1, 2**16, 1], generator, discriminator, Z_dim, generator_optimizer, discriminator_optimizer, generator_training_ratio=D_updates_per_g, batch_size=BATCH_SIZE, epochs=EPOCHS, checkpoint_dir=checkpoint_dir, fn_compute_loss=_compute_losses, fn_save_examples=save_examples)
 
 WaveGAN.train()
