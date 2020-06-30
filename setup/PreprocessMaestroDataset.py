@@ -1,3 +1,17 @@
+# Copyright 2020 Google LLC
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import librosa
 import scipy.signal
 import soundfile as sf
@@ -15,9 +29,6 @@ DATA_POINT_LENGTH = 2**14
 raw_data_path = '../data/maestro/2017'
 processed_data_path = '../data/'
 ## ##
-# Spectogram Config #
-SEGMENT_LENGTH = 512
-OVERLAP_PERCENTANGE = 0.75
 
 OVERLAP = int(SEGMENT_LENGTH * OVERLAP_PERCENTANGE) 
 
@@ -67,18 +78,6 @@ print('Dataset Stats:')
 print('Total Hours: ', (len(X) / 60) / 60)
 print('Dataset Size: ', sys.getsizeof(X) / (1e9))
 print('Dataset Shape: ', X.shape)
-#sf.write('maestro_1.wav', X[100], SAMPLE_RATE)
-#sf.write('maestro_2.wav', X[20], SAMPLE_RATE)
-#sf.write('maestro_3.wav', X[30], SAMPLE_RATE)
 
 print("Saving Waveform Dataset")
 np.savez_compressed(processed_data_path + 'MAESTRO_' + str(APPROX_TOTAL_HOURS) + 'h.npz', np.array(X))
-
-
-## Process the dataset into magnitude and phase
-#def to_spectogram(x):
-#    _, _, stft = scipy.signal.stft(x, fs=SAMPLE_RATE, nfft=SEGMENT_LENGTH, nperseg=SEGMENT_LENGTH, noverlap=OVERLAP)
-#    magnitude = np.abs(stft).expand_dims(2)
-#    phase = np.angle(stft).expand_dims(2)
-    
-#    return 

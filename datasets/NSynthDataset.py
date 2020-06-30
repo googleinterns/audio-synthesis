@@ -62,9 +62,6 @@ class NSynthTFRecordDataset(BaseDataset):
 
   def _get_dataset_from_path(self):
     dataset = tf.data.TFRecordDataset(self._train_data_path)
-    dataset = dataset.shuffle(buffer_size=2000)
-    #dataset = dataset.repeat()
-    #dataset = dataset.interleave(tf.data.TFRecordDataset, deterministic=False)
     return dataset
 
   def provide_one_hot_labels(self, batch_size):
@@ -104,9 +101,6 @@ class NSynthTFRecordDataset(BaseDataset):
 
         example = tf.io.parse_single_example(record, features)
         wave, label = example['audio'], example['pitch']
-        #wave = spectral_ops.crop_or_pad(wave[tf.newaxis, :, tf.newaxis],
-        #                                length,
-        #                                channels)[0]
         one_hot_label = tf.one_hot(
             label_index_table.lookup(label), depth=len(pitches))[0]
         return wave, one_hot_label, label, example['instrument_source'], example['instrument_family']
