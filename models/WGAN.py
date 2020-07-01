@@ -116,12 +116,14 @@ class WGAN(AbstractModel):
             train_generator: If true, the generator weights will be updated.
             train_discriminator: If true, the discriminator weights will be updated.
         """
+        
         X = tf.reshape(X, shape=self.d_in_data_shape)
         Z = tf.random.uniform(shape=(X.shape[0], self.z_dim), minval=-1, maxval=1)
 
         with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
             X_gen = self.generator(Z, training=True)
             X_gen = tf.reshape(X_gen, shape=self.d_in_data_shape)
+            assert X_gen.shape == X.shape
             
             # Compute Wasserstein Distance 
             d_real = self.discriminator(X, training=True)
