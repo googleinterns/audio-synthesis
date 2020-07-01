@@ -85,7 +85,7 @@ def magnitude_2_waveform(magnitude, n_iter=16, fft_length=512, frame_step=128, l
     # Add the removed band back in as zeros
     magnitude = np.pad(magnitude, [[0,0], [0,1]])
     
-    return griffinlim(np.transpose(magnitude), n_iter=n_iter, win_length=fft_length, hop_length=frame_step)
+    return griffinlim(np.transpose(magnitude), n_iter=n_iter, win_length=fft_length, hop_length=frame_step, pad_mode='constant', center=False)
     
     
 def spectogram_2_waveform(spectogram, fft_length=512, frame_step=128, log_magnitude=True, instantaneous_frequency=True):
