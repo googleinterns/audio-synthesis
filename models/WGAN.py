@@ -97,7 +97,7 @@ class WGAN(AbstractModel):
         self.fn_save_examples = fn_save_examples
         
         self.dataset = tf.data.Dataset.from_tensor_slices(self.raw_dataset).\
-            shuffle(self.buffer_size).repeat(self.generator_training_ratio).batch(self.batch_size)
+            shuffle(self.buffer_size).repeat(self.generator_training_ratio).batch(self.batch_size, drop_remainder=False)
         
         
         if checkpoint_dir:
