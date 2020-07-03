@@ -35,7 +35,7 @@ EPOCHS = 3000
 
 # Setup Dataset
 maestro_path = 'data/MAESTRO_6h.npz'
-raw_maestro = get_maestro_magnitude_phase_dataset(maestro_path)
+raw_maestro = get_maestro_magnitude_phase_dataset(maestro_path, fft_length=256, frame_step=128)
 raw_maestro = raw_maestro[:, :, :,0] # Remove the phase information
 
 # Construct generator and discriminator
