@@ -24,8 +24,8 @@ class Generator(Model):
         self.activation = activation
         
         layers = []
-        layers.append(Dense(4 * 8 * 1024))
-        layers.append(Reshape((4, 8, 1024)))
+        layers.append(Dense(4 * 4 * 1024))
+        layers.append(Reshape((4, 4, 1024)))
         layers.append(ReLU())
         layers.append(Conv2DTranspose(filters=512, kernel_size=(6,6), strides=(2,2), padding='same'))
         layers.append(ReLU())
@@ -36,8 +36,6 @@ class Generator(Model):
         layers.append(Conv2DTranspose(filters=64, kernel_size=(6,6), strides=(2,2), padding='same'))
         layers.append(ReLU())
         layers.append(Conv2DTranspose(filters=channels, kernel_size=(6,6), strides=(2,2), padding='same'))
-        #layers.append(ReLU())
-        #layers.append(Conv2DTranspose(filters=channels, kernel_size=(6,6), strides=(1,2), padding='same'))
         
         self.l = Sequential(layers)
         
@@ -57,7 +55,7 @@ class Discriminator(Model):
         layers.append(LeakyReLU(alpha=0.2))
         layers.append(Conv2D(filters=512, kernel_size=(6,6), strides=(2,2), padding='same'))
         layers.append(LeakyReLU(alpha=0.2))
-        layers.append(Conv2D(filters=1024, kernel_size=(6,6), strides=(1,2), padding='same'))
+        layers.append(Conv2D(filters=1024, kernel_size=(6,6), strides=(2,2), padding='same'))
         layers.append(LeakyReLU(alpha=0.2))
         layers.append(Flatten())
         layers.append(Dense(1))
