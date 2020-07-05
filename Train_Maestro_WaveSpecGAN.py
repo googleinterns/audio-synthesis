@@ -47,7 +47,7 @@ discriminator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
 checkpoint_dir = '_results/representation_study/WaveSpecGAN/training_checkpoints/'
 
 def _get_discriminator_input_representations(x):
-    stft = tf.signal.stft(tf.reshape(x, (-1, 2**14)), frame_length=512, frame_step=128, pad_end=True)
+    stft = tf.signal.stft(tf.reshape(x, (-1, 2**14)), frame_length=256, frame_step=128, pad_end=True)
     magnitude = tf.abs(stft)
     magnitude = tf.math.log(magnitude + 1e-8)
     magnitude = magnitude[:,:,0:-1]
@@ -82,6 +82,6 @@ def save_examples(epoch, real, generated):
     sf.write('_results/representation_study/WaveSpecGAN/audio/gen_' + str(epoch) + '.wav', gen_waveforms, 16000)
 
     
-WaveGAN = WGAN(raw_maestro, [[-1, 2**14], [-1, 128, 256]], [[-1, 2**14, 1], [-1, 128, 256, 1]], generator, [discriminator, spec_discriminator], Z_dim, generator_optimizer, discriminator_optimizer, generator_training_ratio=D_updates_per_g, batch_size=BATCH_SIZE, epochs=EPOCHS, checkpoint_dir=checkpoint_dir, fn_compute_loss=_compute_losses, fn_save_examples=save_examples, get_discriminator_input_representations=_get_discriminator_input_representations)
+WaveGAN = WGAN(raw_maestro, [[-1, 2**14], [-1, 128, 128]], [[-1, 2**14, 1], [-1, 128, 128, 1]], generator, [discriminator, spec_discriminator], Z_dim, generator_optimizer, discriminator_optimizer, generator_training_ratio=D_updates_per_g, batch_size=BATCH_SIZE, epochs=EPOCHS, checkpoint_dir=checkpoint_dir, fn_compute_loss=_compute_losses, fn_save_examples=save_examples, get_discriminator_input_representations=_get_discriminator_input_representations)
 
 WaveGAN.train()
