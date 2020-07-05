@@ -111,7 +111,7 @@ class WGAN(AbstractModel):
             
             
     def restore(self, checkpoint, completed_epochs):
-        checkpoint_path = self.checkpoint_dir + 'ckpt-5'
+        checkpoint_path = self.checkpoint_dir + checkpoint
         self.checkpoint.restore(checkpoint_path)
         self.completed_epochs = completed_epochs
         print("Checkpoint ", checkpoint_path, ' restored at ', str(self.completed_epochs), ' epochs')
