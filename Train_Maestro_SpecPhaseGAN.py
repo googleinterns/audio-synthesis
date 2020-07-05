@@ -16,7 +16,7 @@ import tensorflow as tf
 from structures.SpecGAN import Generator, Discriminator
 from models.WGAN import WGAN
 from datasets.MAESTRODataset import get_maestro_magnitude_phase_dataset
-from utils.Spectral import spectogram_2_waveform
+from utils.Spectral import spectogram_2_waveform, magnitude_2_waveform
 from tensorflow.keras.activations import tanh
 from tensorflow.keras.utils import Progbar
 
@@ -43,10 +43,10 @@ raw_maestro_magnitude = raw_maestro[:, :, :,0]
 raw_maestro_phase = raw_maestro[:, :, :,1]
 
 maestro_magnitude_mean = np.mean(raw_maestro_magnitude, axis=0)
-maestro_magnitude_std = np.mean(raw_maestro_phase, axis=0)
+maestro_magnitude_std = np.std(raw_maestro_magnitude, axis=0)
 
 maestro_phase_mean = np.mean(raw_maestro_phase, axis=0)
-maestro_phase_std = np.mean(raw_maestro_phase, axis=0)
+maestro_phase_std = np.std(raw_maestro_phase, axis=0)
 
 print(maestro_magnitude_mean.shape)
 
@@ -75,6 +75,8 @@ generator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
 discriminator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
 
 checkpoint_dir = '_results/representation_study/SpecPhaseGAN/training_checkpoints/'
+#restore_point ='ckpt-7'
+
 
 
 def get_waveform(spectogram):
@@ -92,20 +94,33 @@ def get_waveform(spectogram):
     
     return spectogram_2_waveform(spectogram, fft_length=256, frame_step=128, log_magnitude=True, instantaneous_frequency=True)
 
+def get_waveform_gl(magnitude):
+    magnitude = np.reshape(magnitude, (128, 128))
+    magnitude = magnitude * 3.
+    magnitude = (magnitude * maestro_magnitude_std) + maestro_magnitude_mean
+    
+    return magnitude_2_waveform(magnitude, n_iter=16, fft_length=256, frame_step=128)
+
 def save_examples(epoch, real, generated):
     gen_waveforms = []
+    gen_griffin_lim_waveforms = []
     real_waveforms = []
     for r, g in zip(real, generated):
         real_waveforms.append(get_waveform(r))
         gen_waveforms.append(get_waveform(g))
+        gen_griffin_lim_waveforms.append(get_waveform_gl(g[:,:,0]))
+        
         
     real_waveforms = np.reshape(real_waveforms, (-1))
     gen_waveforms = np.reshape(gen_waveforms, (-1))
+    gen_griffin_lim_waveforms = np.reshape(gen_griffin_lim_waveforms, (-1))
 
 
     sf.write('_results/representation_study/SpecPhaseGAN/audio/real_' + str(epoch) + '.wav', real_waveforms, 16000)
     sf.write('_results/representation_study/SpecPhaseGAN/audio/gen_' + str(epoch) + '.wav', gen_waveforms, 16000)
+    sf.write('_results/representation_study/SpecPhaseGAN/audio/gen_gl_' + str(epoch) + '.wav', gen_griffin_lim_waveforms, 16000)
 
 SpecPhaseGAN = WGAN(normalized_raw_maestro, [-1, 128, 128, 2], [-1, 128, 128, 2], generator, discriminator, Z_dim, generator_optimizer, discriminator_optimizer, generator_training_ratio=D_updates_per_g, batch_size=BATCH_SIZE, epochs=EPOCHS, checkpoint_dir=checkpoint_dir, fn_save_examples=save_examples)
 
+#SpecPhaseGAN.restore(restore_point, 70)
 SpecPhaseGAN.train()
