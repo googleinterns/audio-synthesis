@@ -92,6 +92,7 @@ class WGAN(AbstractModel):
         self.batch_size = batch_size
         self.buffer_size = 1000
         self.epochs = epochs
+        self.completed_epochs = 0
         self.epochs_per_save = epochs_per_save
         self.fn_compute_loss = fn_compute_loss
         self.fn_save_examples = fn_save_examples
@@ -101,12 +102,19 @@ class WGAN(AbstractModel):
         
         
         if checkpoint_dir:
+            self.checkpoint_dir = checkpoint_dir
             self.checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")
             self.checkpoint = tf.train.Checkpoint(generator_optimizer=self.generator_optimizer,
                                  discriminator_optimizer=self.discriminator_optimizer,
                                  generator=self.generator,
                                  discriminator=self.discriminator)
             
+            
+    def restore(self, checkpoint, completed_epochs):
+        checkpoint_path = self.checkpoint_dir + checkpoint
+        self.checkpoint.restore(checkpoint_path)
+        self.completed_epochs = completed_epochs
+        print("Checkpoint ", checkpoint_path, ' restored at ', str(self.completed_epochs), ' epochs')
             
     def _train_step(self, X, train_generator=True, train_discriminator=True):
         """Executes one training step of the WGAN model.
@@ -123,15 +131,15 @@ class WGAN(AbstractModel):
         with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
             X_gen = self.generator(Z, training=True)
             X_gen = tf.reshape(X_gen, shape=self.d_in_data_shape)
-            assert X_gen.shape == X.shape
+            #assert X_gen.shape == X.shape
             
             # Compute Wasserstein Distance 
             d_real = self.discriminator(X, training=True)
             d_fake = self.discriminator(X_gen, training=True)
             
             # Output from discriminator should be 1-dimentional
-            assert d_real.shape[-1] == 1
-            assert d_fake.shape[-1] == 1
+            #assert d_real.shape[-1] == 1
+            #assert d_fake.shape[-1] == 1
             
             alpha_shape = np.ones(len(self.d_in_data_shape))
             alpha_shape[0] = X.shape[0]
@@ -152,7 +160,7 @@ class WGAN(AbstractModel):
             
     def _generate_and_save_examples(self, epoch, X_real):
         if self.fn_save_examples:
-            z = tf.random.uniform(shape=(X_real.shape[0], self.z_dim), minval=-1, maxval=1)
+            z = tf.random.uniform(shape=(len(X_real), self.z_dim), minval=-1, maxval=1)
             generations = self.generator(z, training=False)
             self.fn_save_examples(epoch, X_real, generations)
             
@@ -160,8 +168,9 @@ class WGAN(AbstractModel):
     def train(self):
         """Executes the training for the WGAN model.
         """
-        self._generate_and_save_examples(0, self.raw_dataset[0:self.batch_size])
-        for epoch in range(self.epochs):
+        self._generate_and_save_examples(0, np.array(self.raw_dataset[0:self.batch_size]))
+        for epoch in range(
+self.completed_epochs, self.epochs):
             pb_i = Progbar(len(self.raw_dataset))
             start = time.time()
 
@@ -174,7 +183,7 @@ class WGAN(AbstractModel):
 
                 i += 1
 
-            if self.checkpoint_dir and (epoch + 1) % self.epochs_per_save == 0:
+            if self.checkpoint_prefix and (epoch + 1) % self.epochs_per_save == 0:
                 self.checkpoint.save(file_prefix = self.checkpoint_prefix)
 
             print ('\nTime for epoch {} is {} minutes'.format(epoch + 1, (time.time()-start) / 60))

@@ -39,7 +39,7 @@ def waveform_2_spectogram(x, fft_length=512, frame_step=128, log_magnitude=True,
     phase = tf.math.angle(stft)
 
     if log_magnitude:
-        magnitude = np.log(magnitude + 1e-8)
+        magnitude = tf.math.log(magnitude + 1e-6)
             
     if instantaneous_frequency:
         phase = np.unwrap(phase)
@@ -105,20 +105,20 @@ def spectogram_2_waveform(spectogram, fft_length=512, frame_step=128, log_magnit
     phase = spectogram[:,:,1]
     
     if log_magnitude:
-        magnitude = np.exp(magnitude)
+        magnitude = tf.math.exp(magnitude)
         
     if instantaneous_frequency:
-        phase = np.array(phase).cumsum(axis=-2)
+        phase = tf.cumsum(phase, axis=-2)
         phase = (phase + np.pi) % (2 * np.pi) - np.pi
         
     # Add the removed band back in as zeros
-    magnitude = np.pad(magnitude, [[0,0], [0,1]])
-    phase = np.pad(phase, [[0,0], [0,1]])
+    magnitude = tf.pad(magnitude, [[0,0], [0,1]])
+    phase = tf.pad(phase, [[0,0], [0,1]])
     
-    real = magnitude * np.cos(phase)
-    img = magnitude * np.sin(phase)
+    real = magnitude * tf.math.cos(phase)
+    img = magnitude * tf.math.sin(phase)
 
-    stft = real + 1j * img
+    stft = tf.complex(real, img)
     
     waveform = tf.signal.inverse_stft(stft, frame_length=fft_length, frame_step=frame_step)
     return waveform
