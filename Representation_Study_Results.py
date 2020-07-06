@@ -36,8 +36,8 @@ results_path = '_results/representation_study/'
 maestro_path = 'data/MAESTRO_6h.npz'
 
 wavegan_checkpoint_path = '_results/representation_study/WaveGAN/training_checkpoints/ckpt-30'
-specgan_checkpoint_path = '_results/representation_study/SpecGAN_orig/training_checkpoints/ckpt-23'
-specphasegan_checkpoint_path = '_results/representation_study/SpecPhaseGAN/training_checkpoints/ckpt-8'
+specgan_checkpoint_path = '_results/representation_study/SpecGAN_orig/training_checkpoints/ckpt-27'
+specphasegan_checkpoint_path = '_results/representation_study/SpecPhaseGAN/training_checkpoints/ckpt-11'
 
 # Build and load models from checkpoints
 # WaveGAN
@@ -131,7 +131,6 @@ for i in range(N_generations):
     specgan_magnitude = specgan_generator(tf.reshape(z[i], (1, Z_dim)))
     specgan_magnitude = un_normalize_magnitude(tf.reshape(specgan_magnitude, (128,128)))
     specgan_waveform = magnitude_2_waveform(specgan_magnitude, fft_length=256, frame_step=128)[0:2**14]
-    print(specgan_waveform.shape)
     specgan_generations['waveform'].append(specgan_waveform)
     
     # Process SpecPhaseGAN
