@@ -23,7 +23,7 @@ import numpy as np
 import os
 import sys
 
-os.environ["CUDA_VISIBLE_DEVICES"] = ''
+os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
 # Setup Paramaters
@@ -49,10 +49,10 @@ checkpoint_dir = '_results/representation_study/WaveSpecGAN/training_checkpoints
 def _get_discriminator_input_representations(x):
     stft = tf.signal.stft(tf.reshape(x, (-1, 2**14)), frame_length=256, frame_step=128, pad_end=True)
     magnitude = tf.abs(stft)
-    magnitude = tf.math.log(magnitude + 1e-8)
+    magnitude = tf.math.log(magnitude + 1e-6)
     magnitude = magnitude[:,:,0:-1]
     magnitude = tf.expand_dims(magnitude, axis=3)
-    
+
     return (tf.reshape(x, (-1, 2**14, 1)), magnitude)
 
 def _compute_losses(discriminator, d_real, d_fake, interpolated):

@@ -118,21 +118,22 @@ class WGAN(AbstractModel):
             train_discriminator: If true, the discriminator weights will be updated.
         """
         
-        #X = tf.reshape(X, shape=self.d_in_data_shapes)
+        
+        X_representations = self.get_discriminator_input_representations(X)
+        
         Z = tf.random.uniform(shape=(X.shape[0], self.z_dim), minval=-1, maxval=1)
 
         with tf.GradientTape() as gen_tape:
             X_gen = self.generator(Z, training=True)
-            #X_gen = tf.reshape(X_gen, shape=self.d_in_data_shapes)
-            
             X_gen_representations = self.get_discriminator_input_representations(X_gen)
-            X_representations = self.get_discriminator_input_representations(X)
             
             g_loss = 0
             d_loss = 0
+            
+            lambdas = [1.0, 1.0/1000.0]
+            
             # Iterate through discriminators
             for i in range(len(self.discriminator)):
-                
                 with tf.GradientTape() as disc_tape:
                     # Compute Wasserstein Distance 
                     d_real = self.discriminator[i](X_representations[i], training=True)
@@ -143,15 +144,14 @@ class WGAN(AbstractModel):
                     alpha = tf.random.uniform(alpha_shape.astype('int32'), 0.0, 1.0)
                     diff = X_gen_representations[i] - X_representations[i]
                     interp = X_representations[i] + (alpha * diff)
-
+                    
                     g_loss_i, d_loss_i = self.fn_compute_loss(self.discriminator[i], d_real, d_fake, interp)
                 
+                g_loss += lambdas[i] * g_loss_i
                 gradients_of_discriminator = disc_tape.gradient(d_loss_i, self.discriminator[i].trainable_variables)
                 
                 if train_discriminator:
                     self.discriminator_optimizer.apply_gradients(zip(gradients_of_discriminator, self.discriminator[i].trainable_variables))
-                
-                g_loss += g_loss_i
             
             
         gradients_of_generator = gen_tape.gradient(g_loss, self.generator.trainable_variables)
