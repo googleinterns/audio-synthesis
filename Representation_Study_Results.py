@@ -17,6 +17,7 @@ import structures.WaveGAN as WaveGAN
 import structures.SpecGAN as SpecGAN
 from datasets.MAESTRODataset import get_maestro_waveform_dataset, get_maestro_magnitude_phase_dataset
 from utils.Spectral import waveform_2_spectogram, magnitude_2_waveform, spectogram_2_waveform
+from tensorflow.keras.activations import tanh
 from tensorflow.keras.utils import Progbar
 
 import time
@@ -47,14 +48,14 @@ wavegan_checkpoint.restore(wavegan_checkpoint_path).expect_partial()
 
 
 # SpecGAN
-specgan_generator = SpecGAN.Generator()
+specgan_generator = SpecGAN.Generator(activation=tanh)
 
 specgan_checkpoint = tf.train.Checkpoint(generator=specgan_generator)
 specgan_checkpoint.restore(specgan_checkpoint_path).expect_partial()
 
 
 # SpecPhaseGAN
-specphasegan_generator = SpecGAN.Generator(channels=2)
+specphasegan_generator = SpecGAN.Generator(channels=2, activation=tanh)
 
 specphasegan_checkpoint = tf.train.Checkpoint(generator=specphasegan_generator)
 specphasegan_checkpoint.restore(specphasegan_checkpoint_path).expect_partial()
@@ -130,6 +131,7 @@ for i in range(N_generations):
     specgan_magnitude = specgan_generator(tf.reshape(z[i], (1, Z_dim)))
     specgan_magnitude = un_normalize_magnitude(tf.reshape(specgan_magnitude, (128,128)))
     specgan_waveform = magnitude_2_waveform(specgan_magnitude, fft_length=256, frame_step=128)[0:2**14]
+    print(specgan_waveform.shape)
     specgan_generations['waveform'].append(specgan_waveform)
     
     # Process SpecPhaseGAN
