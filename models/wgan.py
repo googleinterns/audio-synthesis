@@ -29,9 +29,9 @@ def _compute_losses(model, d_real, d_fake, interpolated):
         tape.watch(interpolated)
         d_interpolated = model.discriminator(interpolated, training=True)
 
-    grad = tape.gradient(d_interpolated, [interpolated])[0]
+    gradient = tape.gradient(d_interpolated, [interpolated])[0]
     sum_axes = list(range(1, len(model.d_in_data_shape)))
-    slopes = tf.sqrt(tf.reduce_sum(tf.square(grad), axis=sum_axes))
+    slopes = tf.sqrt(tf.reduce_sum(tf.square(gradient), axis=sum_axes))
     gradient_penalty = tf.reduce_mean((slopes - 1.0) ** 2.0)
 
     g_loss = tf.reduce_mean(d_fake)
@@ -50,16 +50,14 @@ class WGAN: # pylint: disable=too-many-instance-attributes
     [2] Improved Training of Wasserstein GANs - https://arxiv.org/abs/1704.00028.
     """
 
-    def __init__(self, raw_dataset, data_shape, d_in_data_shape, generator, # pylint: disable=too-many-arguments, too-many-locals
+    def __init__(self, raw_dataset, d_in_data_shape, generator, # pylint: disable=too-many-arguments, too-many-locals
                  discriminator, z_dim, generator_optimizer, discriminator_optimizer,
-                 generator_training_ratio=5, batch_size=64, epochs=1, checkpoint_dir=None,
+                 discriminator_training_ratio=5, batch_size=64, epochs=1, checkpoint_dir=None,
                  epochs_per_save=10, fn_compute_loss=_compute_losses, fn_save_examples=None):
         """Initilizes the WGAN class.
 
         Paramaters:
             raw_dataset: A numpy array containing the training dataset.
-            data_shape: The shape of the data points, should start with -1
-                    to signify the batch size.
             d_in_data_shape: The shape of the data points at the input to
                     the discriminator, usually has an extra channel dimention.
             generator: The generator model.
@@ -67,7 +65,7 @@ class WGAN: # pylint: disable=too-many-instance-attributes
             z_dim: The number of latent features.
             generator_optimizer: The optimizer for the generator model.
             discriminator_optimizer: The discriminator for the discriminator.
-            generator_training_ratio: The number of discriminator updates
+            discriminator_training_ratio: The number of discriminator updates
                     per generator update. Default is 5.
             batch_size: Number of elements in each batch.
             epochs: Number of epochs of the training set.
@@ -81,14 +79,13 @@ class WGAN: # pylint: disable=too-many-instance-attributes
                     called after every epoch.
         """
         self.raw_dataset = raw_dataset
-        self.data_shape = data_shape
         self.d_in_data_shape = d_in_data_shape
         self.generator = generator
         self.discriminator = discriminator
         self.z_dim = z_dim
         self.generator_optimizer = generator_optimizer
         self.discriminator_optimizer = discriminator_optimizer
-        self.generator_training_ratio = generator_training_ratio
+        self.discriminator_training_ratio = discriminator_training_ratio
         self.batch_size = batch_size
         self.buffer_size = 1000
         self.epochs = epochs
@@ -134,6 +131,10 @@ class WGAN: # pylint: disable=too-many-instance-attributes
             x_in: One batch of training data.
             train_generator: If true, the generator weights will be updated.
             train_discriminator: If true, the discriminator weights will be updated.
+            
+        Returns:
+            g_loss: The generator loss
+            d_loss: The discriminator loss
         """
 
         x_in = tf.reshape(x_in, shape=self.d_in_data_shape)
