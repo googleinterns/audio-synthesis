@@ -123,15 +123,22 @@ models = {
     'SpecGAN': {
         'generator': SpecGAN.Generator(activation=tanh),
         'checkpoint_path':\
-            '_results/representation_study/SpecGAN_orig/training_checkpoints/ckpt-27',
+            '_results/representation_study/SpecGAN_orig/training_checkpoints/ckpt-30',
         'generate_fn': _spec_gan_generate_fn,
         'waveform': [],
     },
     'SpecPhaseGAN': {
         'generator': SpecGAN.Generator(channels=2, activation=tanh),
         'checkpoint_path':\
-            '_results/representation_study/SpecPhaseGAN/training_checkpoints/ckpt-11',
+            '_results/representation_study/SpecPhaseGAN/training_checkpoints/ckpt-30',
         'generate_fn': _spec_phase_gan_generate_fn,
+        'waveform': [],
+    },
+    'WaveSpecGAN': {
+        'generator': WaveGAN.Generator(),
+        'checkpoint_path':\
+            '_results/representation_study/WaveSpecGAN/training_checkpoints/ckpt-15',
+        'generate_fn': _wave_gan_generate_fn,
         'waveform': [],
     },
     'Waveform': {
@@ -157,7 +164,7 @@ if __name__ == '__main__':
     for model_name in models:
         if 'data' in models[model_name] and models[model_name]['data']:
             continue
-
+        
         checkpoint = tf.train.Checkpoint(generator=models[model_name]['generator'])
         checkpoint.restore(models[model_name]['checkpoint_path']).expect_partial()
 
