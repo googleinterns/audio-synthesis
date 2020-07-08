@@ -1,5 +1,5 @@
 # Copyright 2020 Google LLC
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -13,38 +13,37 @@
 # limitations under the License.
 
 import tensorflow as tf
-from structures.WaveGAN import Generator, Discriminator
-from structures.SpecGAN import Discriminator as SpecDiscriminator
-from datasets.MAESTRODataset import get_maestro_waveform_dataset
-from models.MultiDiscriminatorWGAN import WGAN
+from audio_synthesis.structures.wave_gan import Generator, Discriminator
+from audio_synthesis.structures.spec_gan import Discriminator as SpecDiscriminator
+from audio_synthesis.datasets.maestro_dataset import get_maestro_waveform_dataset
+from audio_synthesis.models.MultiDiscriminatorWGAN import WGAN
 import time
 import soundfile as sf
 import numpy as np
 import os
 import sys
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '0'
+os.environ["CUDA_VISIBLE_DEVICES"] = ''
 print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
 # Setup Paramaters
-D_updates_per_g = 5
+D_UPDATES_PER_G = 5
 Z_dim = 64
 BATCH_SIZE = 64
 EPOCHS = 300
+SAMPLING_RATE = 16000
+CHECKPOINT_DIR = '_results/representation_study/WaveSpecGAN/training_checkpoints/'
+RESULT_DIR = '_results/representation_study/WaveSpecGAN/audio/'
+MAESTRO_PATH = 'data/MAESTRO_6h.npz'
 
-# Setup Dataset
-maestro_path = 'data/MAESTRO_6h.npz'
-raw_maestro = get_maestro_waveform_dataset(maestro_path)
+raw_maestro = get_maestro_waveform_dataset(MAESTRO_PATH)
 
-# Construct generator and discriminator
 generator = Generator()
 discriminator = Discriminator()
 spec_discriminator = SpecDiscriminator()
 
 generator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
 discriminator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
-
-checkpoint_dir = '_results/representation_study/WaveSpecGAN/training_checkpoints/'
 
 def _get_discriminator_input_representations(x):
     stft = tf.signal.stft(tf.reshape(x, (-1, 2**14)), frame_length=256, frame_step=128, pad_end=True)
@@ -78,10 +77,10 @@ def save_examples(epoch, real, generated):
     real_waveforms = np.reshape(real, (-1))
     gen_waveforms = np.reshape(generated, (-1))
 
-    sf.write('_results/representation_study/WaveSpecGAN/audio/real_' + str(epoch) + '.wav', real_waveforms, 16000)
-    sf.write('_results/representation_study/WaveSpecGAN/audio/gen_' + str(epoch) + '.wav', gen_waveforms, 16000)
+    sf.write(RESULT_DIR + 'real_' + str(epoch) + '.wav', real_waveforms, 16000)
+    sf.write(RESULT_DIR + 'gen_' + str(epoch) + '.wav', gen_waveforms, 16000)
 
     
-WaveGAN = WGAN(raw_maestro, [[-1, 2**14], [-1, 128, 128]], [[-1, 2**14, 1], [-1, 128, 128, 1]], generator, [discriminator, spec_discriminator], Z_dim, generator_optimizer, discriminator_optimizer, generator_training_ratio=D_updates_per_g, batch_size=BATCH_SIZE, epochs=EPOCHS, checkpoint_dir=checkpoint_dir, fn_compute_loss=_compute_losses, fn_save_examples=save_examples, get_discriminator_input_representations=_get_discriminator_input_representations)
+WaveGAN = WGAN(raw_maestro, [[-1, 2**14], [-1, 128, 128]], [[-1, 2**14, 1], [-1, 128, 128, 1]], generator, [discriminator, spec_discriminator], Z_DIM, generator_optimizer, discriminator_optimizer, generator_training_ratio=D_UPDATES_PER_G, batch_size=BATCH_SIZE, epochs=EPOCHS, checkpoint_dir=CHECKPOINT_DIR, fn_compute_loss=_compute_losses, fn_save_examples=save_examples, get_discriminator_input_representations=_get_discriminator_input_representations)
 
 WaveGAN.train()
