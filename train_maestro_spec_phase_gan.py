@@ -12,7 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Training Script for SpecPhaseGAN on MAESTRO
+"""Training Script for SpecPhaseGAN on MAESTRO.
+
+This follows the origonal SpecGAN training,
+where the magnitude and phase (instantaneous frequency)
+are normalized to sit between -1 and 1.
 """
 
 import os
@@ -106,9 +110,9 @@ def save_examples(epoch, real, generated):
              gen_waveforms, SAMPLING_RATE)
 
 
-SpecPhaseGAN = WGAN(normalized_raw_maestro, [-1, 128, 128, 2], [-1, 128, 128, 2], generator,
+SpecPhaseGAN = WGAN(normalized_raw_maestro, [-1, 128, 128, 2], generator,
                     discriminator, Z_DIM, generator_optimizer, discriminator_optimizer,
-                    generator_training_ratio=D_UPDATES_PER_G, batch_size=BATCH_SIZE,
+                    discriminator_training_ratio=D_UPDATES_PER_G, batch_size=BATCH_SIZE,
                     epochs=EPOCHS, checkpoint_dir=CHECKPOINT_DIR,
                     fn_save_examples=save_examples)
 

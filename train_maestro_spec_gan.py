@@ -12,7 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Training Script for SpecGAN on MAESTRO
+"""Training Script for SpecGAN on MAESTRO.
+
+This follows the origonal SpecGAN training,
+where the magnitude spectrums are normalized
+to sit between -1 and 1.
 """
 
 import os
@@ -36,6 +40,7 @@ Z_DIM = 64
 BATCH_SIZE = 64
 EPOCHS = 300
 SAMPLING_RATE = 16000
+GRIFFIN_LIM_ITERATIONS = 16
 FFT_FRAME_LENGTH = 256
 FFT_FRAME_STEP = 128
 CHECKPOINT_DIR = '_results/representation_study/SpecGAN/training_checkpoints/'
@@ -67,13 +72,18 @@ discriminator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
 def get_waveform(magnitude):
     """A wrapper for the 'magnitude_2_waveform' function
     that handles un-normalization.
+
+    Paramaters:
+        magnitude: The un-normalized magnitude to be
+            converted to a waveform. A single
+            magnitude with no channel dimention.
     """
 
     magnitude = np.squeeze(magnitude)
     magnitude = un_normalize(magnitude, maestro_magnitude_mean,
                              maestro_magnitude_std)
 
-    return magnitude_2_waveform(magnitude, n_iter=16,
+    return magnitude_2_waveform(magnitude, n_iter=GRIFFIN_LIM_ITERATIONS,
                                 frame_length=FFT_FRAME_LENGTH,
                                 frame_step=FFT_FRAME_STEP)
 
@@ -93,9 +103,9 @@ def save_examples(epoch, real, generated):
     sf.write(RESULT_DIR + 'real_' + str(epoch) + '.wav', real_waveforms, SAMPLING_RATE)
     sf.write(RESULT_DIR + 'gen_' + str(epoch) + '.wav', gen_waveforms, SAMPLING_RATE)
 
-SpecGAN = WGAN(normalized_raw_maestro, [-1, 128, 128], [-1, 128, 128, 1], generator,
+SpecGAN = WGAN(normalized_raw_maestro, [-1, 128, 128, 1], generator,
                discriminator, Z_DIM, generator_optimizer, discriminator_optimizer,
-               generator_training_ratio=D_UPDATES_PER_G, batch_size=BATCH_SIZE,
+               discriminator_training_ratio=D_UPDATES_PER_G, batch_size=BATCH_SIZE,
                epochs=EPOCHS, checkpoint_dir=CHECKPOINT_DIR,
                fn_save_examples=save_examples)
 

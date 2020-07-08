@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Training Script for WaveGAN on MAESTRO
+"""Training Script for WaveGAN on MAESTRO.
 """
 
 import os
@@ -58,9 +58,9 @@ def save_examples(epoch, real, generated):
              gen_waveforms, SAMPLING_RATE)
 
 
-WaveGAN = WGAN(raw_maestro, [-1, 2**14], [-1, 2**14, 1], generator,
+WaveGAN = WGAN(raw_maestro, [-1, 2**14, 1], generator,
                discriminator, Z_DIM, generator_optimizer, discriminator_optimizer,
-               generator_training_ratio=D_UPDATES_PER_G, batch_size=BATCH_SIZE,
+               discriminator_training_ratio=D_UPDATES_PER_G, batch_size=BATCH_SIZE,
                epochs=EPOCHS, checkpoint_dir=CHECKPOINT_DIR,
                fn_save_examples=save_examples)
 
