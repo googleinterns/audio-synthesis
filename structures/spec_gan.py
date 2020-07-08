@@ -67,10 +67,10 @@ class Generator(Model): # pylint: disable=too-many-ancestors
         layers.append(Conv2DTranspose(filters=channels, kernel_size=(6, 6), strides=(2, 2),
                                       padding='same'))
 
-        self.sequential = Sequential(layers)
+        self.l = Sequential(layers)
 
     def call(self, z_in): # pylint: disable=arguments-differ
-        return self.activation(self.sequential(z_in))
+        return self.activation(self.l(z_in))
 
 class Discriminator(Model): # pylint: disable=too-many-ancestors
     """Implementation of the SpecGAN Discriminator Function.
@@ -93,7 +93,7 @@ class Discriminator(Model): # pylint: disable=too-many-ancestors
         layers.append(Flatten())
         layers.append(Dense(1))
 
-        self.sequential = Sequential(layers)
+        self.l = Sequential(layers)
 
     def call(self, x_in): # pylint: disable=arguments-differ
-        return self.sequential(x_in)
+        return self.l(x_in)

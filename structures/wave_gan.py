@@ -55,10 +55,10 @@ class Generator(Model): # pylint: disable=too-many-ancestors
         layers.append(ReLU())
         layers.append(Conv1DTranspose(filters=1, strides=4, kernel_size=36))
 
-        self.sequential = Sequential(layers, name=name)
+        self.l = Sequential(layers, name=name)
 
     def call(self, z_in): # pylint: disable=arguments-differ
-        output = self.sequential(z_in)
+        output = self.l(z_in)
         return output
 
 
@@ -86,8 +86,8 @@ class Discriminator(Model): # pylint: disable=too-many-ancestors
         layers.append(Flatten())
         layers.append(Dense(1))
 
-        self.sequential = Sequential(layers, name=name)
+        self.l = Sequential(layers, name=name)
 
     def call(self, x_in): # pylint: disable=arguments-differ
-        output = self.sequential(x_in)
+        output = self.l(x_in)
         return output
