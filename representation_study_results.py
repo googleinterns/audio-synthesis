@@ -1,7 +1,3 @@
-"""This module handles generating audio from models trained
-in the representation study. The list of models is modular.
-"""
-
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,13 +12,16 @@ in the representation study. The list of models is modular.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""This module handles generating audio from models trained
+in the representation study. The list of models is modular.
+"""
+
 import os
 from tensorflow.keras.activations import tanh
 from tensorflow.keras.utils import Progbar
 import tensorflow as tf
 import soundfile as sf
 import numpy as np
-
 from audio_synthesis.datasets.maestro_dataset import get_maestro_waveform_dataset,\
         get_maestro_spectogram_normalizing_constants, un_normalize
 from audio_synthesis.utils.spectral import waveform_2_spectogram,\
@@ -30,7 +29,6 @@ from audio_synthesis.utils.spectral import waveform_2_spectogram,\
 import audio_synthesis.structures.wave_gan as WaveGAN
 import audio_synthesis.structures.spec_gan as SpecGAN
 
-# Specify which (if any) GPUs are available.
 os.environ["CUDA_VISIBLE_DEVICES"] = ''
 print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
@@ -106,7 +104,14 @@ def _data_waveform_istft_fn(data_waveform):
 
 # An object containing the models we wish to process and extract results from.
 # There are two options:
-#   1) Either the model is a trained generator function.
+#   1) Either the model is a trained generator function. In this case,
+#      a 'generator' model must be specified, along with a 'checkpoint_path'
+#      to load from.
+#   2) Or it is a processed form of the origonal data. In this case, 'data': True
+#      must be set.
+# All models must have 'generate_fn' set to a function that takes a generation from
+# that mode (or data point) and returns a waveform. Additionally, waveform': [] must
+# set, this is where the waveforms are collected.
 models = {
     'WaveGAN': {
         'generator': WaveGAN.Generator(),
@@ -166,20 +171,24 @@ if __name__ == '__main__':
         z_in = tf.reshape(z[i], (1, Z_DIM))
 
         for model_name in models:
+            # If the model is a generator then produce a random generation,
+            # otherwise take the current data point.
             if 'data' in models[model_name] and models[model_name]['data']:
                 generation = maestro[i]
             else:
                 generation = models[model_name]['generator'](z_in)
 
+            # Apply pre-defined transform to waveform.
             generation = np.squeeze(generation)
             waveform = models[model_name]['generate_fn'](generation)
 
+            # Clip waveform to desired length and save
             waveform = waveform[0:WAVEFORM_LENGTH]
             models[model_name]['waveform'].append(waveform)
 
         pb_i.add(1)
 
-
+    # Save the waveforms for each model as one long audio clip
     for model_name in models:
         wav = np.reshape(models[model_name]['waveform'], (-1))
         sf.write(RESULTS_PATH + model_name + '.wav', wav, SAMPLING_RATE)
