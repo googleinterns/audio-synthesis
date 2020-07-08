@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import tensorflow as tf
-from models.AbstractModel import AbstractModel
 from tensorflow.keras.utils import Progbar
 import numpy as np
 import time
@@ -37,7 +36,7 @@ def _compute_losses(model, d_real, d_fake, interpolated):
     return G_loss, D_loss
     
 
-class WGAN(AbstractModel):
+class WGAN:
     """Implements the training procedure for Wasserstein GAN [1] with Gradient Penalty [2].
     
     This class abstracts the training procedure for an arbatrary Wasserstein GAN [1] using
