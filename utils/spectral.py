@@ -77,7 +77,6 @@ def waveform_2_magnitude(waveform, frame_length=512, frame_step=128, log_magnitu
 def magnitude_2_waveform(magnitude, n_iter=16, frame_length=512,
                          frame_step=128, log_magnitude=True):
     """Transform a Magnitude Spectrum to a Waveform.
-
     Uses the Griffin-Lim algorythm, via the librosa implementation.
 
     Paramaters:
