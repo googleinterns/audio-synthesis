@@ -1,5 +1,5 @@
 # Copyright 2020 Google LLC
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -15,32 +15,31 @@
 """An implemementation of the Generator and Discriminator for WaveGAN.
 
 This file contains an implementation of the generator and discriminator
-components for the WaveGAN [https://arxiv.org/abs/1802.04208] model. 
+components for the WaveGAN [https://arxiv.org/abs/1802.04208] model.
 The official implementation of WaveGAN can be found online
 (https://github.com/chrisdonahue/wavegan) and contains a more general
 implementation of WaveGAN. The key difference between this imlementation
 and the offical one is that we do not use Phase Shuffle to avoid checkerboarding,
-instead we choose a kernel size of 24 (instead of 25),
+instead we choose a kernel size of 36 (instead of 25),
 such that it is divisible by the stride.
+"""
 
-""" 
-
-import tensorflow as tf
-from tensorflow.keras.layers import Dense, ReLU, LeakyReLU, Conv1D, Conv2DTranspose, Reshape, AveragePooling1D, Flatten
+from tensorflow.keras.layers import Dense, ReLU, LeakyReLU,\
+        Conv1D, Reshape, Flatten
 from tensorflow.keras import Model, Sequential
-from utils.Layers import Conv1DTranspose
+from audio_synthesis.utils.layers import Conv1DTranspose
 
-class Generator(Model):
+class Generator(Model): # pylint: disable=too-many-ancestors
     """The Generator function for WaveGAN.
-    
+
     The model takes a latent vector as input and transforms it into
     a signal with 16 time-steps and 1024 channels. Six transpose
     convolution layers upscale in the time dimention to 65536 and
     reduce the channel dimention to one. The output is approximatly
     four seconds of 16kHz audio.
     """
-    
-    def __init__(self, name='generator', signal_length=2**14):
+
+    def __init__(self, name='generator'):
         super(Generator, self).__init__()
         layers = []
         layers.append(Dense(16 * 1024))
@@ -54,28 +53,24 @@ class Generator(Model):
         layers.append(ReLU())
         layers.append(Conv1DTranspose(filters=64, strides=4, kernel_size=36))
         layers.append(ReLU())
-        if signal_length == 2**16:
-            layers.append(Conv1DTranspose(filters=64, strides=4, kernel_size=36))
-            layers.append(ReLU())
         layers.append(Conv1DTranspose(filters=1, strides=4, kernel_size=36))
 
-        self.l = Sequential(layers, name=name)
+        self.sequential = Sequential(layers, name=name)
+
+    def call(self, z_in): # pylint: disable=arguments-differ
+        output = self.sequential(z_in)
+        return output
 
 
-    def call(self, z):
-        x = self.l(z)
-        return x
-
-    
-class Discriminator(Model):
+class Discriminator(Model): # pylint: disable=too-many-ancestors
     """Implementation of the discriminator for WaveGAN
-    
+
     The model takes as input a real or fake waveform and,
     following the WGAN framework, produces a real valued
     output.
     """
-    
-    def __init__(self, name='discriminator', signal_length=2**14):
+
+    def __init__(self, name='discriminator'):
         super(Discriminator, self).__init__()
         layers = []
         layers.append(Conv1D(64, kernel_size=36, strides=4))
@@ -88,14 +83,11 @@ class Discriminator(Model):
         layers.append(LeakyReLU(alpha=0.2))
         layers.append(Conv1D(1024, kernel_size=36, strides=4))
         layers.append(LeakyReLU(alpha=0.2))
-        if signal_length == 2**16: 
-            layers.append(Conv1D(2014, kernel_size=36, strides=4))
-            layers.append(LeakyReLU(alpha=0.2))
         layers.append(Flatten())
         layers.append(Dense(1))
 
-        self.l = Sequential(layers, name=name)
+        self.sequential = Sequential(layers, name=name)
 
-    def call(self, x):
-        output = self.l(x)
+    def call(self, x_in): # pylint: disable=arguments-differ
+        output = self.sequential(x_in)
         return output

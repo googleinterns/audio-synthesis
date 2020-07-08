@@ -1,5 +1,5 @@
 # Copyright 2020 Google LLC
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -21,19 +21,20 @@ discriminators.
 """
 
 import tensorflow as tf
-from tensorflow.keras.layers import Dense, ReLU, LeakyReLU, Conv1D, Conv2DTranspose, Reshape, AveragePooling1D
-from tensorflow.keras import Model, Sequential
-from utils.Layers import Conv1DTranspose
 import numpy as np
+from tensorflow.keras.layers import Dense, ReLU, Conv1D,\
+        Reshape, AveragePooling1D
+from tensorflow.keras import Model, Sequential
+from audio_synthesis.utils.layers import Conv1DTranspose
 
 
-class Generator(Model):
+class Generator(Model): # pylint: disable=too-many-ancestors
+    """The GAN-TTS Generator Function
     """
-    """
-    
+
     def __init__(self, g_block_configs, latent_shape):
         super(Generator, self).__init__()
-        
+
         self.pre_process = Sequential([
             Dense(np.prod(latent_shape)),
             Reshape(latent_shape),
@@ -43,58 +44,83 @@ class Generator(Model):
         g_blocks = []
         for config in g_block_configs:
             input_channels, output_channels, upsample_factor = config
-            g_block = GBlock(input_channels=input_channels, output_channels=output_channels, upsample_factor=upsample_factor)
+            g_block = GBlock(input_channels=input_channels,
+                             output_channels=output_channels,
+                             upsample_factor=upsample_factor)
             g_blocks.append(g_block)
         self.g_blocks = Sequential(g_blocks)
 
         self.post_process = Conv1D(strides=1, kernel_size=3, filters=1, padding='same')
 
-    def call(self, z):
-        x = self.pre_process(z)
-        x = self.g_block(x)
-        x = self.post_process(x)
+    def call(self, z_in): # pylint: disable=arguments-differ
+        output = self.pre_process(z_in)
+        output = self.g_blocks(output)
+        output = self.post_process(output)
 
-        return x
+        return output
 
-
-class GBlock(Model):
+class GBlock(Model): # pylint: disable=too-many-ancestors
     """Implementation of the GBlock component that makes up the GAN-TTS generator
-    
+
     This implementaion, for the most part, follows Figure 1 of the paper
     [https://arxiv.org/pdf/1909.11646.pdf]. However, the conditioning information
     is excluded.
     """
-    
+
     def __init__(self, input_channels, output_channels, upsample_factor):
         super(GBlock, self).__init__()
-        
+
         self.stack_1 = Sequential([
             ReLU(),
-            Conv1DTranspose(filters=input_channels, kernel_size=upsample_factor*2, strides=upsample_factor, padding='same'),
-            Conv1D(filters=output_channels, kernel_size=3, strides=1, padding='same')                       
+            Conv1DTranspose(filters=input_channels,
+                            kernel_size=upsample_factor*2,
+                            strides=upsample_factor,
+                            padding='same'),
+            Conv1D(filters=output_channels,
+                   kernel_size=3,
+                   strides=1,
+                   padding='same')
         ])
 
         self.stack_2 = Sequential([
             ReLU(),
-            Conv1D(filters=output_channels, kernel_size=3, strides=1, dilation_rate=2, padding='same')    
+            Conv1D(filters=output_channels,
+                   kernel_size=3,
+                   strides=1,
+                   dilation_rate=2,
+                   padding='same')
         ])
 
         self.residual_1 = Sequential([
-            Conv1DTranspose(filters=input_channels, kernel_size=upsample_factor*2, strides=upsample_factor, padding='same'),
-            Conv1D(filters=output_channels, kernel_size=1, strides=1, padding='same') 
+            Conv1DTranspose(filters=input_channels,
+                            kernel_size=upsample_factor*2,
+                            strides=upsample_factor,
+                            padding='same'),
+            Conv1D(filters=output_channels,
+                   kernel_size=1,
+                   strides=1,
+                   padding='same')
         ])
 
         self.stack_3 = Sequential([
             ReLU(),
-            Conv1D(filters=output_channels, kernel_size=3, strides=1, dilation_rate=4, padding='same')
+            Conv1D(filters=output_channels,
+                   kernel_size=3,
+                   strides=1,
+                   dilation_rate=4,
+                   padding='same')
         ])
 
         self.stack_4 = Sequential([
             ReLU(),
-            Conv1D(filters=output_channels, kernel_size=3, strides=1, dilation_rate=8, padding='same')
+            Conv1D(filters=output_channels,
+                   kernel_size=3,
+                   strides=1,
+                   dilation_rate=8,
+                   padding='same')
         ])
 
-    def call(self, x):
+    def call(self, x): # pylint: disable=arguments-differ
         stack_1_out = self.stack_1(x)
         stack_2_out = self.stack_2(stack_1_out)
 
@@ -106,91 +132,102 @@ class GBlock(Model):
 
         return stack_4_out + residual_output
 
-
-
-class Discriminator(Model):
+class Discriminator(Model): # pylint: disable=too-many-ancestors
     """Implementation of the (unconditional) Random Window Discriminators for GAN-TTS.
     """
-    
-    def __init__(self, window_sizes=(240, 480, 960, 1920, 3600), factors=((5,3),(5,3),(5,3),(5,3),(2,2)), omega=240):
+
+    def __init__(self, window_sizes=(240, 480, 960, 1920, 3600),
+                 factors=((5, 3), (5, 3), (5, 3), (5, 3), (2, 2)), omega=240):
         super(Discriminator, self).__init__()
-        
+
         self.omega = omega
         self.window_sizes = window_sizes
 
         discriminators = []
-        for ws, f in zip(window_sizes, factors):
-            discriminators.append(UnconditionalDBlocks(factors=f))
-        
+        for factor in factors:
+            discriminators.append(UnconditionalDBlocks(factors=factor))
+
         self.discriminators = discriminators
 
 
-    def call(self, x):
+    def call(self, x_in): # pylint: disable=arguments-differ
         scores = []
         # For each block size
-        for i, ws in enumerate(self.window_sizes):
+        for i, window_size in enumerate(self.window_sizes):
             # Select random sub-window
-            idx = tf.random.uniform(shape=(1,), minval=0, maxval=(x.shape[1] - ws), dtype=tf.dtypes.int32)[0]
-            x_windowed = x[:,idx:idx+ws,:]
-            
+            idx = tf.random.uniform((1,), 0,
+                                    (x_in.shape[1] - window_size),
+                                    tf.dtypes.int32)[0]
+            x_windowed = x_in[:, idx:idx+window_size, :]
+
             # Move samples into channels to ensure constant temporal length
-            downsampling_factor = ws // self.omega
+            downsampling_factor = window_size // self.omega
             x_reshaped = tf.reshape(x_windowed, (-1, self.omega, downsampling_factor))
-        
+
             score = self.discriminators[i](x_reshaped)
             scores.append(score)
-        
+
         return scores
 
-class UnconditionalDBlocks(Model):
+class UnconditionalDBlocks(Model): # pylint: disable=too-many-ancestors
     """Implementation of a Unconditional Random Window Discriminator.
-    
+
     A collection of sequential DBlocks following Figure 2 of the
     paper [https://arxiv.org/pdf/1909.11646.pdf].
     """
-    
-    def __init__(self, factors=(5,3), output_channels=(128, 256)):
+
+    def __init__(self, factors=(5, 3), output_channels=(128, 256)):
         super(UnconditionalDBlocks, self).__init__()
-        
+
         dblocks = []
         dblocks.append(DBlock(64, 1))
-        for i in range(len(factors)):
-            dblocks.append(DBlock(output_channels[i], factors[i]))
+        for i, factor in enumerate(factors):
+            dblocks.append(DBlock(output_channels[i], factor))
         dblocks.append(DBlock(output_channels[-1], 1))
         dblocks.append(DBlock(output_channels[-1], 1))
-        self.dblocks = Sequential(dblocks) 
+        self.dblocks = Sequential(dblocks)
 
 
-    def call(self, x):
-        return self.dblocks(x)
+    def call(self, x_in): # pylint: disable=arguments-differ
+        return self.dblocks(x_in)
 
+class DBlock(Model): # pylint: disable=too-many-ancestors
+    """Implementation of the DBlock for GAN-TTS Discriminators.
 
-
-class DBlock(Model):
-    """Implementation of the DBlock component that makes up the unconditional GAN-TTS Discriminators.
-    
     The implementation of this block follows Figure 1 of
     the paper [https://arxiv.org/pdf/1909.11646.pdf].
     """
-    
+
     def __init__(self, output_channels, downsample_factor):
         super(DBlock, self).__init__()
-        
+
         self.stack = Sequential([
-            AveragePooling1D(pool_size=downsample_factor, strides=downsample_factor), # 100% sure that this is how we should be downsampling
+            AveragePooling1D(pool_size=downsample_factor, strides=downsample_factor),
             ReLU(),
-            Conv1D(filters=output_channels, kernel_size=3, strides=1, dilation_rate=1, padding='same'),
+            Conv1D(filters=output_channels,
+                   kernel_size=3,
+                   strides=1,
+                   dilation_rate=1,
+                   padding='same'),
             ReLU(),
-            Conv1D(filters=output_channels, kernel_size=3, strides=1, dilation_rate=2, padding='same')  
+            Conv1D(filters=output_channels,
+                   kernel_size=3,
+                   strides=1,
+                   dilation_rate=2,
+                   padding='same')
         ])
 
         self.residual = Sequential([
-            Conv1D(filters=output_channels, kernel_size=3, strides=1, dilation_rate=1, padding='same'),
+            Conv1D(filters=output_channels,
+                   kernel_size=3,
+                   strides=1,
+                   dilation_rate=1,
+                   padding='same'),
             AveragePooling1D(pool_size=downsample_factor, strides=downsample_factor)
         ])
 
-    def call(self, x):
-        so = self.stack(x) 
-        ro = self.residual(x)
-        
-        return so + ro
+    def call(self, x_in): # pylint: disable=arguments-differ
+        stack_output = self.stack(x_in)
+        residual_output = self.residual(x_in)
+
+        return stack_output + residual_output
