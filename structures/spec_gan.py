@@ -13,6 +13,14 @@
 # limitations under the License.
 
 """An implemementation of the Generator and Discriminator for SpecGAN.
+
+This file contains an implementation of the generator and discriminator
+components for SpecGAN [https://arxiv.org/abs/1802.04208].
+The official implementation of SpecGAN can be found online
+(https://github.com/chrisdonahue/wavegan). The key difference between this implementation
+and the offical one is that we use a larger kenel size to keep the model balanced
+with our implementation of WaveGAN. We choose a kernel size of 6x6 (instead of 5x5),
+such that it is divisible by the stride.
 """
 
 from tensorflow.keras.layers import Dense, ReLU, LeakyReLU,\
@@ -25,6 +33,17 @@ class Generator(Model): # pylint: disable=too-many-ancestors
     """
 
     def __init__(self, channels=1, activation=linear):
+        """Initilizes the SpecGAN Generator function.
+
+        Paramaters:
+            channels: The number of output channels.
+                For example, for SpecGAN there is one
+                output channel, and for SpecPhaseGAN there
+                are two output channels.
+            acitvation: Activation function applied to generation
+                before being returned. Default is linear.
+        """
+
         super(Generator, self).__init__()
 
         self.activation = activation

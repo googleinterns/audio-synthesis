@@ -15,7 +15,7 @@
 """An implementation of the Generator and Discriminator for the GAN-TTS model.
 
 This file contains an implementation of the Generator and Discriminator networks
-for GAN-TTS [https://arxiv.org/abs/1909.11646]. This implementation is soley
+for GAN-TTS [https://arxiv.org/abs/1909.11646]. This implementation is
 based off the paper. This implementation only contains the unconditional random window
 discriminators.
 """
@@ -29,10 +29,30 @@ from audio_synthesis.utils.layers import Conv1DTranspose
 
 
 class Generator(Model): # pylint: disable=too-many-ancestors
-    """The GAN-TTS Generator Function
+    """The GAN-TTS Generator Function.
+
+    Composes a number of GBlocks according to the structure
+    reported in the GAN-TTS paper.
     """
 
     def __init__(self, g_block_configs, latent_shape):
+        """Initlizer for the GAN-TTS Generator.
+
+        Paramaters:
+            g_block_configs: Contains N sub arrays for
+                each generator block. Each sub array is of
+                the form [input channels, output channels,
+                upsample factor]
+                    - input channels: The number of input channels
+                        to the block
+                    - output channels: The number of channels in the
+                        block's output.
+                    - upsample factor: The amout to upsample in the
+                        time domain.
+            latent_shape: The shape of the latent features given to the
+                first GBlock. The latent features will be upscaled and
+                reshaped.
+        """
         super(Generator, self).__init__()
 
         self.pre_process = Sequential([
@@ -68,6 +88,13 @@ class GBlock(Model): # pylint: disable=too-many-ancestors
     """
 
     def __init__(self, input_channels, output_channels, upsample_factor):
+        """Initilizer for the GBlock component of the GAN-TTS generator.
+
+        Paramaters:
+            input_channels: The number of channels given as input.
+            output_channels: The number of output channels.
+            upsampling_factor: The factor to upscale the time dimention by.
+        """
         super(GBlock, self).__init__()
 
         self.stack_1 = Sequential([
@@ -133,11 +160,24 @@ class GBlock(Model): # pylint: disable=too-many-ancestors
         return stack_4_out + residual_output
 
 class Discriminator(Model): # pylint: disable=too-many-ancestors
-    """Implementation of the (unconditional) Random Window Discriminators for GAN-TTS.
+    """Implementation of the (unconditional) Random
+    Window Discriminators for GAN-TTS.
     """
 
     def __init__(self, window_sizes=(240, 480, 960, 1920, 3600),
-                 factors=((5, 3), (5, 3), (5, 3), (5, 3), (2, 2)), omega=240):
+                 factors=((5, 3), (5, 3), (5, 3), (5, 3), (2, 2)),
+                 omega=240):
+        """Initilizer for the unconditional disctiminator
+        component of the GAN-TTS model.
+
+        Paramaters:
+            window_sizes: An array containing the windows sizes of each
+                random window discriminator (in samples).
+            factors: The downsample factors for each of the DBlocks in
+                each random window dicriminator.
+            omega: The factor at which samples are moved into the channels
+                to ensure a constant temporal length.
+        """
         super(Discriminator, self).__init__()
 
         self.omega = omega
@@ -177,6 +217,14 @@ class UnconditionalDBlocks(Model): # pylint: disable=too-many-ancestors
     """
 
     def __init__(self, factors=(5, 3), output_channels=(128, 256)):
+        """Initilizer for an unconditional random window discriminator
+        component of the GAN-TTS discriminator.
+
+        Paramaters:
+            factors: An array containing a downsampling factor for each DBlock.
+            output_channels: An array containing the number of output channels
+                for each DBlock.
+        """
         super(UnconditionalDBlocks, self).__init__()
 
         dblocks = []
@@ -199,6 +247,16 @@ class DBlock(Model): # pylint: disable=too-many-ancestors
     """
 
     def __init__(self, output_channels, downsample_factor):
+        """Initilizer for the unconditional DBlock of the
+        GAN-TTS discriminator.
+
+        Paramaters:
+            output_channels: The number of output channels
+                from the DBlock.
+            downsample_factor: The downsampling factor of the
+                DBlock.
+        """
+
         super(DBlock, self).__init__()
 
         self.stack = Sequential([

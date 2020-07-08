@@ -18,7 +18,7 @@ This file contains an implementation of the generator and discriminator
 components for the WaveGAN [https://arxiv.org/abs/1802.04208] model.
 The official implementation of WaveGAN can be found online
 (https://github.com/chrisdonahue/wavegan) and contains a more general
-implementation of WaveGAN. The key difference between this imlementation
+implementation of WaveGAN. The key difference between this implementation
 and the offical one is that we do not use Phase Shuffle to avoid checkerboarding,
 instead we choose a kernel size of 36 (instead of 25),
 such that it is divisible by the stride.
