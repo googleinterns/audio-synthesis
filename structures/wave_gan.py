@@ -33,10 +33,8 @@ class Generator(Model): # pylint: disable=too-many-ancestors
     """The Generator function for WaveGAN.
 
     The model takes a latent vector as input and transforms it into
-    a signal with 16 time-steps and 1024 channels. Six transpose
-    convolution layers upscale in the time dimention to 65536 and
-    reduce the channel dimention to one. The output is approximatly
-    four seconds of 16kHz audio.
+    a signal with 16 time-steps and 1024 channels. Five transpose
+    convolution layers upscale in the time dimention to 16**14 samples
     """
 
     def __init__(self, name='generator'):

@@ -164,7 +164,7 @@ if __name__ == '__main__':
     for model_name in models:
         if 'data' in models[model_name] and models[model_name]['data']:
             continue
-        
+
         checkpoint = tf.train.Checkpoint(generator=models[model_name]['generator'])
         checkpoint.restore(models[model_name]['checkpoint_path']).expect_partial()
 

@@ -1,9 +1,3 @@
-"""This module handles loading the MAESTRO data set.
-
-This module provides a collectio of functions for
-loading and handling the MAESTRO data set.
-"""
-
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +11,12 @@ loading and handling the MAESTRO data set.
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+"""This module handles loading the MAESTRO data set.
+
+This module provides a collectio of functions for
+loading and handling the MAESTRO data set.
+"""
 
 import numpy as np
 from audio_synthesis.utils.spectral import waveform_2_spectogram
@@ -34,6 +34,10 @@ def get_maestro_waveform_dataset(path):
     Paramaters:
         path: The path to the .npz file containing
             the MAESTRO data set.
+
+    Returns:
+        An array of waveform chunks loaded from the
+        given path.
     """
 
     maestro = np.load(path)['arr_0']
@@ -53,6 +57,9 @@ def get_maestro_magnitude_phase_dataset(path, frame_length=512, frame_step=128,
         log_magnitude: If true, the log of the magnitude is returned.
         instantaneous_frequency: If true, in the instantaneous frequency
             is returned instead of the phase.
+
+    Returns:
+        The MAESTRO dataset as an array of spectograms.
     """
 
     maestro = get_maestro_waveform_dataset(path)
@@ -86,6 +93,14 @@ def get_maestro_spectogram_normalizing_constants(path, frame_length=512,
         log_magnitude: If true, the log of the magnitude is considered.
         instantaneous_frequency: If true, in the instantaneous frequency
             is considered instead of the phase.
+
+    Returns:
+        Mean and standard deviation stastics for the MAESTRO spectogram
+        dataset:
+            [maestro_magnitude_mean,
+            maestro_magnitude_std,
+            maestro_phase_mean,
+            maestro_phase_std]
     """
 
     raw_maestro = get_maestro_magnitude_phase_dataset(
@@ -107,14 +122,20 @@ def get_maestro_spectogram_normalizing_constants(path, frame_length=512,
     return maestro_magnitude_mean, maestro_magnitude_std, maestro_phase_mean, maestro_phase_std
 
 def normalize(spectrum, mean, std):
-    """Normalize a given magnitude or phase specturm
+    """Normalize a given magnitude or phase specturm by given stastics.
+
+    If a value sits over three standard deviations from the mean,
+    it is clipped. Hence, the output vales are between -1 and 1.
 
     Paramaters:
         spectrum: The magnitude spectrum to be un-normalized.
             It is expected to be a single spectrum with no channel
-            dimention (i.e., only two dimentions).
+            dimention (i.e., only two dimentions) [time, frequency].
         mean: The mean of the data.
         std: The standard deviation of the data.
+
+    Returns:
+        A normalized phase or magnitude spectrum
     """
 
     norm = (spectrum - mean) / std
@@ -128,10 +149,13 @@ def un_normalize(spectrum, mean, std):
     Paramaters:
         spectrum: The magnitude spectrum to be un-normalized.
             It is expected to be a single spectrum with no channel
-            dimention (i.e., only two dimentions).
+            dimention (i.e., only two dimentions) [time, frequency].
         mean: The mean stastic that was used for normalizing
         std: The standard deviation stastic that was used for
             normalizing.
+
+    Returns:
+        An un-normalized magnitude or phase spectrum.
     """
 
     assert len(spectrum.shape) == 2

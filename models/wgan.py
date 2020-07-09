@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """Implements the training process for a Wassersten GAN
-with Gradient Penalty.
+with Gradient Penalty [https://arxiv.org/abs/1704.00028].
 """
 
 import time
@@ -22,7 +22,14 @@ import tensorflow as tf
 from tensorflow.keras.utils import Progbar
 import numpy as np
 
+SHUFFLE_BUFFER_SIZE = 1000
+
 def _compute_losses(model, d_real, d_fake, interpolated):
+    """Base implementation of the function that computes the WGAN
+    generator and disciminator losses.
+    
+    Paramaters:
+    """
     wasserstein_distance = tf.reduce_mean(d_real) - tf.reduce_mean(d_fake)
 
     with tf.GradientTape() as tape:
@@ -87,7 +94,7 @@ class WGAN: # pylint: disable=too-many-instance-attributes
         self.discriminator_optimizer = discriminator_optimizer
         self.discriminator_training_ratio = discriminator_training_ratio
         self.batch_size = batch_size
-        self.buffer_size = 1000
+        self.buffer_size = SHUFFLE_BUFFER_SIZE
         self.epochs = epochs
         self.completed_epochs = 0
         self.epochs_per_save = epochs_per_save
@@ -147,6 +154,9 @@ class WGAN: # pylint: disable=too-many-instance-attributes
             d_real = self.discriminator(x_in, training=True)
             d_fake = self.discriminator(x_gen, training=True)
 
+            # Compute a linear interpolation of the real and generated
+            # data, this is used to compute the gradient penalty.
+            # https://arxiv.org/abs/1704.00028
             alpha_shape = np.ones(len(self.d_in_data_shape))
             alpha_shape[0] = x_in.shape[0]
             alpha = tf.random.uniform(alpha_shape.astype('int32'), 0.0, 1.0)
@@ -199,5 +209,6 @@ class WGAN: # pylint: disable=too-many-instance-attributes
             if self.checkpoint_prefix and (epoch + 1) % self.epochs_per_save == 0:
                 self.checkpoint.save(file_prefix=self.checkpoint_prefix)
 
-            print('\nTime for epoch {} is {} minutes'.format(epoch + 1, (time.time()-start) / 60))
+            print('\nTime for epoch {} is {} minutes'.format(epoch + 1,
+                                                             (time.time()-start) / 60))
             self._generate_and_save_examples(epoch+1)
