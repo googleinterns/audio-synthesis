@@ -29,13 +29,17 @@ def waveform_2_spectogram(waveform, frame_length=512,
     a power of two.
 
     Paramaters:
-        waveform: the signal to be transformed.
+        waveform: the signal to be transformed. Expected
+            shape is [time]
         frame_length: The length of each fft.
         frame_step: Time increment after each fft, i.e.
             overlap=frame_length - frame_step.
         log_magnitude: If true, the log-magnitude will be returned.
         instantaneous_frequency: If true, the instantaneous frequency will,
             be returned instead of phase.
+
+    Returns:
+        A spectogram representation of the input waveform.
     """
 
     stft = tf.signal.stft(waveform, frame_length=frame_length, frame_step=frame_step, pad_end=True)
@@ -60,32 +64,45 @@ def waveform_2_spectogram(waveform, frame_length=512,
 def waveform_2_magnitude(waveform, frame_length=512, frame_step=128, log_magnitude=True):
     """Transform a Waveform to a Magnitude Spectrum.
 
+    This function is a wrapper for waveform_2_spectogram and removes
+    the phase component.
+
     Paramaters:
-        waveform: the signal to be transformed.
+        waveform: the signal to be transformed. Expected shape
+            is [time].
         frame_length: The length of each fft.
         frame_step: Time increment after each fft, i.e.
             overlap=frame_length - frame_step.
         log_magnitude: If true, the log-magnitude will be returned.
+
+    Returns:
+        A magnitude spectrum representation of the input waveform.
     """
 
     spectogram = waveform_2_spectogram(waveform, frame_length=frame_length,
                                        frame_step=frame_step,
                                        log_magnitude=log_magnitude)
-    magnitude = spectogram[:, :, :, 0]
+    magnitude = spectogram[:, :, 0]
     return magnitude
 
 def magnitude_2_waveform(magnitude, n_iter=16, frame_length=512,
                          frame_step=128, log_magnitude=True):
     """Transform a Magnitude Spectrum to a Waveform.
+
     Uses the Griffin-Lim algorythm, via the librosa implementation.
 
     Paramaters:
-        magnitude: the magnitude spectrum to be transformed.
+        magnitude: the magnitude spectrum to be transformed. Expected
+            shape is [time, frequencies]
         n_iter: number of Griffin-Lim iterations to run.
         frame_length: The length of each fft.
         frame_step: Time increment after each fft, i.e.
             overlap=frame_length - frame_step.
         log_magnitude: If true, the log-magnitude will be assumed.
+
+    Returns:
+        A waveform representation of the input magnitude spectrum
+        where the phase has been estimated using Griffin-Lim.
     """
     if log_magnitude:
         magnitude = np.exp(magnitude)
@@ -103,13 +120,17 @@ def spectogram_2_waveform(spectogram, frame_length=512, frame_step=128,
     """Transforms a Spectogram to a Waveform.
 
     Paramaters:
-        spectogram: the spectogram to be transformed.
+        spectogram: the spectogram to be transformed. Expected shape
+            is [time, frequencies, 2]
         frame_length: The length of each fft.
         frame_step: Time increment after each fft, i.e.
             overlap=frame_length - frame_step.
         log_magnitude: If true, log-magnitude will be assumed.
         instantaneous_frequency: If true, it is assumed the input is
-            instantaneous frequency and not phase
+            instantaneous frequency and not phase.
+
+    Returns:
+        A waveform representation of the input spectogram.
     """
 
     magnitude = spectogram[:, :, 0]

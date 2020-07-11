@@ -33,10 +33,8 @@ class Generator(Model): # pylint: disable=too-many-ancestors
     """The Generator function for WaveGAN.
 
     The model takes a latent vector as input and transforms it into
-    a signal with 16 time-steps and 1024 channels. Six transpose
-    convolution layers upscale in the time dimention to 65536 and
-    reduce the channel dimention to one. The output is approximatly
-    four seconds of 16kHz audio.
+    a signal with 16 time-steps and 1024 channels. Five transpose
+    convolution layers upscale in the time dimention to 16**14 samples
     """
 
     def __init__(self, name='generator'):
@@ -55,10 +53,10 @@ class Generator(Model): # pylint: disable=too-many-ancestors
         layers.append(ReLU())
         layers.append(Conv1DTranspose(filters=1, strides=4, kernel_size=36))
 
-        self.sequential = Sequential(layers, name=name)
+        self.l = Sequential(layers, name=name)
 
     def call(self, z_in): # pylint: disable=arguments-differ
-        output = self.sequential(z_in)
+        output = self.l(z_in)
         return output
 
 
@@ -86,8 +84,8 @@ class Discriminator(Model): # pylint: disable=too-many-ancestors
         layers.append(Flatten())
         layers.append(Dense(1))
 
-        self.sequential = Sequential(layers, name=name)
+        self.l = Sequential(layers, name=name)
 
     def call(self, x_in): # pylint: disable=arguments-differ
-        output = self.sequential(x_in)
+        output = self.l(x_in)
         return output
