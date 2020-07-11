@@ -100,6 +100,7 @@ class WGAN:
             shuffle(self.buffer_size).repeat(self.generator_training_ratio).batch(self.batch_size, drop_remainder=False)
         
         
+        self.checkpoint_dir = checkpoint_dir
         if checkpoint_dir:
             self.checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")
             self.checkpoint = tf.train.Checkpoint(generator_optimizer=self.generator_optimizer,
@@ -166,6 +167,19 @@ class WGAN:
             generations = self.generator(z, training=False)
             self.fn_save_examples(epoch, X_real, generations)
             
+    def restore(self, checkpoint, completed_epochs):
+        """Restores the model from a checkpoint
+
+        Paramaters:
+            checkpoint: The name of the checkpoint.
+            completed_epochs: The number of training
+                epochs completed by this checkpoint.
+        """
+        checkpoint_path = self.checkpoint_dir + checkpoint
+        self.checkpoint.restore(checkpoint_path)
+        self.completed_epochs = completed_epochs
+        print("Checkpoint ", checkpoint_path,
+              ' restored at ', str(self.completed_epochs), ' epochs')
         
     def train(self):
         """Executes the training for the WGAN model.
