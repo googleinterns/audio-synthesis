@@ -20,19 +20,13 @@ are normalized to sit between -1 and 1.
 """
 
 import os
-import soundfile as sf
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.activations import tanh
-from tensorflow.keras.utils import Progbar
-from audio_synthesis.structures.spec_gan import Generator, Discriminator
-from audio_synthesis.models.wgan import WGAN
-from audio_synthesis.datasets.maestro_dataset import get_maestro_magnitude_phase_dataset,\
-        get_maestro_spectogram_normalizing_constants, normalize, un_normalize
-from audio_synthesis.utils.spectral import spectogram_2_waveform
-
-os.environ["CUDA_VISIBLE_DEVICES"] = '1'
-print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
+from tensorflow.keras import activations, utils
+from audio_synthesis.structures import spec_gan
+from audio_synthesis.models import wgan
+from audio_synthesis.datasets import maestro_dataset
+from audio_synthesis.utils import maestro_save_helper as save_helper
 
 # Setup Paramaters
 D_UPDATES_PER_G = 5
@@ -42,78 +36,59 @@ EPOCHS = 300
 SAMPLING_RATE = 16000
 FFT_FRAME_LENGTH = 256
 FFT_FRAME_STEP = 128
+LOG_MAGNITUDE = True
+INSTANTANEOUS_FREQUENCY = True
+SPECTOGRAM_IMAGE_SHAPE = [-1, 128, 128, 2]
 CHECKPOINT_DIR = '_results/representation_study/SpecPhaseGAN/training_checkpoints/'
 RESULT_DIR = '_results/representation_study/SpecPhaseGAN/audio/'
 MAESTRO_PATH = 'data/MAESTRO_6h.npz'
 
-raw_maestro = get_maestro_magnitude_phase_dataset(MAESTRO_PATH, FFT_FRAME_LENGTH, FFT_FRAME_STEP)
+def main():
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+    print('Num GPUs Available: ', len(tf.config.experimental.list_physical_devices('GPU')))
 
-maestro_magnitude_mean, maestro_magnitude_std,\
-    maestro_phase_mean, maestro_phase_std =\
-    get_maestro_spectogram_normalizing_constants(MAESTRO_PATH,
-                                                 FFT_FRAME_LENGTH,
-                                                 FFT_FRAME_STEP)
+    raw_maestro, magnitude_stats, phase_stats =\
+        maestro_dataset.get_maestro_magnitude_phase_dataset(
+            MAESTRO_PATH, FFT_FRAME_LENGTH, FFT_FRAME_STEP, LOG_MAGNITUDE,
+            INSTANTANEOUS_FREQUENCY
+        )
 
-normalized_raw_maestro = []
-pb_i = Progbar(len(raw_maestro))
-for spectogram in raw_maestro:
-    norm_mag = normalize(spectogram[:, :, 0], maestro_magnitude_mean, maestro_magnitude_std)
-    norm_phase = normalize(spectogram[:, :, 1], maestro_phase_mean, maestro_phase_std)
+    normalized_raw_maestro = []
+    pb_i = utils.Progbar(len(raw_maestro))
+    for spectogram in raw_maestro:
+        norm_mag = maestro_dataset.normalize(spectogram[:, :, 0], *magnitude_stats, *phase_stats)
+        norm_phase = maestro_dataset.normalize(spectogram[:, :, 1], *magnitude_stats, *phase_stats)
 
-    norm = np.concatenate([np.expand_dims(norm_mag, axis=2),
-                           np.expand_dims(norm_phase, axis=2)], axis=-1)
-    normalized_raw_maestro.append(norm)
-    pb_i.add(1)
+        norm = np.concatenate([np.expand_dims(norm_mag, axis=2),
+                               np.expand_dims(norm_phase, axis=2)], axis=-1)
+        normalized_raw_maestro.append(norm)
+        pb_i.add(1)
 
-generator = Generator(channels=2, activation=tanh)
-discriminator = Discriminator()
+    generator = spec_gan.Generator(channels=2, activation=activations.tanh)
+    discriminator = spec_gan.Discriminator()
 
-generator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
-discriminator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
+    generator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
+    discriminator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
 
-def get_waveform(normalized_spectogram):
-    """Wrapper for spectogram_2_waveform that
-    handles un-normalization
-    """
+    get_waveform = lambda spectogram:\
+        save_helper.get_waveform_from_normaized_magnitude(
+            spectogram, [magnitude_stats, phase_stats], FFT_FRAME_LENGTH,
+            FFT_FRAME_STEP, LOG_MAGNITUDE, INSTANTANEOUS_FREQUENCY
+        )
 
-    magnitude = normalized_spectogram[:, :, 0]
-    magnitude = un_normalize(magnitude, maestro_magnitude_mean,
-                             maestro_magnitude_std)
+    save_examples = lambda epoch, real, generated:\
+        save_helper.save_wav_data(
+            epoch, real, generated, SAMPLING_RATE, RESULT_DIR, get_waveform
+        )
 
-    phase = normalized_spectogram[:, :, 1]
-    phase = un_normalize(phase, maestro_phase_mean,
-                         maestro_phase_std)
-    un_normalized_spectogram = np.concatenate([
-        np.expand_dims(magnitude, axis=2),
-        np.expand_dims(phase, axis=2)], axis=-1)
+    spec_phase_gan_model = wgan.WGAN(
+        normalized_raw_maestro, SPECTOGRAM_IMAGE_SHAPE, generator, discriminator, Z_DIM,
+        generator_optimizer, discriminator_optimizer, discriminator_training_ratio=D_UPDATES_PER_G,
+        batch_size=BATCH_SIZE, epochs=EPOCHS, checkpoint_dir=CHECKPOINT_DIR,
+        fn_save_examples=save_examples
+    )
 
-    return spectogram_2_waveform(un_normalized_spectogram, frame_length=FFT_FRAME_LENGTH,
-                                 frame_step=FFT_FRAME_STEP, log_magnitude=True,
-                                 instantaneous_frequency=True)
+    spec_phase_gan_model.train()
 
-def save_examples(epoch, real, generated):
-    """Saves a batch of real and generated data.
-    """
-
-    gen_waveforms = []
-    real_waveforms = []
-    for real_spectogram, generated_spectogram in zip(real, generated):
-        real_waveforms.append(get_waveform(real_spectogram))
-        gen_waveforms.append(get_waveform(generated_spectogram))
-
-    real_waveforms = np.reshape(real_waveforms, (-1))
-    gen_waveforms = np.reshape(gen_waveforms, (-1))
-
-    sf.write(RESULT_DIR + 'real_' + str(epoch) + '.wav',
-             real_waveforms, SAMPLING_RATE)
-    sf.write(RESULT_DIR + 'gen_' + str(epoch) + '.wav',
-             gen_waveforms, SAMPLING_RATE)
-
-
-SpecPhaseGAN = WGAN(normalized_raw_maestro, [-1, 128, 128, 2], generator,
-                    discriminator, Z_DIM, generator_optimizer, discriminator_optimizer,
-                    discriminator_training_ratio=D_UPDATES_PER_G, batch_size=BATCH_SIZE,
-                    epochs=EPOCHS, checkpoint_dir=CHECKPOINT_DIR,
-                    fn_save_examples=save_examples)
-
-SpecPhaseGAN.train()
+if __name__ == '__main__':
+    main()
