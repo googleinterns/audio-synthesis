@@ -1,6 +1,3 @@
-"""Prodvides functionality for converting audio representations.
-"""
-
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,9 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Prodvides functionality for converting audio representations."""
+
 import tensorflow as tf
 import numpy as np
 from librosa.core import griffinlim
+
+_EPSILON = 1e-6
 
 def waveform_2_spectogram(waveform, frame_length=512,
                           frame_step=128, log_magnitude=True,
@@ -31,8 +32,8 @@ def waveform_2_spectogram(waveform, frame_length=512,
     Paramaters:
         waveform: the signal to be transformed. Expected
             shape is [time]
-        frame_length: The length of each fft.
-        frame_step: Time increment after each fft, i.e.
+        frame_length: The length of each stft frame.
+        frame_step: Time increment after each frame, i.e.
             overlap=frame_length - frame_step.
         log_magnitude: If true, the log-magnitude will be returned.
         instantaneous_frequency: If true, the instantaneous frequency will,
@@ -48,7 +49,7 @@ def waveform_2_spectogram(waveform, frame_length=512,
     phase = tf.math.angle(stft)
 
     if log_magnitude:
-        magnitude = tf.math.log(magnitude + 1e-6)
+        magnitude = tf.math.log(magnitude + _EPSILON)
 
     if instantaneous_frequency:
         phase = np.unwrap(phase)
@@ -70,8 +71,8 @@ def waveform_2_magnitude(waveform, frame_length=512, frame_step=128, log_magnitu
     Paramaters:
         waveform: the signal to be transformed. Expected shape
             is [time].
-        frame_length: The length of each fft.
-        frame_step: Time increment after each fft, i.e.
+        frame_length: The length of each frame.
+        frame_step: Time increment after each frame, i.e.
             overlap=frame_length - frame_step.
         log_magnitude: If true, the log-magnitude will be returned.
 
@@ -95,8 +96,8 @@ def magnitude_2_waveform(magnitude, n_iter=16, frame_length=512,
         magnitude: the magnitude spectrum to be transformed. Expected
             shape is [time, frequencies]
         n_iter: number of Griffin-Lim iterations to run.
-        frame_length: The length of each fft.
-        frame_step: Time increment after each fft, i.e.
+        frame_length: The length of each frame.
+        frame_step: Time increment after each frame, i.e.
             overlap=frame_length - frame_step.
         log_magnitude: If true, the log-magnitude will be assumed.
 
@@ -105,7 +106,7 @@ def magnitude_2_waveform(magnitude, n_iter=16, frame_length=512,
         where the phase has been estimated using Griffin-Lim.
     """
     if log_magnitude:
-        magnitude = np.exp(magnitude)
+        magnitude = np.exp(magnitude) - _EPSILON
 
     # Add the removed band back in as zeros
     magnitude = np.pad(magnitude, [[0, 0], [0, 1]])
@@ -122,8 +123,8 @@ def spectogram_2_waveform(spectogram, frame_length=512, frame_step=128,
     Paramaters:
         spectogram: the spectogram to be transformed. Expected shape
             is [time, frequencies, 2]
-        frame_length: The length of each fft.
-        frame_step: Time increment after each fft, i.e.
+        frame_length: The length of each frame.
+        frame_step: Time increment after each frame, i.e.
             overlap=frame_length - frame_step.
         log_magnitude: If true, log-magnitude will be assumed.
         instantaneous_frequency: If true, it is assumed the input is
@@ -137,7 +138,7 @@ def spectogram_2_waveform(spectogram, frame_length=512, frame_step=128,
     phase = spectogram[:, :, 1]
 
     if log_magnitude:
-        magnitude = tf.math.exp(magnitude)
+        magnitude = tf.math.exp(magnitude) - _EPSILON
 
     if instantaneous_frequency:
         phase = tf.cumsum(phase, axis=-2)
