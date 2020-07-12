@@ -22,13 +22,12 @@ discriminators.
 
 import tensorflow as tf
 import numpy as np
-from tensorflow.keras.layers import Dense, ReLU, Conv1D,\
-        Reshape, AveragePooling1D
-from tensorflow.keras import Model, Sequential
-from audio_synthesis.utils.layers import Conv1DTranspose
+from tensorflow import keras
+from tensorflow.keras import layers
+from audio_synthesis.utils import layers as layers_util
 
 
-class Generator(Model): # pylint: disable=too-many-ancestors
+class Generator(keras.Model): # pylint: disable=too-many-ancestors
     """The GAN-TTS Generator Function.
 
     Composes a number of GBlocks according to the structure
@@ -55,10 +54,10 @@ class Generator(Model): # pylint: disable=too-many-ancestors
         """
         super(Generator, self).__init__()
 
-        self.pre_process = Sequential([
-            Dense(np.prod(latent_shape)),
-            Reshape(latent_shape),
-            Conv1D(strides=1, kernel_size=3, filters=g_block_configs[0][0], padding='same')
+        self.pre_process = keras.Sequential([
+            layers.Dense(np.prod(latent_shape)),
+            layers.Reshape(latent_shape),
+            layers.Conv1D(strides=1, kernel_size=3, filters=g_block_configs[0][0], padding='same')
         ])
 
         g_blocks = []
@@ -68,9 +67,9 @@ class Generator(Model): # pylint: disable=too-many-ancestors
                              output_channels=output_channels,
                              upsample_factor=upsample_factor)
             g_blocks.append(g_block)
-        self.g_blocks = Sequential(g_blocks)
+        self.g_blocks = keras.Sequential(g_blocks)
 
-        self.post_process = Conv1D(strides=1, kernel_size=3, filters=1, padding='same')
+        self.post_process = layers.Conv1D(strides=1, kernel_size=3, filters=1, padding='same')
 
     def call(self, z_in, training=False):
         output = self.pre_process(z_in)
@@ -79,7 +78,7 @@ class Generator(Model): # pylint: disable=too-many-ancestors
 
         return output
 
-class GBlock(Model): # pylint: disable=too-many-ancestors
+class GBlock(keras.Model): # pylint: disable=too-many-ancestors
     """Implementation of the GBlock component that makes up the GAN-TTS generator
 
     This implementaion, for the most part, follows Figure 1 of the paper
@@ -97,57 +96,50 @@ class GBlock(Model): # pylint: disable=too-many-ancestors
         """
         super(GBlock, self).__init__()
 
-        self.stack_1 = Sequential([
-            ReLU(),
-            Conv1DTranspose(filters=input_channels,
-                            kernel_size=upsample_factor*2,
-                            strides=upsample_factor,
-                            padding='same'),
-            Conv1D(filters=output_channels,
-                   kernel_size=3,
-                   strides=1,
-                   padding='same')
+        self.stack_1 = keras.Sequential([
+            layers.ReLU(),
+            layers_util.Conv1DTranspose(
+                filters=input_channels, kernel_size=upsample_factor * 2, strides=upsample_factor,
+                padding='same'
+            ),
+            layers.Conv1D(
+                filters=output_channels, kernel_size=3, strides=1, padding='same'
+            )
         ])
 
-        self.stack_2 = Sequential([
-            ReLU(),
-            Conv1D(filters=output_channels,
-                   kernel_size=3,
-                   strides=1,
-                   dilation_rate=2,
-                   padding='same')
+        self.stack_2 = keras.Sequential([
+            layers.ReLU(),
+            layers.Conv1D(
+                filters=output_channels, kernel_size=3, strides=1, dilation_rate=2,
+                padding='same'
+            )
         ])
 
-        self.residual_1 = Sequential([
-            Conv1DTranspose(filters=input_channels,
-                            kernel_size=upsample_factor*2,
-                            strides=upsample_factor,
-                            padding='same'),
-            Conv1D(filters=output_channels,
-                   kernel_size=1,
-                   strides=1,
-                   padding='same')
+        self.residual_1 = keras.Sequential([
+            layers_util.Conv1DTranspose(
+                filters=input_channels, kernel_size=upsample_factor * 2, strides=upsample_factor,
+                padding='same'
+            ),
+            layers.Conv1D(filters=output_channels, kernel_size=1, strides=1, padding='same')
         ])
 
-        self.stack_3 = Sequential([
-            ReLU(),
-            Conv1D(filters=output_channels,
-                   kernel_size=3,
-                   strides=1,
-                   dilation_rate=4,
-                   padding='same')
+        self.stack_3 = keras.Sequential([
+            layers.ReLU(),
+            layers.Conv1D(
+                filters=output_channels, kernel_size=3, strides=1, dilation_rate=4,
+                padding='same'
+            )
         ])
 
-        self.stack_4 = Sequential([
-            ReLU(),
-            Conv1D(filters=output_channels,
-                   kernel_size=3,
-                   strides=1,
-                   dilation_rate=8,
-                   padding='same')
+        self.stack_4 = keras.Sequential([
+            layers.ReLU(),
+            layers.Conv1D(
+                filters=output_channels, kernel_size=3, strides=1, dilation_rate=8,
+                padding='same'
+            )
         ])
 
-    def call(self, x): # pylint: disable=arguments-differ
+    def call(self, x):
         stack_1_out = self.stack_1(x)
         stack_2_out = self.stack_2(stack_1_out)
 
@@ -159,7 +151,7 @@ class GBlock(Model): # pylint: disable=too-many-ancestors
 
         return stack_4_out + residual_output
 
-class Discriminator(Model): # pylint: disable=too-many-ancestors
+class Discriminator(keras.Model): # pylint: disable=too-many-ancestors
     """Implementation of the (unconditional) Random
     Window Discriminators for GAN-TTS.
     """
@@ -190,7 +182,7 @@ class Discriminator(Model): # pylint: disable=too-many-ancestors
         self.discriminators = discriminators
 
 
-    def call(self, x_in): # pylint: disable=arguments-differ
+    def call(self, x_in):
         scores = []
         # For each block size
         for i, window_size in enumerate(self.window_sizes):
@@ -198,10 +190,12 @@ class Discriminator(Model): # pylint: disable=too-many-ancestors
             idx = tf.random.uniform((1,), 0,
                                     (x_in.shape[1] - window_size),
                                     tf.dtypes.int32)[0]
-            x_windowed = x_in[:, idx:idx+window_size, :]
+            x_windowed = x_in[:, idx : idx + window_size, :]
 
             # Move samples into channels to ensure constant temporal length
             downsampling_factor = window_size // self.omega
+            assert window_size // self.omega == int(window_size // self.omega)
+
             x_reshaped = tf.reshape(x_windowed, (-1, self.omega, downsampling_factor))
 
             score = self.discriminators[i](x_reshaped)
@@ -209,7 +203,7 @@ class Discriminator(Model): # pylint: disable=too-many-ancestors
 
         return scores
 
-class UnconditionalDBlocks(Model): # pylint: disable=too-many-ancestors
+class UnconditionalDBlocks(keras.Model): # pylint: disable=too-many-ancestors
     """Implementation of a Unconditional Random Window Discriminator.
 
     A collection of sequential DBlocks following Figure 2 of the
@@ -233,13 +227,13 @@ class UnconditionalDBlocks(Model): # pylint: disable=too-many-ancestors
             dblocks.append(DBlock(output_channels[i], factor))
         dblocks.append(DBlock(output_channels[-1], 1))
         dblocks.append(DBlock(output_channels[-1], 1))
-        self.dblocks = Sequential(dblocks)
+        self.dblocks = keras.Sequential(dblocks)
 
 
-    def call(self, x_in): # pylint: disable=arguments-differ
+    def call(self, x_in):
         return self.dblocks(x_in)
 
-class DBlock(Model): # pylint: disable=too-many-ancestors
+class DBlock(keras.Model): # pylint: disable=too-many-ancestors
     """Implementation of the DBlock for GAN-TTS Discriminators.
 
     The implementation of this block follows Figure 1 of
@@ -259,32 +253,29 @@ class DBlock(Model): # pylint: disable=too-many-ancestors
 
         super(DBlock, self).__init__()
 
-        self.stack = Sequential([
-            AveragePooling1D(pool_size=downsample_factor, strides=downsample_factor),
-            ReLU(),
-            Conv1D(filters=output_channels,
-                   kernel_size=3,
-                   strides=1,
-                   dilation_rate=1,
-                   padding='same'),
-            ReLU(),
-            Conv1D(filters=output_channels,
-                   kernel_size=3,
-                   strides=1,
-                   dilation_rate=2,
-                   padding='same')
+        self.stack = keras.Sequential([
+            layers.AveragePooling1D(pool_size=downsample_factor, strides=downsample_factor),
+            layers.ReLU(),
+            layers.Conv1D(
+                filters=output_channels, kernel_size=3, strides=1, dilation_rate=1,
+                padding='same'
+            ),
+            layers.ReLU(),
+            layers.Conv1D(
+                filters=output_channels, kernel_size=3, strides=1, dilation_rate=2,
+                padding='same'
+            )
         ])
 
-        self.residual = Sequential([
-            Conv1D(filters=output_channels,
-                   kernel_size=3,
-                   strides=1,
-                   dilation_rate=1,
-                   padding='same'),
-            AveragePooling1D(pool_size=downsample_factor, strides=downsample_factor)
+        self.residual = keras.Sequential([
+            layers.Conv1D(
+                filters=output_channels, kernel_size=3, strides=1, dilation_rate=1,
+                padding='same'
+            ),
+            layers.AveragePooling1D(pool_size=downsample_factor, strides=downsample_factor)
         ])
 
-    def call(self, x_in): # pylint: disable=arguments-differ
+    def call(self, x_in):
         stack_output = self.stack(x_in)
         residual_output = self.residual(x_in)
 
