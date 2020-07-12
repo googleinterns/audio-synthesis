@@ -72,7 +72,7 @@ class Generator(Model): # pylint: disable=too-many-ancestors
 
         self.post_process = Conv1D(strides=1, kernel_size=3, filters=1, padding='same')
 
-    def call(self, z_in): # pylint: disable=arguments-differ
+    def call(self, z_in, training=False):
         output = self.pre_process(z_in)
         output = self.g_blocks(output)
         output = self.post_process(output)
