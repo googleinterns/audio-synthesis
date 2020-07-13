@@ -168,7 +168,7 @@ def main():
             INSTANTANEOUS_FREQUENCY
         )
 
-    maestro = maestro[np.random.randint(low=0, high=len(maestro), size=(N_GENERATIONS,))]
+    maestro = maestro[np.random.randint(low=0, high=len(maestro), size=N_GENERATIONS)]
     z_gen = tf.random.uniform((N_GENERATIONS, Z_DIM), -1, 1, tf.float32)
 
     pb_i = utils.Progbar(N_GENERATIONS)

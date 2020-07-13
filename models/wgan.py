@@ -173,7 +173,7 @@ class WGAN: # pylint: disable=too-many-instance-attributes
             # https://arxiv.org/abs/1704.00028
             alpha_shape = np.ones(len(self.d_in_data_shape))
             alpha_shape[0] = x_in.shape[0]
-            alpha = tf.random.uniform(alpha_shape.astype('int32'), 0.0, 1.0)
+            alpha = tf.random.uniform(alpha_shape.astype(tf.int32), 0.0, 1.0)
             diff = x_gen - x_in
             interp = x_in + (alpha * diff)
 
@@ -194,11 +194,11 @@ class WGAN: # pylint: disable=too-many-instance-attributes
 
     def _generate_and_save_examples(self, epoch):
         if self.fn_save_examples:
-            x_save = self.raw_dataset[np.random.randint(low=0,
-                                                        high=len(self.raw_dataset),
-                                                        size=(self.batch_size))]
+            x_save = self.raw_dataset[np.random.randint(
+                low=0, high=len(self.raw_dataset), size=self.batch_size
+            )]
             z_in = tf.random.uniform((len(x_save), self.z_dim), -1, 1)
-            generations = self.generator(z_in, training=False)
+            generations = tf.squeeze(self.generator(z_in, training=False))
             self.fn_save_examples(epoch, x_save, generations)
 
 

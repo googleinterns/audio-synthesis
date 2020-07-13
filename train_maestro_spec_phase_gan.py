@@ -56,13 +56,14 @@ def main():
     normalized_raw_maestro = []
     pb_i = utils.Progbar(len(raw_maestro))
     for spectogram in raw_maestro:
-        norm_mag = maestro_dataset.normalize(spectogram[:, :, 0], *magnitude_stats, *phase_stats)
-        norm_phase = maestro_dataset.normalize(spectogram[:, :, 1], *magnitude_stats, *phase_stats)
+        norm_mag = maestro_dataset.normalize(spectogram[:, :, 0], *magnitude_stats)
+        norm_phase = maestro_dataset.normalize(spectogram[:, :, 1], *phase_stats)
 
         norm = np.concatenate([np.expand_dims(norm_mag, axis=2),
                                np.expand_dims(norm_phase, axis=2)], axis=-1)
         normalized_raw_maestro.append(norm)
         pb_i.add(1)
+    normalized_raw_maestro = np.array(normalized_raw_maestro)
 
     generator = spec_gan.Generator(channels=2, activation=activations.tanh)
     discriminator = spec_gan.Discriminator()
@@ -71,7 +72,7 @@ def main():
     discriminator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
 
     get_waveform = lambda spectogram:\
-        save_helper.get_waveform_from_normaized_magnitude(
+        save_helper.get_waveform_from_normalized_spectogram(
             spectogram, [magnitude_stats, phase_stats], FFT_FRAME_LENGTH,
             FFT_FRAME_STEP, LOG_MAGNITUDE, INSTANTANEOUS_FREQUENCY
         )

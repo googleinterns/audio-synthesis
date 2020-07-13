@@ -21,6 +21,7 @@ to sit between -1 and 1.
 
 import os
 import tensorflow as tf
+import numpy as np
 from tensorflow.keras import activations, utils
 from audio_synthesis.structures import spec_gan
 from audio_synthesis.models import wgan
@@ -43,7 +44,7 @@ RESULT_DIR = '_results/representation_study/SpecGAN/audio/'
 MAESTRO_PATH = 'data/MAESTRO_6h.npz'
 
 def main():
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    os.environ['CUDA_VISIBLE_DEVICES'] = ''
     print('Num GPUs Available: ', len(tf.config.experimental.list_physical_devices('GPU')))
 
     raw_maestro, magnitude_stats, _ =\
@@ -59,6 +60,7 @@ def main():
             data_point, *magnitude_stats
         ))
         pb_i.add(1)
+    normalized_raw_maestro = np.array(normalized_raw_maestro)
 
     generator = spec_gan.Generator(activation=activations.tanh)
     discriminator = spec_gan.Discriminator()
@@ -67,7 +69,7 @@ def main():
     discriminator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
 
     get_waveform = lambda magnitude:\
-        save_helper.get_waveform_from_normaized_magnitude(
+        save_helper.get_waveform_from_normalized_magnitude(
             magnitude, magnitude_stats, GRIFFIN_LIM_ITERATIONS, FFT_FRAME_LENGTH,
             FFT_FRAME_STEP, LOG_MAGNITUDE
         )

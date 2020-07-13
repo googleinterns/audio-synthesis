@@ -41,7 +41,7 @@ def save_wav_data(epoch, real, generated, sampling_rate, result_dir, get_wavefor
     sf.write(os.path.join(result_dir, 'real_{}.wav'.format(epoch)), real_waveforms, sampling_rate)
     sf.write(os.path.join(result_dir, 'gen_{}.wav'.format(epoch)), gen_waveforms, sampling_rate)
 
-def get_waveform_from_normaized_magnitude(magnitude, stastics, griffin_lim_iterations,
+def get_waveform_from_normalized_magnitude(magnitude, stastics, griffin_lim_iterations,
                                           frame_length, frame_step, log_magnitude=True):
     """Converts a normalized magnitude spectrum into a waveform.
 
