@@ -24,12 +24,11 @@ instead we choose a kernel size of 36 (instead of 25),
 such that it is divisible by the stride.
 """
 
-from tensorflow.keras.layers import Dense, ReLU, LeakyReLU,\
-        Conv1D, Reshape, Flatten
-from tensorflow.keras import Model, Sequential
-from audio_synthesis.utils.layers import Conv1DTranspose
+from tensorflow import keras
+from tensorflow.keras import layers
+import audio_synthesis.utils.layers as layer_utils
 
-class Generator(Model): # pylint: disable=too-many-ancestors
+class Generator(keras.Model):
     """The Generator function for WaveGAN.
 
     The model takes a latent vector as input and transforms it into
@@ -39,28 +38,28 @@ class Generator(Model): # pylint: disable=too-many-ancestors
 
     def __init__(self, name='generator'):
         super(Generator, self).__init__()
-        layers = []
-        layers.append(Dense(16 * 1024))
-        layers.append(Reshape((16, 1024)))
-        layers.append(ReLU())
-        layers.append(Conv1DTranspose(filters=512, strides=4, kernel_size=36))
-        layers.append(ReLU())
-        layers.append(Conv1DTranspose(filters=256, strides=4, kernel_size=36))
-        layers.append(ReLU())
-        layers.append(Conv1DTranspose(filters=128, strides=4, kernel_size=36))
-        layers.append(ReLU())
-        layers.append(Conv1DTranspose(filters=64, strides=4, kernel_size=36))
-        layers.append(ReLU())
-        layers.append(Conv1DTranspose(filters=1, strides=4, kernel_size=36))
+        sequential = []
+        sequential.append(layers.Dense(16 * 1024))
+        sequential.append(layers.Reshape((16, 1024)))
+        sequential.append(layers.ReLU())
+        sequential.append(layer_utils.Conv1DTranspose(filters=512, strides=4, kernel_size=36))
+        sequential.append(layers.ReLU())
+        sequential.append(layer_utils.Conv1DTranspose(filters=256, strides=4, kernel_size=36))
+        sequential.append(layers.ReLU())
+        sequential.append(layer_utils.Conv1DTranspose(filters=128, strides=4, kernel_size=36))
+        sequential.append(layers.ReLU())
+        sequential.append(layer_utils.Conv1DTranspose(filters=64, strides=4, kernel_size=36))
+        sequential.append(layers.ReLU())
+        sequential.append(layer_utils.Conv1DTranspose(filters=1, strides=4, kernel_size=36))
 
-        self.l = Sequential(layers, name=name)
+        self.l = keras.Sequential(sequential, name=name)
 
-    def call(self, z_in): # pylint: disable=arguments-differ
+    def call(self, z_in):
         output = self.l(z_in)
         return output
 
 
-class Discriminator(Model): # pylint: disable=too-many-ancestors
+class Discriminator(keras.Model):
     """Implementation of the discriminator for WaveGAN
 
     The model takes as input a real or fake waveform and,
@@ -70,22 +69,22 @@ class Discriminator(Model): # pylint: disable=too-many-ancestors
 
     def __init__(self, name='discriminator'):
         super(Discriminator, self).__init__()
-        layers = []
-        layers.append(Conv1D(64, kernel_size=36, strides=4))
-        layers.append(LeakyReLU(alpha=0.2))
-        layers.append(Conv1D(128, kernel_size=36, strides=4))
-        layers.append(LeakyReLU(alpha=0.2))
-        layers.append(Conv1D(256, kernel_size=36, strides=4))
-        layers.append(LeakyReLU(alpha=0.2))
-        layers.append(Conv1D(512, kernel_size=36, strides=4))
-        layers.append(LeakyReLU(alpha=0.2))
-        layers.append(Conv1D(1024, kernel_size=36, strides=4))
-        layers.append(LeakyReLU(alpha=0.2))
-        layers.append(Flatten())
-        layers.append(Dense(1))
+        sequential = []
+        sequential.append(layers.Conv1D(64, kernel_size=36, strides=4))
+        sequential.append(layers.LeakyReLU(alpha=0.2))
+        sequential.append(layers.Conv1D(128, kernel_size=36, strides=4))
+        sequential.append(layers.LeakyReLU(alpha=0.2))
+        sequential.append(layers.Conv1D(256, kernel_size=36, strides=4))
+        sequential.append(layers.LeakyReLU(alpha=0.2))
+        sequential.append(layers.Conv1D(512, kernel_size=36, strides=4))
+        sequential.append(layers.LeakyReLU(alpha=0.2))
+        sequential.append(layers.Conv1D(1024, kernel_size=36, strides=4))
+        sequential.append(layers.LeakyReLU(alpha=0.2))
+        sequential.append(layers.Flatten())
+        sequential.append(layers.Dense(1))
 
-        self.l = Sequential(layers, name=name)
+        self.l = keras.Sequential(sequential, name=name)
 
-    def call(self, x_in): # pylint: disable=arguments-differ
+    def call(self, x_in):
         output = self.l(x_in)
         return output

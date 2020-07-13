@@ -19,30 +19,43 @@ with Gradient Penalty [https://arxiv.org/abs/1704.00028].
 import time
 import os
 import tensorflow as tf
-from tensorflow.keras.utils import Progbar
+from tensorflow.keras import utils as keras_utils
 import numpy as np
 
 SHUFFLE_BUFFER_SIZE = 1000
 
-def _compute_losses(model, d_real, d_fake, interpolated):
+# A common choice for the gradient penalty weighting
+# is 10.0
+GRADIENT_PENALTY_LAMBDA = 10.0
+
+def _compute_losses(discriminator, d_real, d_fake, interpolated):
     """Base implementation of the function that computes the WGAN
     generator and disciminator losses.
-    
-    Paramaters:
+
+    Args:
+        discriminator: The discriminator function.
+        d_real: The discriminator score for the real data points.
+        d_fake: The discriminator score for the fake data points.
+        interpolated: The interpolation between the real and fake
+            data points.
+
+    Returns:
+        g_loss: The loss for the generator function.
+        d_loss: The loss for the discriminator function.
     """
     wasserstein_distance = tf.reduce_mean(d_real) - tf.reduce_mean(d_fake)
 
     with tf.GradientTape() as tape:
         tape.watch(interpolated)
-        d_interpolated = model.discriminator(interpolated, training=True)
+        d_interpolated = discriminator(interpolated, training=True)
 
     gradient = tape.gradient(d_interpolated, [interpolated])[0]
-    sum_axes = list(range(1, len(model.d_in_data_shape)))
+    sum_axes = list(range(1, len(interpolated.shape)))
     slopes = tf.sqrt(tf.reduce_sum(tf.square(gradient), axis=sum_axes))
     gradient_penalty = tf.reduce_mean((slopes - 1.0) ** 2.0)
 
     g_loss = tf.reduce_mean(d_fake)
-    d_loss = wasserstein_distance + 10.0 * gradient_penalty
+    d_loss = wasserstein_distance + GRADIENT_PENALTY_LAMBDA * gradient_penalty
 
     return g_loss, d_loss
 
@@ -102,13 +115,13 @@ class WGAN: # pylint: disable=too-many-instance-attributes
         self.fn_save_examples = fn_save_examples
 
         self.dataset = tf.data.Dataset.from_tensor_slices(self.raw_dataset).\
-            shuffle(self.buffer_size).repeat(self.generator_training_ratio).\
+            shuffle(self.buffer_size).repeat(self.discriminator_training_ratio).\
             batch(self.batch_size, drop_remainder=False)
 
 
         if checkpoint_dir:
             self.checkpoint_dir = checkpoint_dir
-            self.checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")
+            self.checkpoint_prefix = os.path.join(checkpoint_dir, 'ckpt')
             self.checkpoint = tf.train.Checkpoint(
                 generator_optimizer=self.generator_optimizer,
                 discriminator_optimizer=self.discriminator_optimizer,
@@ -118,7 +131,8 @@ class WGAN: # pylint: disable=too-many-instance-attributes
 
 
     def restore(self, checkpoint, completed_epochs):
-        """Restores the model from a checkpoint
+        """Restores the model from a checkpoint at a given
+        number of epochs.
 
         Paramaters:
             checkpoint: The name of the checkpoint.
@@ -128,7 +142,7 @@ class WGAN: # pylint: disable=too-many-instance-attributes
         checkpoint_path = self.checkpoint_dir + checkpoint
         self.checkpoint.restore(checkpoint_path)
         self.completed_epochs = completed_epochs
-        print("Checkpoint ", checkpoint_path,
+        print('Checkpoint ', checkpoint_path,
               ' restored at ', str(self.completed_epochs), ' epochs')
 
     def _train_step(self, x_in, train_generator=True, train_discriminator=True): # pylint: disable=too-many-locals
@@ -138,7 +152,7 @@ class WGAN: # pylint: disable=too-many-instance-attributes
             x_in: One batch of training data.
             train_generator: If true, the generator weights will be updated.
             train_discriminator: If true, the discriminator weights will be updated.
-            
+
         Returns:
             g_loss: The generator loss
             d_loss: The discriminator loss
@@ -159,11 +173,11 @@ class WGAN: # pylint: disable=too-many-instance-attributes
             # https://arxiv.org/abs/1704.00028
             alpha_shape = np.ones(len(self.d_in_data_shape))
             alpha_shape[0] = x_in.shape[0]
-            alpha = tf.random.uniform(alpha_shape.astype('int32'), 0.0, 1.0)
+            alpha = tf.random.uniform(alpha_shape.astype(tf.int32), 0.0, 1.0)
             diff = x_gen - x_in
             interp = x_in + (alpha * diff)
 
-            g_loss, d_loss = self.fn_compute_loss(self, d_real, d_fake, interp)
+            g_loss, d_loss = self.fn_compute_loss(self.discriminator, d_real, d_fake, interp)
 
         gradients_of_generator = gen_tape.gradient(g_loss,
                                                    self.generator.trainable_variables)
@@ -180,27 +194,26 @@ class WGAN: # pylint: disable=too-many-instance-attributes
 
     def _generate_and_save_examples(self, epoch):
         if self.fn_save_examples:
-            x_save = self.raw_dataset[np.random.randint(low=0,
-                                                        high=len(self.raw_dataset),
-                                                        size=(self.batch_size))]
+            x_save = self.raw_dataset[np.random.randint(
+                low=0, high=len(self.raw_dataset), size=self.batch_size
+            )]
             z_in = tf.random.uniform((len(x_save), self.z_dim), -1, 1)
-            generations = self.generator(z_in, training=False)
+            generations = tf.squeeze(self.generator(z_in, training=False))
             self.fn_save_examples(epoch, x_save, generations)
 
 
     def train(self):
-        """Executes the training for the WGAN model.
-        """
+        """Executes the training for the WGAN model."""
 
         self._generate_and_save_examples(0)
         for epoch in range(self.completed_epochs, self.epochs):
-            pb_i = Progbar(len(self.raw_dataset))
+            pb_i = keras_utils.Progbar(len(self.raw_dataset))
             start = time.time()
 
             for i, x_batch in enumerate(self.dataset):
                 self._train_step(x_batch, train_generator=False,
                                  train_discriminator=True)
-                if (i+1) % self.generator_training_ratio == 0:
+                if (i + 1) % self.discriminator_training_ratio == 0:
                     self._train_step(x_batch, train_generator=True,
                                      train_discriminator=False)
                     pb_i.add(self.batch_size)
@@ -210,5 +223,5 @@ class WGAN: # pylint: disable=too-many-instance-attributes
                 self.checkpoint.save(file_prefix=self.checkpoint_prefix)
 
             print('\nTime for epoch {} is {} minutes'.format(epoch + 1,
-                                                             (time.time()-start) / 60))
-            self._generate_and_save_examples(epoch+1)
+                                                             (time.time() - start) / 60))
+            self._generate_and_save_examples(epoch + 1)
