@@ -28,20 +28,25 @@ def save_wav_data(epoch, real, generated, sampling_rate, result_dir, get_wavefor
     Args:
         epoch: The number of training epochs when the generated
             data was produced.
-        real: A batch of real data.
-        generated: A batch of generated data.
+        real: A batch of real data, waveform or time-frequency.
+        generated: A batch of generated data, waveform or time-frequency.
+        sampling_rate: The sampling rate (samples/second) of the audio.
+        result_dir: The directory in which to save the real and generated
+            audio.
+        get_waveform: A function that transforms the given audio representation
+            into a waveform.
     """
 
     gen_waveforms = []
     real_waveforms = []
-    for real_magnitude, generated_magnitude in zip(real, generated):
-        real_waveforms.extend(get_waveform(real_magnitude))
-        gen_waveforms.extend(get_waveform(generated_magnitude))
+    for real_representation, generated_representation in zip(real, generated):
+        real_waveforms.extend(get_waveform(real_representation))
+        gen_waveforms.extend(get_waveform(generated_representation))
 
     sf.write(os.path.join(result_dir, 'real_{}.wav'.format(epoch)), real_waveforms, sampling_rate)
     sf.write(os.path.join(result_dir, 'gen_{}.wav'.format(epoch)), gen_waveforms, sampling_rate)
 
-def get_waveform_from_normalized_magnitude(magnitude, stastics, griffin_lim_iterations,
+def get_waveform_from_normalized_magnitude(magnitude, statistics, griffin_lim_iterations,
                                           frame_length, frame_step, log_magnitude=True):
     """Converts a normalized magnitude spectrum into a waveform.
 
@@ -51,7 +56,7 @@ def get_waveform_from_normalized_magnitude(magnitude, stastics, griffin_lim_iter
     Args:
         magnitude: The normalized magnitude to be converted to
             a waveform. A single magnitude with no channel dimention.
-        stastics: The stastics used during normalization. Expected form
+        statistics: The stastics used during normalization. Expected form
             is [mean, standard deviation].
         griffin_lim_iterations: The number of Griffin-Lim iterations.
         frame_length: The FFT frame length.
@@ -63,14 +68,14 @@ def get_waveform_from_normalized_magnitude(magnitude, stastics, griffin_lim_iter
         spectrum. The phase is estimated using griffin-lim.
     """
 
-    magnitude = maestro_dataset.un_normalize(magnitude, *stastics)
+    magnitude = maestro_dataset.un_normalize(magnitude, *statistics)
 
     return spectral.magnitude_2_waveform(
         magnitude, griffin_lim_iterations, frame_length, frame_step,
         log_magnitude
     )
 
-def get_waveform_from_normalized_spectogram(spectogram, stastics, frame_length,
+def get_waveform_from_normalized_spectogram(spectogram, statistics, frame_length,
                                             frame_step, log_magnitude=True,
                                             instantaneous_frequency=True):
     """Converts a normalized spectogram into a waveform.
@@ -80,9 +85,10 @@ def get_waveform_from_normalized_spectogram(spectogram, stastics, frame_length,
     Args:
         spectogram: The normalized spectogram to be converted into
             a waveform.
-        stastics: The normalizaton stastics. Expected form is
+        statistics: The normalizaton stastics. Expected form is
             [[mean, standard deviation], [mean, standard deviation]],
-            where the first set corespond to the magnitude.
+            where the first set corresponds to the magnitude and the
+            second corresponds to the phase.
         frame_length: The FFT frame length.
         frame_step: The FFT frame step.
         log_magnitude: If the log of the magnitude was taken.
@@ -94,7 +100,7 @@ def get_waveform_from_normalized_spectogram(spectogram, stastics, frame_length,
 
     """
 
-    magnitude_stats, phase_stats = stastics
+    magnitude_stats, phase_stats = statistics
 
     magnitude = spectogram[:, :, 0]
     magnitude = maestro_dataset.un_normalize(magnitude, *magnitude_stats)

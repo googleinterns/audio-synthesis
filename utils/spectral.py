@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Prodvides functionality for converting audio representations."""
+"""Provides functionality for converting audio representations."""
 
 import tensorflow as tf
 import numpy as np
