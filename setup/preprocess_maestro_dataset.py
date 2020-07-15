@@ -19,6 +19,7 @@ of music chunks with a predefined lenth and sampling rate.
 The music chunks are then saved as a .npz file
 """
 
+import os
 import sys
 import glob
 import librosa
@@ -31,17 +32,16 @@ DATA_POINT_LENGTH = 2**14
 RAW_DATA_PATH = './data/maestro/2017'
 PROCESSED_DATA_PATH = '../data/'
 
-
-if __name__ == '__main__':
+def main():
     audio_paths = glob.glob(RAW_DATA_PATH + '/**/*.wav', recursive=True)
 
     # Load audio files until we reach our desired
     # data set size.
     data = []
-    hours_loaded = 0 # pylint: disable=invalid-name
-    for file in audio_paths:
-        print(file)
-        wav, _ = librosa.load(file, sr=SAMPLE_RATE)
+    hours_loaded = 0
+    for audio_file_path in audio_paths:
+        print(audio_file_path)
+        wav, _ = librosa.load(audio_file_path, sr=SAMPLE_RATE)
 
         hours_loaded += len(wav) / SAMPLE_RATE / 60 / 60
         if hours_loaded >= APPROX_TOTAL_HOURS:
@@ -63,6 +63,9 @@ if __name__ == '__main__':
     print('Dataset Shape: ', data.shape)
 
     print("Saving Waveform Dataset")
-    np.savez_compressed(PROCESSED_DATA_PATH + 'MAESTRO_'\
-                        + str(APPROX_TOTAL_HOURS) + 'h.npz',
+    np.savez_compressed(os.path.join(PROCESSED_DATA_PATH, 'MAESTRO_{}h.npz'\
+                        .format(APPROX_TOTAL_HOURS)),
                         np.array(data))
+
+if __name__ == '__main__':
+    main()

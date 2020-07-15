@@ -23,16 +23,13 @@ with our implementation of WaveGAN. We choose a kernel size of 6x6 (instead of 5
 such that it is divisible by the stride.
 """
 
-from tensorflow.keras.layers import Dense, ReLU, LeakyReLU,\
-        Conv2D, Conv2DTranspose, Reshape, Flatten
-from tensorflow.keras.activations import linear
-from tensorflow.keras import Model, Sequential
+from tensorflow.keras import activations, layers
+from tensorflow import keras
 
-class Generator(Model): # pylint: disable=too-many-ancestors
-    """Implementation of the SpecGAN Generator Function.
-    """
+class Generator(keras.Model):
+    """Implementation of the SpecGAN Generator Function."""
 
-    def __init__(self, channels=1, activation=linear):
+    def __init__(self, channels=1, activation=activations.linear):
         """Initilizes the SpecGAN Generator function.
 
         Paramaters:
@@ -48,52 +45,56 @@ class Generator(Model): # pylint: disable=too-many-ancestors
 
         self.activation = activation
 
-        layers = []
-        layers.append(Dense(4 * 4 * 1024))
-        layers.append(Reshape((4, 4, 1024)))
-        layers.append(ReLU())
-        layers.append(Conv2DTranspose(filters=512, kernel_size=(6, 6), strides=(2, 2),
-                                      padding='same'))
-        layers.append(ReLU())
-        layers.append(Conv2DTranspose(filters=256, kernel_size=(6, 6), strides=(2, 2),
-                                      padding='same'))
-        layers.append(ReLU())
-        layers.append(Conv2DTranspose(filters=128, kernel_size=(6, 6), strides=(2, 2),
-                                      padding='same'))
-        layers.append(ReLU())
-        layers.append(Conv2DTranspose(filters=64, kernel_size=(6, 6), strides=(2, 2),
-                                      padding='same'))
-        layers.append(ReLU())
-        layers.append(Conv2DTranspose(filters=channels, kernel_size=(6, 6), strides=(2, 2),
-                                      padding='same'))
+        sequential = []
+        sequential.append(layers.Dense(4 * 4 * 1024))
+        sequential.append(layers.Reshape((4, 4, 1024)))
+        sequential.append(layers.ReLU())
+        sequential.append(layers.Conv2DTranspose(filters=512, kernel_size=(6, 6),
+                                                 strides=(2, 2), padding='same'))
+        sequential.append(layers.ReLU())
+        sequential.append(layers.Conv2DTranspose(filters=256, kernel_size=(6, 6),
+                                                 strides=(2, 2), padding='same'))
+        sequential.append(layers.ReLU())
+        sequential.append(layers.Conv2DTranspose(filters=128, kernel_size=(6, 6),
+                                                 strides=(2, 2), padding='same'))
+        sequential.append(layers.ReLU())
+        sequential.append(layers.Conv2DTranspose(filters=64, kernel_size=(6, 6),
+                                                 strides=(2, 2), padding='same'))
+        sequential.append(layers.ReLU())
+        sequential.append(layers.Conv2DTranspose(filters=channels, kernel_size=(6, 6),
+                                                 strides=(2, 2), padding='same'))
 
-        self.l = Sequential(layers)
+        self.l = keras.Sequential(sequential)
 
-    def call(self, z_in): # pylint: disable=arguments-differ
+    def call(self, z_in):
         return self.activation(self.l(z_in))
 
-class Discriminator(Model): # pylint: disable=too-many-ancestors
-    """Implementation of the SpecGAN Discriminator Function.
-    """
+class Discriminator(keras.Model):
+    """Implementation of the SpecGAN Discriminator Function."""
 
     def __init__(self):
         super(Discriminator, self).__init__()
 
-        layers = []
-        layers.append(Conv2D(filters=64, kernel_size=(6, 6), strides=(2, 2), padding='same'))
-        layers.append(LeakyReLU(alpha=0.2))
-        layers.append(Conv2D(filters=128, kernel_size=(6, 6), strides=(2, 2), padding='same'))
-        layers.append(LeakyReLU(alpha=0.2))
-        layers.append(Conv2D(filters=256, kernel_size=(6, 6), strides=(2, 2), padding='same'))
-        layers.append(LeakyReLU(alpha=0.2))
-        layers.append(Conv2D(filters=512, kernel_size=(6, 6), strides=(2, 2), padding='same'))
-        layers.append(LeakyReLU(alpha=0.2))
-        layers.append(Conv2D(filters=1024, kernel_size=(6, 6), strides=(2, 2), padding='same'))
-        layers.append(LeakyReLU(alpha=0.2))
-        layers.append(Flatten())
-        layers.append(Dense(1))
+        sequential = []
+        sequential.append(layers.Conv2D(filters=64, kernel_size=(6, 6),
+                                        strides=(2, 2), padding='same'))
+        sequential.append(layers.LeakyReLU(alpha=0.2))
+        sequential.append(layers.Conv2D(filters=128, kernel_size=(6, 6),
+                                        strides=(2, 2), padding='same'))
+        sequential.append(layers.LeakyReLU(alpha=0.2))
+        sequential.append(layers.Conv2D(filters=256, kernel_size=(6, 6),
+                                        strides=(2, 2), padding='same'))
+        sequential.append(layers.LeakyReLU(alpha=0.2))
+        sequential.append(layers.Conv2D(filters=512, kernel_size=(6, 6),
+                                        strides=(2, 2), padding='same'))
+        sequential.append(layers.LeakyReLU(alpha=0.2))
+        sequential.append(layers.Conv2D(filters=1024, kernel_size=(6, 6),
+                                        strides=(2, 2), padding='same'))
+        sequential.append(layers.LeakyReLU(alpha=0.2))
+        sequential.append(layers.Flatten())
+        sequential.append(layers.Dense(1))
 
-        self.l = Sequential(layers)
+        self.l = keras.Sequential(sequential)
 
-    def call(self, x_in): # pylint: disable=arguments-differ
+    def call(self, x_in):
         return self.l(x_in)
