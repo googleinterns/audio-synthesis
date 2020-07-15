@@ -173,7 +173,7 @@ class WGAN: # pylint: disable=too-many-instance-attributes
             # https://arxiv.org/abs/1704.00028
             alpha_shape = np.ones(len(self.d_in_data_shape))
             alpha_shape[0] = x_in.shape[0]
-            alpha = tf.random.uniform(alpha_shape.astype(tf.int32), 0.0, 1.0)
+            alpha = tf.random.uniform(alpha_shape.astype(np.int32), 0.0, 1.0)
             diff = x_gen - x_in
             interp = x_in + (alpha * diff)
 
