@@ -60,6 +60,11 @@ def _compute_losses(discriminator, d_real, d_fake, interpolated):
     return g_loss, d_loss
 
 def _get_representations(x_in):
+    """The default function to get discriminator representations.
+    Just an indentity function that returns the singleton array
+    containing the input.
+    """
+
     return [x_in]
 
 class WGAN: # pylint: disable=too-many-instance-attributes
@@ -86,7 +91,8 @@ class WGAN: # pylint: disable=too-many-instance-attributes
             d_in_data_shape: The shape of the data points at the input to
                     the discriminator, usually has an extra channel dimention.
             generator: The generator model.
-            discriminator: List of discriminator models.
+            discriminator: A list of discriminator models. If only one 
+                discriminator then a singleton list should be given.
             z_dim: The number of latent features.
             generator_optimizer: The optimizer for the generator model.
             discriminator_optimizer: The discriminator for the discriminator.
@@ -95,7 +101,7 @@ class WGAN: # pylint: disable=too-many-instance-attributes
             batch_size: Number of elements in each batch.
             epochs: Number of epochs of the training set.
             lambdas: The relative weightings for each discriminator
-                component of the generator loss.
+                component of the generator loss. Defaults to 1.0
             checkpoint_dir: Directory in which the model weights are saved. If
                     None, then the model is not saved.
             epochs_per_save: How often the model weights are saved.
@@ -105,6 +111,8 @@ class WGAN: # pylint: disable=too-many-instance-attributes
             fn_get_discriminator_input_representations: A function that takes
                 a data point (real and fake) and produces a list of representations,
                 one for each discriminator. Default is an identity function.
+                Signature expected is f(x_in), result should be an N element list
+                of representations.
             fn_save_examples: A function to save generations and real data,
                     called after every epoch.
         """
@@ -164,10 +172,6 @@ class WGAN: # pylint: disable=too-many-instance-attributes
             x_in: One batch of training data.
             train_generator: If true, the generator weights will be updated.
             train_discriminator: If true, the discriminator weights will be updated.
-
-        Returns:
-            g_loss: The generator loss
-            d_loss: The discriminator loss
         """
 
         x_in_representations = self.fn_get_discriminator_input_representations(x_in)
@@ -181,11 +185,15 @@ class WGAN: # pylint: disable=too-many-instance-attributes
             
             for i in range(len(self.discriminator)):
                 with tf.GradientTape() as disc_tape:
-                    
-                    #x_gen = tf.reshape(x_gen, shape=self.d_in_data_shape)
+                    x_gen_representation = tf.reshape(
+                        x_gen_representations[i], shape=self.d_in_data_shape[i]
+                    )
+                    x_in_representation = tf.reshape(
+                        x_in_representations[i], shape=self.d_in_data_shape[i]
+                    )
 
-                    d_real = self.discriminator[i](x_in_representations[i], training=True)
-                    d_fake = self.discriminator[i](x_gen_representations[i], training=True)
+                    d_real = self.discriminator[i](x_in_representation, training=True)
+                    d_fake = self.discriminator[i](x_gen_representation, training=True)
 
                     # Compute a linear interpolation of the real and generated
                     # data, this is used to compute the gradient penalty.
@@ -193,12 +201,18 @@ class WGAN: # pylint: disable=too-many-instance-attributes
                     alpha_shape = np.ones(len(self.d_in_data_shape[i]))
                     alpha_shape[0] = x_in.shape[0]
                     alpha = tf.random.uniform(alpha_shape.astype(np.int32), 0.0, 1.0)
-                    diff = x_gen_representations[i] - x_in_representations[i]
-                    interpolation = x_in_representations[i] + (alpha * diff)
+                    diff = x_gen_representation - x_in_representation
+                    interpolation = x_in_representation + (alpha * diff)
 
-                    g_loss_i, d_loss_i = self.fn_compute_loss(self.discriminator[i], d_real, d_fake, interpolation)
+                    g_loss_i, d_loss_i = self.fn_compute_loss(
+                        self.discriminator[i], d_real, d_fake, interpolation
+                    )
 
-                g_loss += self.lambdas[i] * g_loss_i
+                lambda_i = 1
+                if self.lambdas:
+                    lambda_i = self.lambdas[i]
+                    
+                g_loss += lambda_i * g_loss_i
                 
                 if train_discriminator:
                     gradients_of_discriminator = disc_tape.gradient(
