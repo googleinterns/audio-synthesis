@@ -114,9 +114,9 @@ class WGAN: # pylint: disable=too-many-instance-attributes
         self.fn_compute_loss = fn_compute_loss
         self.fn_save_examples = fn_save_examples
 
-        self.dataset = tf.data.Dataset.from_tensor_slices(self.raw_dataset).\
-            shuffle(self.buffer_size).repeat(self.discriminator_training_ratio).\
-            batch(self.batch_size, drop_remainder=False)
+        self.dataset = tf.data.Dataset.from_tensor_slices(self.raw_dataset).shuffle(
+            self.buffer_size).repeat(self.discriminator_training_ratio).batch(
+            self.batch_size, drop_remainder=False)
 
 
         if checkpoint_dir:
