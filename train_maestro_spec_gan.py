@@ -80,8 +80,8 @@ def main():
         )
 
     spec_gan_model = wgan.WGAN(
-        normalized_raw_maestro, SPECTOGRAM_IMAGE_SHAPE, generator,
-        discriminator, Z_DIM, generator_optimizer, discriminator_optimizer,
+        normalized_raw_maestro, [SPECTOGRAM_IMAGE_SHAPE], generator,
+        [discriminator], Z_DIM, generator_optimizer, discriminator_optimizer,
         discriminator_training_ratio=D_UPDATES_PER_G, batch_size=BATCH_SIZE,
         epochs=EPOCHS, checkpoint_dir=CHECKPOINT_DIR, fn_save_examples=save_examples
     )

@@ -53,7 +53,7 @@ def main():
         )
 
     wave_gan_model = wgan.WGAN(
-        raw_maestro, WAVEFORM_SHAPE, generator, discriminator, Z_DIM, generator_optimizer,
+        raw_maestro, [WAVEFORM_SHAPE], generator, [discriminator], Z_DIM, generator_optimizer,
         discriminator_optimizer, discriminator_training_ratio=D_UPDATES_PER_G,
         batch_size=BATCH_SIZE, epochs=EPOCHS, checkpoint_dir=CHECKPOINT_DIR,
         fn_save_examples=save_examples
