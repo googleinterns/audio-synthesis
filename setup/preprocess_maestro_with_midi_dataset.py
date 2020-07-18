@@ -24,7 +24,7 @@ import sys
 import glob
 import librosa
 import mido
-import bisect
+import copy
 import numpy as np
 
 # Overall Config #
@@ -72,7 +72,8 @@ def main():
         total_time = 0
         for msg in track:
             total_time += msg.time
-            msg.time = total_time#mido.tick2second(total_time, mid.ticks_per_beat, 500000)
+            msg.time = total_time
+        
         # Account for padding?
         print(total_time)
         total_time = mido.second2tick(padded_wav_length // SAMPLE_RATE, mid.ticks_per_beat, 500000)
@@ -88,30 +89,33 @@ def main():
         
         # Compute time chunks in 'tic-time'
         BLOCK_IN_TICKS = mido.second2tick(BLOCK_IN_SECONDS, mid.ticks_per_beat, 500000)
+        print(BLOCK_IN_TICKS)
         time_chunks = np.arange(0, total_time, BLOCK_IN_TICKS, dtype=np.float32)
         time_chunks = np.append(time_chunks, total_time)
         
         
         print(len(time_chunks[1:]))
         print(len(chunks))
+        block_zones = np.arange(-BLOCK_IN_TICKS, 0, BLOCK_IN_TICKS / (BLOCK_N_QUANT))[1:]
+        block_zones = np.append(block_zones, 0)
+        block_length = len(block_zones)+1
+        state = np.zeros((88))
         for end_point in time_chunks[1:]:
+            block = []#np.zeros((len(block_zones)+1, 88))
             while end_idx < len(track) and track[end_idx].time < end_point:
                 end_idx += 1
                 continue
-                
-            # Lets generate the block size and fill it in
-            block_zones = np.arange(end_point - BLOCK_IN_TICKS, end_point, BLOCK_IN_TICKS / (BLOCK_N_QUANT))[1:]
             
-            block = np.zeros((len(block_zones)+1, 88))
-            while start_idx < end_idx:
-                if not track[start_idx].type == 'note_on':
+            for zone in block_zones:
+                while start_idx < end_idx and track[start_idx].time < (end_point + zone):
+                    if not track[start_idx].type == 'note_on':
+                        start_idx += 1
+                        continue
+                        
+                    state[(track[start_idx].note - 21)] = (track[start_idx].velocity / 127)
                     start_idx += 1
-                    continue
-                    
-                idx = bisect.bisect_left(block_zones, track[start_idx].time)
-                block[idx][(track[start_idx].note - 21)] = (track[start_idx].velocity / 127)
-                start_idx += 1
-
+                block.append(copy.deepcopy(state))
+            
             midi_data.append(block)
 
     data = np.array(data)
