@@ -41,6 +41,20 @@ def get_maestro_waveform_dataset(path):
     return maestro
 
 
+def get_maestro_midi_conditioning_dataset(path):
+    """Loads the MAESTRO dataset from a given path.
+
+    Args:
+        path: The path to the .npz file containing the MAESTRO data set.
+
+    Returns:
+        An array of waveform chunks loaded from the given path.
+    """
+
+    maestro_midi = np.load(path)['arr_0']
+    return maestro_midi
+
+
 def get_maestro_magnitude_phase_dataset(path, frame_length=512, frame_step=128,
                                         log_magnitude=True, instantaneous_frequency=True):
     """Loads the spectral representation of the MAESTRO dataset.
