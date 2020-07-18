@@ -35,7 +35,7 @@ BLOCK_IN_SECONDS = DATA_POINT_LENGTH / SAMPLE_RATE
 BLOCK_N_QUANT = 128
 BLOCK_ZONE_LENGTH = BLOCK_IN_SECONDS / BLOCK_N_QUANT
 RAW_DATA_PATH = './data/maestro/2017'
-PROCESSED_DATA_PATH = '../data/'
+PROCESSED_DATA_PATH = './data/'
 
 def main():
     audio_paths = glob.glob(RAW_DATA_PATH + '/**/*.wav', recursive=True)
@@ -132,6 +132,9 @@ def main():
     np.savez_compressed(os.path.join(PROCESSED_DATA_PATH, 'MAESTRO_{}h.npz'\
                         .format(APPROX_TOTAL_HOURS)),
                         np.array(data))
+    np.savez_compressed(os.path.join(PROCESSED_DATA_PATH, 'MAESTRO_midi_{}h.npz'\
+                        .format(APPROX_TOTAL_HOURS)),
+                        np.array(midi_data))
 
 if __name__ == '__main__':
     main()
