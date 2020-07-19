@@ -34,13 +34,14 @@ Z_DIM = 64
 BATCH_SIZE = 64
 EPOCHS = 300
 SAMPLING_RATE = 16000
-FFT_FRAME_LENGTH = 256
+FFT_FRAME_LENGTH = 512
 FFT_FRAME_STEP = 128
 LOG_MAGNITUDE = True
 INSTANTANEOUS_FREQUENCY = True
-SPECTOGRAM_IMAGE_SHAPE = [-1, FFT_FRAME_LENGTH // 2, FFT_FRAME_LENGTH // 2, 2]
-CHECKPOINT_DIR = '_results/representation_study/SpecPhaseGAN/training_checkpoints/'
-RESULT_DIR = '_results/representation_study/SpecPhaseGAN/audio/'
+Z_IN_SHAPE = [4, 8, 1024]
+SPECTOGRAM_IMAGE_SHAPE = [-1, 128, 256, 2]
+CHECKPOINT_DIR = '_results/representation_study/SpecPhaseGAN_HR/training_checkpoints/'
+RESULT_DIR = '_results/representation_study/SpecPhaseGAN_HR/audio/'
 MAESTRO_PATH = 'data/MAESTRO_6h.npz'
 
 def main():
@@ -65,7 +66,7 @@ def main():
         pb_i.add(1)
     normalized_raw_maestro = np.array(normalized_raw_maestro)
 
-    generator = spec_gan.Generator(channels=2, activation=activations.tanh)
+    generator = spec_gan.Generator(channels=2, activation=activations.tanh, in_shape=Z_IN_SHAPE)
     discriminator = spec_gan.Discriminator()
 
     generator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)

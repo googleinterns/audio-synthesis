@@ -45,7 +45,7 @@ RESULT_DIR = '_results/representation_study/SpecGAN_HR/audio/'
 MAESTRO_PATH = 'data/MAESTRO_6h.npz'
 
 def main():
-    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     print('Num GPUs Available: ', len(tf.config.experimental.list_physical_devices('GPU')))
 
     raw_maestro, magnitude_stats, _ =\
@@ -87,6 +87,7 @@ def main():
         epochs=EPOCHS, checkpoint_dir=CHECKPOINT_DIR, fn_save_examples=save_examples
     )
 
+    spec_gan_model.restore('ckpt-11', 110)
     spec_gan_model.train()
 
 if __name__ == '__main__':
