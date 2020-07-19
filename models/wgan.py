@@ -61,7 +61,7 @@ def _compute_losses(discriminator, d_real, d_fake, interpolated):
 
 def _get_representations(x_in):
     """The default function to get discriminator representations.
-    Just an indentity function that returns the singleton array
+    Just an identity function that returns the singleton array
     containing the input.
     """
 
@@ -80,15 +80,15 @@ class WGAN: # pylint: disable=too-many-instance-attributes
 
     def __init__(self, raw_dataset, d_in_data_shape, generator, # pylint: disable=too-many-arguments, too-many-locals
                  discriminator, z_dim, generator_optimizer, discriminator_optimizer,
-                 discriminator_training_ratio=5, batch_size=64, epochs=1, lambdas=None, checkpoint_dir=None,
-                 epochs_per_save=10, fn_compute_loss=_compute_losses,
+                 discriminator_training_ratio=5, batch_size=64, epochs=1, discriminator_weights=None,
+                 checkpoint_dir=None, epochs_per_save=10, fn_compute_loss=_compute_losses,
                  fn_get_discriminator_input_representations=_get_representations,
                  fn_save_examples=None):
         """Initilizes the WGAN class.
 
         Paramaters:
             raw_dataset: A numpy array containing the training dataset.
-            d_in_data_shape: The shape of the data points at the input to
+            d_in_data_shape: A list of the shape of the data points at the input to
                     the discriminator, usually has an extra channel dimention.
             generator: The generator model.
             discriminator: A list of discriminator models. If only one 
@@ -100,7 +100,7 @@ class WGAN: # pylint: disable=too-many-instance-attributes
                     per generator update. Default is 5.
             batch_size: Number of elements in each batch.
             epochs: Number of epochs of the training set.
-            lambdas: The relative weightings for each discriminator
+            discriminator_weights: The relative weightings for each discriminator
                 component of the generator loss. Defaults to 1.0
             checkpoint_dir: Directory in which the model weights are saved. If
                     None, then the model is not saved.
@@ -127,7 +127,7 @@ class WGAN: # pylint: disable=too-many-instance-attributes
         self.batch_size = batch_size
         self.buffer_size = SHUFFLE_BUFFER_SIZE
         self.epochs = epochs
-        self.lambdas = lambdas
+        self.discriminator_weights = discriminator_weights or [1.0] * len(discriminator)
         self.completed_epochs = 0
         self.epochs_per_save = epochs_per_save
         self.fn_compute_loss = fn_compute_loss
@@ -208,10 +208,7 @@ class WGAN: # pylint: disable=too-many-instance-attributes
                         self.discriminator[i], d_real, d_fake, interpolation
                     )
 
-                lambda_i = 1
-                if self.lambdas:
-                    lambda_i = self.lambdas[i]
-                    
+                lambda_i = self.discriminator_weights[i]
                 g_loss += lambda_i * g_loss_i
                 
                 if train_discriminator:
