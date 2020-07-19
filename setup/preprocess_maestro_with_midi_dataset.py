@@ -63,7 +63,7 @@ def main():
         data.extend(chunks)
         
         # Load and process MIDI file
-        midi_file_path = audio_file_path[0:-3] + 'midi'#.replace('.wav', '.midi')
+        midi_file_path = audio_file_path[0:-3] + 'midi'
         print(midi_file_path)
         mid = mido.MidiFile(midi_file_path, clip=True)
         track = mid.tracks[1]
@@ -101,7 +101,7 @@ def main():
         block_length = len(block_zones)+1
         state = np.zeros((88))
         for end_point in time_chunks[1:]:
-            block = []#np.zeros((len(block_zones)+1, 88))
+            block = []
             while end_idx < len(track) and track[end_idx].time < end_point:
                 end_idx += 1
                 continue
@@ -112,11 +112,25 @@ def main():
                         start_idx += 1
                         continue
                         
-                    state[(track[start_idx].note - 21)] = (track[start_idx].velocity / 127)
+                    print(track[start_idx])
+                    if track[start_idx].type == 'note_off':
+                        state[(track[start_idx].note - 21)] = 0
+                    else:
+                        state[(track[start_idx].note - 21)] = (track[start_idx].velocity / 127)
+                        
                     start_idx += 1
                 block.append(copy.deepcopy(state))
             
             midi_data.append(block)
+            
+        img_data = np.reshape(midi_data, (-1, 88))
+        print(img_data.shape)
+        
+        #import matplotlib.pyplot as plt
+        #plt.imshow(np.transpose(img_data), origin='lower')
+        #plt.savefig('test.png', bbox_inches='tight', dpi=360)
+        
+        sys.exit(0)
 
     data = np.array(data)
     midi_data = np.array(midi_data)
