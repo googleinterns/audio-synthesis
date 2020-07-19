@@ -21,11 +21,11 @@ from audio_synthesis.structures import spec_gan
 from audio_synthesis.datasets import maestro_dataset
 from audio_synthesis.models import wgan
 from audio_synthesis.utils import maestro_save_helper as save_helper
+from audio_synthesis.utils import spectral
 
-os.environ["CUDA_VISIBLE_DEVICES"] = ''
+os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
-_EPSILON = 1e-6
 D_UPDATES_PER_G = 5
 Z_DIM = 64
 BATCH_SIZE = 64
@@ -39,11 +39,15 @@ MEL_UPPER_HERTZ_EDGE = 7600.
 NUM_MEL_BINS = 96
 SIGNAL_LENGTH = 2**14
 WAVEFORM_SHAPE = [-1, SIGNAL_LENGTH, 1]
-MAGNITUDE_IMAGE_SHAPE = [-1, 128, 256, 1]
 CRITIC_WEIGHTINGS = [1.0, 1.0/1000.0]
 CHECKPOINT_DIR = '_results/representation_study/WaveSpecGAN_HR/training_checkpoints/'
 RESULT_DIR = '_results/representation_study/WaveSpecGAN_HR/audio/'
 MAESTRO_PATH = 'data/MAESTRO_6h.npz'
+
+if MEL_SPECTOGRAM:
+    MAGNITUDE_IMAGE_SHAPE = [-1, 128, NUM_MEL_BINS, 1]
+else:
+    MAGNITUDE_IMAGE_SHAPE = [-1, 128, FFT_FRAME_LENGTH // 2, 1]
 
 def _get_discriminator_input_representations(x_in):
     """Computes the input representations for the WaveSpecGAN discriminator models,
@@ -57,23 +61,17 @@ def _get_discriminator_input_representations(x_in):
         x_in.
     """
 
-    stft = tf.signal.stft(
-        tf.reshape(x_in, (-1, SIGNAL_LENGTH)), frame_length=FFT_FRAME_LENGTH,
-        frame_step=FFT_FRAME_STEP, pad_end=True
-    )
-    magnitude = tf.abs(stft)
+    x_in = tf.squeeze(x_in)
 
     if MEL_SPECTOGRAM:
-        linear_to_mel_weight_matrix = tf.signal.linear_to_mel_weight_matrix(
-            NUM_MEL_BINS, magnitude.shape[-1], SAMPLE_RATE, MEL_LOWER_HERTZ_EDGE,
-            MEL_UPPER_HERTZ_EDGE
+        magnitude = spectral.waveform_2_magnitude(
+            x_in, FFT_FRAME_LENGTH, FFT_FRAME_STEP, True,
+            NUM_MEL_BINS, MEL_LOWER_HERTZ_EDGE, MEL_UPPER_HERTZ_EDGE
         )
-    
-        magnitude = tf.tensordot(magnitude, linear_to_mel_weight_matrix, 1)
-    
-    magnitude = tf.math.log(magnitude + _EPSILON)
-    magnitude = magnitude[:,:,0:-1]
-    magnitude = tf.expand_dims(magnitude, axis=3)
+    else:
+        magnitude = spectral.waveform_2_magnitude(
+            x_in, FFT_FRAME_LENGTH, FFT_FRAME_STEP, True
+        )
 
     return (x_in, magnitude)
 
@@ -98,7 +96,7 @@ def main():
         raw_maestro, [WAVEFORM_SHAPE, MAGNITUDE_IMAGE_SHAPE], generator,
         [discriminator, spec_discriminator], Z_DIM, generator_optimizer,
         discriminator_optimizer, discriminator_training_ratio=D_UPDATES_PER_G,
-        batch_size=BATCH_SIZE, epochs=EPOCHS, lambdas=CRITIC_WEIGHTINGS,
+        batch_size=BATCH_SIZE, epochs=EPOCHS, discriminator_weights=CRITIC_WEIGHTINGS,
         checkpoint_dir=CHECKPOINT_DIR, fn_save_examples=save_examples,
         fn_get_discriminator_input_representations=_get_discriminator_input_representations
     )
