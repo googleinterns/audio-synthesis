@@ -81,7 +81,7 @@ def waveform_2_spectogram(waveform, frame_length=512, frame_step=128,
                                 np.diff(phase, axis=-2)], axis=-2).astype(np.float32)
 
     spectogram = tf.concat([tf.expand_dims(magnitude, 3),
-                                 tf.expand_dims(phase, 3)], axis=-1)
+                            tf.expand_dims(phase, 3)], axis=-1)
 
     return spectogram
 
@@ -141,8 +141,8 @@ def magnitude_2_waveform(magnitude, n_iter=16, frame_length=512,
         where the phase has been estimated using Griffin-Lim.
     """
 
-    if len(spectogram.shape) == 3:
-        spectogram = tf.expand_dims(spectogram, 0)
+    if len(magnitude.shape) == 2:
+        magnitude = tf.expand_dims(magnitude, 0)
 
     if log_magnitude:
         magnitude = np.exp(magnitude) - _EPSILON
@@ -150,12 +150,12 @@ def magnitude_2_waveform(magnitude, n_iter=16, frame_length=512,
     # Add the removed band back in as zeros
     magnitude = np.pad(magnitude, [[0, 0], [0, 0], [0, 1]])
 
-    to_waveform = lambda magniude: griffinlim(
-        np.transpose(magnitude), n_iter=n_iter, win_length=frame_length,
+    to_waveform = lambda m: griffinlim(
+        np.transpose(m), n_iter=n_iter, win_length=frame_length,
         hop_length=frame_step, pad_mode='constant', center=False
     )
-
-    return map(to_waveform, magnitude)
+    
+    return np.array(list(map(to_waveform, magnitude)))
 
 def spectogram_2_waveform(spectogram, frame_length=512, frame_step=128,
                           log_magnitude=True, instantaneous_frequency=True):
