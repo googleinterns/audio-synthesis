@@ -61,13 +61,13 @@ def get_maestro_magnitude_phase_dataset(path, frame_length=512, frame_step=128,
 
     maestro = get_maestro_waveform_dataset(path)
 
-    process_spectogram = lambda x: spectral.waveform_2_spectogram(
+    process_spectogram = lambda x: np.array(spectral.waveform_2_spectogram(
         x,
         frame_length=frame_length,
         frame_step=frame_step,
         log_magnitude=log_magnitude,
         instantaneous_frequency=instantaneous_frequency
-    )
+    )[0])
 
     maestro = np.array(list(map(process_spectogram, maestro)))
     magnitude_stats, phase_stats = _get_maestro_spectogram_normalizing_constants(maestro)
