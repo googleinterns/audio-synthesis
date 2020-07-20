@@ -33,7 +33,7 @@ EPOCHS = 300
 SAMPLING_RATE = 16000
 FFT_FRAME_LENGTH = 512
 FFT_FRAME_STEP = 128
-MEL_SPECTOGRAM = False
+MEL_SPECTROGRAM = False
 MEL_LOWER_HERTZ_EDGE = 80.
 MEL_UPPER_HERTZ_EDGE = 7600.
 NUM_MEL_BINS = 96
@@ -44,7 +44,7 @@ CHECKPOINT_DIR = '_results/representation_study/WaveSpecGAN_HR/training_checkpoi
 RESULT_DIR = '_results/representation_study/WaveSpecGAN_HR/audio/'
 MAESTRO_PATH = 'data/MAESTRO_6h.npz'
 
-if MEL_SPECTOGRAM:
+if MEL_SPECTROGRAM:
     MAGNITUDE_IMAGE_SHAPE = [-1, 128, NUM_MEL_BINS, 1]
 else:
     MAGNITUDE_IMAGE_SHAPE = [-1, 128, FFT_FRAME_LENGTH // 2, 1]
@@ -63,7 +63,7 @@ def _get_discriminator_input_representations(x_in):
 
     x_in = tf.squeeze(x_in)
 
-    if MEL_SPECTOGRAM:
+    if MEL_SPECTROGRAM:
         magnitude = spectral.waveform_2_magnitude(
             x_in, FFT_FRAME_LENGTH, FFT_FRAME_STEP, True,
             NUM_MEL_BINS, MEL_LOWER_HERTZ_EDGE, MEL_UPPER_HERTZ_EDGE

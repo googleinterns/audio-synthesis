@@ -33,7 +33,7 @@ def waveform_2_spectogram(waveform, frame_length=512, frame_step=128,
 
     Paramaters:
         waveform: the signal to be transformed. Expected
-            shape is [time] or [batch_time]
+            shape is [time] or [batch, time]
         frame_length: The length of each stft frame.
         frame_step: Time increment after each frame, i.e.
             overlap=frame_length - frame_step.
@@ -58,7 +58,7 @@ def waveform_2_spectogram(waveform, frame_length=512, frame_step=128,
         waveform, frame_length=frame_length, frame_step=frame_step, pad_end=True
     )
     
-    # Cut of extra band. This makes it a power of 2, this is
+    # Cut off extra band. This makes it a power of 2, this is
     # also done in the papers
     magnitude = tf.abs(stft)[:, :, 0:-1]
     phase = tf.math.angle(stft)[:, :, 0:-1]
