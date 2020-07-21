@@ -210,7 +210,7 @@ class WGAN: # pylint: disable=too-many-instance-attributes
                     diff = x_gen_representation - x_in_representation
                     interpolation = x_in_representation + (alpha * diff)
                     
-                    alpha_shape = np.ones(3)
+                    alpha_shape = np.ones(len(c_in.shape))
                     alpha_shape[0] = x_in.shape[0]
                     alpha = tf.random.uniform(alpha_shape.astype(np.int32), 0.0, 1.0)
                     diff = c_gen_in - c_in
