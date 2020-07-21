@@ -44,6 +44,7 @@ def main():
     # data set size.
     data = []
     midi_data = []
+    time_data = []
     hours_loaded = 0
     for audio_file_path in audio_paths:
         print(audio_file_path)
@@ -99,38 +100,72 @@ def main():
         block_zones = np.arange(-BLOCK_IN_TICKS, 0, BLOCK_IN_TICKS / (BLOCK_N_QUANT))[1:]
         block_zones = np.append(block_zones, 0)
         block_length = len(block_zones)+1
+        
+        time_idx = 0
+        note_start = np.zeros((88)).astype(np.int32)
+        times = np.zeros((88))
         state = np.zeros((88))
+        song = []
+        song_time = []
         for end_point in time_chunks[1:]:
-            block = []
+            #block = []
             while end_idx < len(track) and track[end_idx].time < end_point:
                 end_idx += 1
                 continue
             
             for zone in block_zones:
+                # Each block, we want to increment non-zero times by one?
+                times = [times[i] + 1 if not times[i] == 0 else 0 for i in range(len(times))]
+                #print(times)
+                
                 while start_idx < end_idx and track[start_idx].time < (end_point + zone):
-                    if not track[start_idx].type == 'note_on':
+                    if not track[start_idx].type == 'note_on' and not track[start_idx].type == 'note_off':
                         start_idx += 1
                         continue
                         
-                    print(track[start_idx])
-                    if track[start_idx].type == 'note_off':
+                    #print(track[start_idx])
+                    if track[start_idx].velocity == 0:
                         state[(track[start_idx].note - 21)] = 0
+                        diff = (time_idx - note_start[(track[start_idx].note - 21)])
+                        for i in range(note_start[(track[start_idx].note - 21)], time_idx):
+                            song_time[i][(track[start_idx].note - 21)] = 1.0 - (song_time[i][(track[start_idx].note - 21)] / diff)
+                            
+                        times[(track[start_idx].note - 21)] = 0
+                        note_start[(track[start_idx].note - 21)] = 0
                     else:
                         state[(track[start_idx].note - 21)] = (track[start_idx].velocity / 127)
+                        note_start[(track[start_idx].note - 21)] = time_idx
+                        times[(track[start_idx].note - 21)] = 1
                         
                     start_idx += 1
-                block.append(copy.deepcopy(state))
+                time_idx += 1
+                song.append(copy.deepcopy(state))
+                song_time.append(copy.deepcopy(times))
+                
+        song = np.reshape(song, (-1, BLOCK_N_QUANT, 88))
+        song_time = np.reshape(song_time, (-1, BLOCK_N_QUANT, 88))
+        
+        song_midi_time = np.concatenate([np.expand_dims(song, 3), np.expand_dims(song_time, 3)], axis=-1)
+        print(song_midi_time.shape)
+        
+        midi_data.extend(song_midi_time)
             
-            midi_data.append(block)
+        #save_data = midi_data[0:15]
+        #save_data = np.reshape(save_data, (-1, 88, 2))
             
-        img_data = np.reshape(midi_data, (-1, 88))
-        print(img_data.shape)
+        #img_data = save_data[:,:,0]
+        #time_data = save_data[:,:,1]
+        #print(img_data.shape)
         
         #import matplotlib.pyplot as plt
         #plt.imshow(np.transpose(img_data), origin='lower')
-        #plt.savefig('test.png', bbox_inches='tight', dpi=360)
+        #plt.savefig('NoteData.png', bbox_inches='tight', dpi=360)
         
-        sys.exit(0)
+        #plt.clf()
+        #plt.imshow(np.transpose(time_data), origin='lower')
+        #plt.savefig('TimeData.png', bbox_inches='tight', dpi=360)
+        
+        #sys.exit(0)
 
     data = np.array(data)
     midi_data = np.array(midi_data)
