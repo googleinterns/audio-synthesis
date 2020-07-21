@@ -67,8 +67,12 @@ class Discriminator(keras.Model):
     output.
     """
 
-    def __init__(self, name='discriminator'):
+    def __init__(self, input_shape, weighting=1.0):
         super(Discriminator, self).__init__()
+        
+        self.input_shape = input_shape
+        self.weighting = weighting
+        
         sequential = []
         sequential.append(layers.Conv1D(64, kernel_size=36, strides=4))
         sequential.append(layers.LeakyReLU(alpha=0.2))
@@ -86,5 +90,6 @@ class Discriminator(keras.Model):
         self.l = keras.Sequential(sequential, name=name)
 
     def call(self, x_in):
+        x_in = tf.reshape(x_in, self.input_shape)
         output = self.l(x_in)
         return output

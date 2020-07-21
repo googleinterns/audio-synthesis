@@ -63,9 +63,40 @@ def _get_representations(x_in):
     """The default function to get discriminator representations.
     Just an identity function that returns the singleton array
     containing the input.
+    
+    Args:
+        x_in: Real or fake data in the format produced at the output
+            from the generator.
+    
+    Returns:
+        A list of representations, one for each discriminator in the
+            model.
     """
 
     return [x_in]
+
+def _get_interpolation(x_real, x_fake):
+    """Compute a linear interpolation of the real and generated
+    data, this is used to compute the gradient penalty
+    [https://arxiv.org/abs/1704.00028].
+    
+    Args:
+        x_real: A batch of real data
+        x_fake: A batch of generated data
+        
+    Returns:
+        A (random) linear interpolation between x_real
+        and x_fake.
+    """
+
+    alpha_shape = np.ones(len(x_real))
+    alpha_shape[0] = x_real.shape[0]
+    alpha = tf.random.uniform(alpha_shape.astype(np.int32), 0.0, 1.0)
+    diff = x_fake - x_real
+    interpolation = x_real + (alpha * diff)
+    
+    return interpolation
+    
 
 class WGAN: # pylint: disable=too-many-instance-attributes
     """Implements the training procedure for Wasserstein GAN [1] with Gradient Penalty [2].
@@ -78,18 +109,16 @@ class WGAN: # pylint: disable=too-many-instance-attributes
     [2] Improved Training of Wasserstein GANs - https://arxiv.org/abs/1704.00028.
     """
 
-    def __init__(self, raw_dataset, d_in_data_shape, generator, # pylint: disable=too-many-arguments, too-many-locals
+    def __init__(self, raw_dataset, generator, # pylint: disable=too-many-arguments, too-many-locals
                  discriminator, z_dim, generator_optimizer, discriminator_optimizer,
-                 discriminator_training_ratio=5, batch_size=64, epochs=1, discriminator_weights=None,
+                 discriminator_training_ratio=5, batch_size=64, epochs=1,
                  checkpoint_dir=None, epochs_per_save=10, fn_compute_loss=_compute_losses,
                  fn_get_discriminator_input_representations=_get_representations,
                  fn_save_examples=None):
         """Initilizes the WGAN class.
 
-        Paramaters:
+        Args:
             raw_dataset: A numpy array containing the training dataset.
-            d_in_data_shape: A list of the shape of the data points at the input to
-                    the discriminator, usually has an extra channel dimention.
             generator: The generator model.
             discriminator: A list of discriminator models. If only one 
                 discriminator then a singleton list should be given.
@@ -100,8 +129,6 @@ class WGAN: # pylint: disable=too-many-instance-attributes
                     per generator update. Default is 5.
             batch_size: Number of elements in each batch.
             epochs: Number of epochs of the training set.
-            discriminator_weights: The relative weightings for each discriminator
-                component of the generator loss. Defaults to 1.0
             checkpoint_dir: Directory in which the model weights are saved. If
                     None, then the model is not saved.
             epochs_per_save: How often the model weights are saved.
@@ -117,7 +144,6 @@ class WGAN: # pylint: disable=too-many-instance-attributes
                     called after every epoch.
         """
         self.raw_dataset = raw_dataset
-        self.d_in_data_shape = d_in_data_shape
         self.generator = generator
         self.discriminator = discriminator
         self.z_dim = z_dim
@@ -127,7 +153,6 @@ class WGAN: # pylint: disable=too-many-instance-attributes
         self.batch_size = batch_size
         self.buffer_size = SHUFFLE_BUFFER_SIZE
         self.epochs = epochs
-        self.discriminator_weights = discriminator_weights or [1.0] * len(discriminator)
         self.completed_epochs = 0
         self.epochs_per_save = epochs_per_save
         self.fn_compute_loss = fn_compute_loss
@@ -154,7 +179,7 @@ class WGAN: # pylint: disable=too-many-instance-attributes
         """Restores the model from a checkpoint at a given
         number of epochs.
 
-        Paramaters:
+        Args:
             checkpoint: The name of the checkpoint.
             completed_epochs: The number of training
                 epochs completed by this checkpoint.
@@ -168,7 +193,7 @@ class WGAN: # pylint: disable=too-many-instance-attributes
     def _train_step(self, x_in, train_generator=True, train_discriminator=True): # pylint: disable=too-many-locals
         """Executes one training step of the WGAN model.
 
-        Paramaters:
+        Args:
             x_in: One batch of training data.
             train_generator: If true, the generator weights will be updated.
             train_discriminator: If true, the discriminator weights will be updated.
@@ -185,31 +210,18 @@ class WGAN: # pylint: disable=too-many-instance-attributes
             
             for i in range(len(self.discriminator)):
                 with tf.GradientTape() as disc_tape:
-                    x_gen_representation = tf.reshape(
-                        x_gen_representations[i], shape=self.d_in_data_shape[i]
-                    )
-                    x_in_representation = tf.reshape(
-                        x_in_representations[i], shape=self.d_in_data_shape[i]
-                    )
+                    d_real = self.discriminator[i](x_in_representations[i], training=True)
+                    d_fake = self.discriminator[i](x_gen_representations[i], training=True)
 
-                    d_real = self.discriminator[i](x_in_representation, training=True)
-                    d_fake = self.discriminator[i](x_gen_representation, training=True)
-
-                    # Compute a linear interpolation of the real and generated
-                    # data, this is used to compute the gradient penalty.
-                    # https://arxiv.org/abs/1704.00028
-                    alpha_shape = np.ones(len(self.d_in_data_shape[i]))
-                    alpha_shape[0] = x_in.shape[0]
-                    alpha = tf.random.uniform(alpha_shape.astype(np.int32), 0.0, 1.0)
-                    diff = x_gen_representation - x_in_representation
-                    interpolation = x_in_representation + (alpha * diff)
+                    interpolation = _get_interpolation(
+                        x_in_representations[i], x_gen_representations[i]
+                    )
 
                     g_loss_i, d_loss_i = self.fn_compute_loss(
                         self.discriminator[i], d_real, d_fake, interpolation
                     )
 
-                lambda_i = self.discriminator_weights[i]
-                g_loss += lambda_i * g_loss_i
+                g_loss += self.discriminator[i].weighting * g_loss_i
                 
                 if train_discriminator:
                     gradients_of_discriminator = disc_tape.gradient(
