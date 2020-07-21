@@ -89,7 +89,7 @@ def _get_interpolation(x_real, x_fake):
         and x_fake.
     """
 
-    alpha_shape = np.ones(len(x_real))
+    alpha_shape = np.ones(len(x_real.shape))
     alpha_shape[0] = x_real.shape[0]
     alpha = tf.random.uniform(alpha_shape.astype(np.int32), 0.0, 1.0)
     diff = x_fake - x_real
