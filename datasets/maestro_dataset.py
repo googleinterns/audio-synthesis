@@ -69,7 +69,8 @@ def get_maestro_magnitude_phase_dataset(path, frame_length=512, frame_step=128,
         instantaneous_frequency=instantaneous_frequency
     )[0] # [0] Needed as waveform_2_spectogram returns with a batch dimention.
 
-    maestro = np.array(list(map(process_spectogram, maestro)))
+    maestro = list(map(process_spectogram, maestro))
+    maestro = np.array(maestro)
     magnitude_stats, phase_stats = _get_maestro_spectogram_normalizing_constants(maestro)
     return maestro, magnitude_stats, phase_stats
 
