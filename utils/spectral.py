@@ -51,6 +51,7 @@ def waveform_2_spectogram(waveform, frame_length=512, frame_step=128,
         A spectogram representation of the input waveform.
     """
 
+
     if len(waveform.shape) == 1:
         waveform = tf.expand_dims(waveform, 0)
 
