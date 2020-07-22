@@ -205,7 +205,7 @@ class WGAN: # pylint: disable=too-many-instance-attributes
         with tf.GradientTape() as gen_tape:
             g_loss = 0
             
-            x_gen = self.generator(z_in, training=True)
+            x_gen = tf.squeeze(self.generator(z_in, training=True))
             x_gen_representations = self.fn_get_discriminator_input_representations(x_gen)
             
             for i in range(len(self.discriminator)):
