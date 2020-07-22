@@ -24,6 +24,7 @@ instead we choose a kernel size of 36 (instead of 25),
 such that it is divisible by the stride.
 """
 
+import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 import audio_synthesis.utils.layers as layer_utils
@@ -67,10 +68,10 @@ class Discriminator(keras.Model):
     output.
     """
 
-    def __init__(self, input_shape, weighting=1.0):
+    def __init__(self, input_shape, weighting=1.0, name='discriminator'):
         super(Discriminator, self).__init__()
         
-        self.input_shape = input_shape
+        self.in_shape = input_shape
         self.weighting = weighting
         
         sequential = []
@@ -90,6 +91,6 @@ class Discriminator(keras.Model):
         self.l = keras.Sequential(sequential, name=name)
 
     def call(self, x_in):
-        x_in = tf.reshape(x_in, self.input_shape)
+        x_in = tf.reshape(x_in, self.in_shape)
         output = self.l(x_in)
         return output
