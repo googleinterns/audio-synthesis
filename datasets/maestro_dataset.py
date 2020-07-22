@@ -26,6 +26,7 @@ from audio_synthesis.utils import spectral
 # clip any value that lies further than three
 # standard deviations from the mean.
 _CLIP_NUMBER_STD = 3.
+_PROCESSING_BATCH_SIZE = 100
 
 def get_maestro_waveform_dataset(path):
     """Loads the MAESTRO dataset from a given path.
@@ -67,12 +68,15 @@ def get_maestro_magnitude_phase_dataset(path, frame_length=512, frame_step=128,
         frame_step=frame_step,
         log_magnitude=log_magnitude,
         instantaneous_frequency=instantaneous_frequency
-    )[0] # [0] Needed as waveform_2_spectogram returns with a batch dimention.
+    )
 
-    maestro = list(map(process_spectogram, maestro))
-    maestro = np.array(maestro)
-    magnitude_stats, phase_stats = _get_maestro_spectogram_normalizing_constants(maestro)
-    return maestro, magnitude_stats, phase_stats
+    processed_maestro = np.array(process_spectogram(maestro[0:_PROCESSING_BATCH_SIZE]))
+    for idx in range(_PROCESSING_BATCH_SIZE, len(maestro), _PROCESSING_BATCH_SIZE):
+        datapoints = maestro[idx:idx+_PROCESSING_BATCH_SIZE]
+        processed_maestro = np.concatenate([processed_maestro, process_spectogram(datapoints)], axis=0)
+
+    magnitude_stats, phase_stats = _get_maestro_spectogram_normalizing_constants(processed_maestro)
+    return processed_maestro, magnitude_stats, phase_stats
 
 def _get_maestro_spectogram_normalizing_constants(spectogram_data):
     """Computes the spectral normalizing constants for MAESTRO.
