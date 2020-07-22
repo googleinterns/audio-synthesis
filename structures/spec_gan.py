@@ -24,6 +24,7 @@ such that it is divisible by the stride.
 """
 
 import numpy as np
+import tensorflow as tf
 from tensorflow.keras import activations, layers
 from tensorflow import keras
 
@@ -75,9 +76,12 @@ class Generator(keras.Model):
 class Discriminator(keras.Model):
     """Implementation of the SpecGAN Discriminator Function."""
 
-    def __init__(self):
+    def __init__(self, input_shape, weighting=1.0):
         super(Discriminator, self).__init__()
 
+        self.in_shape = input_shape
+        self.weighting = weighting
+        
         sequential = []
         sequential.append(layers.Conv2D(filters=64, kernel_size=(6, 6),
                                         strides=(2, 2), padding='same'))
@@ -100,4 +104,5 @@ class Discriminator(keras.Model):
         self.l = keras.Sequential(sequential)
 
     def call(self, x_in):
+        x_in = tf.reshape(x_in, self.in_shape)
         return self.l(x_in)

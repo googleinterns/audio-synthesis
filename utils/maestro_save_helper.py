@@ -47,7 +47,7 @@ def save_wav_data(epoch, real, generated, sampling_rate, result_dir, get_wavefor
     sf.write(os.path.join(result_dir, 'gen_{}.wav'.format(epoch)), gen_waveforms, sampling_rate)
 
 def get_waveform_from_normalized_magnitude(magnitude, statistics, griffin_lim_iterations,
-                                          frame_length, frame_step, log_magnitude=True):
+                                           frame_length, frame_step, log_magnitude=True):
     """Converts a normalized magnitude spectrum into a waveform.
 
     A wrapper for the 'magnitude_2_waveform' function
@@ -73,7 +73,7 @@ def get_waveform_from_normalized_magnitude(magnitude, statistics, griffin_lim_it
     return spectral.magnitude_2_waveform(
         magnitude, griffin_lim_iterations, frame_length, frame_step,
         log_magnitude
-    )
+    )[0]
 
 def get_waveform_from_normalized_spectogram(spectogram, statistics, frame_length,
                                             frame_step, log_magnitude=True,
@@ -115,4 +115,4 @@ def get_waveform_from_normalized_spectogram(spectogram, statistics, frame_length
     return spectral.spectogram_2_waveform(
         un_normalized_spectogram, frame_length, frame_step, log_magnitude,
         instantaneous_frequency
-    )
+    )[0]

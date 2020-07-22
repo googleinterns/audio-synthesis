@@ -64,7 +64,7 @@ def main():
     normalized_raw_maestro = np.array(normalized_raw_maestro)
 
     generator = spec_gan.Generator(activation=activations.tanh, in_shape=Z_IN_SHAPE)
-    discriminator = spec_gan.Discriminator()
+    discriminator = spec_gan.Discriminator(input_shape=SPECTOGRAM_IMAGE_SHAPE)
 
     generator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
     discriminator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
@@ -81,10 +81,10 @@ def main():
         )
 
     spec_gan_model = wgan.WGAN(
-        normalized_raw_maestro, SPECTOGRAM_IMAGE_SHAPE, generator,
-        discriminator, Z_DIM, generator_optimizer, discriminator_optimizer,
-        discriminator_training_ratio=D_UPDATES_PER_G, batch_size=BATCH_SIZE,
-        epochs=EPOCHS, checkpoint_dir=CHECKPOINT_DIR, fn_save_examples=save_examples
+        normalized_raw_maestro, generator, [discriminator], Z_DIM, generator_optimizer,
+        discriminator_optimizer, discriminator_training_ratio=D_UPDATES_PER_G,
+        batch_size=BATCH_SIZE, epochs=EPOCHS, checkpoint_dir=CHECKPOINT_DIR,
+        fn_save_examples=save_examples
     )
 
     spec_gan_model.restore('ckpt-11', 110)
