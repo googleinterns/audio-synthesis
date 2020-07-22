@@ -16,11 +16,11 @@
 """
 
 import tensorflow as tf
-from tensorflow.keras.layers import Conv2DTranspose
-from tensorflow.keras import Model
+from tensorflow.keras import layers
+from tensorflow import keras
 
 
-class Conv1DTranspose(Model): # pylint: disable=too-many-ancestors
+class Conv1DTranspose(keras.Layer): # pylint: disable=too-many-ancestors
     """Implementation of a 1-dimentional transpose convolution layer.
 
     This implementation is supose to emulate the interface of
@@ -34,7 +34,7 @@ class Conv1DTranspose(Model): # pylint: disable=too-many-ancestors
 
     def __init__(self, filters, kernel_size, strides, padding='same', **kwargs):
         super(Conv1DTranspose, self).__init__()
-        self.conv_2d = Conv2DTranspose(filters=filters,
+        self.conv_2d = layers.Conv2DTranspose(filters=filters,
                                        kernel_size=(kernel_size, 1),
                                        strides=(strides, 1),
                                        padding=padding,
@@ -46,3 +46,41 @@ class Conv1DTranspose(Model): # pylint: disable=too-many-ancestors
         x_up = tf.squeeze(x_up, axis=2)
 
         return x_up
+
+    
+class HarmonicConvolution(keras.Layer):
+    def __init__(self, filters, K, N, T)
+    
+    
+    
+class HarmonicConvolutionFilter_n():
+    def __init__(self, num_filters, K, n, T):
+        
+        self.T = T
+        self.K = K
+        # First we construct the harmonic series
+        #harmonic_series = []
+        #for n in range(N):
+        k_range = np.arange(1, K+1, 1, dtype=np.float32)
+        self.series = k_range * (1.0 / n)
+        #harmonic_series.append(series)
+        self.time = np.arange(-T, T+1, 1, dtype=np.float32)
+        
+        self.filters = tf.Variable()
+        
+    def call(self, x_in):
+        # Pad edges of input so that we dont exceed the bounds
+        x_in_pad = tf.pad(x_in, [[0, 0], [T]])
+        
+        for tau in range(0, x_in.shape[1]):
+            for omega in range(0, x_in.shape[2]):
+                # Except here we need to handle the case where we are getting a fractional location
+                x_selection = x_in[:, tau + self.time, omega + self.series, : ]
+                
+                # Handle padding. Or prehapse we can do this before hand?
+                
+                # Multiply by filters
+                
+                # Insert into modified image
+    
+        
