@@ -44,7 +44,7 @@ RESULT_DIR = '_results/representation_study/SpecPhaseGAN/audio/'
 MAESTRO_PATH = 'data/MAESTRO_6h.npz'
 
 def main():
-    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+    os.environ['CUDA_VISIBLE_DEVICES'] = ''
     print('Num GPUs Available: ', len(tf.config.experimental.list_physical_devices('GPU')))
 
     raw_maestro, magnitude_stats, phase_stats =\
@@ -66,7 +66,7 @@ def main():
     normalized_raw_maestro = np.array(normalized_raw_maestro)
 
     generator = spec_gan.Generator(channels=2, activation=activations.tanh)
-    discriminator = spec_gan.Discriminator()
+    discriminator = spec_gan.Discriminator(input_shape=SPECTOGRAM_IMAGE_SHAPE)
 
     generator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
     discriminator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
@@ -83,7 +83,7 @@ def main():
         )
 
     spec_phase_gan_model = wgan.WGAN(
-        normalized_raw_maestro, SPECTOGRAM_IMAGE_SHAPE, generator, discriminator, Z_DIM,
+        normalized_raw_maestro, generator, [discriminator], Z_DIM,
         generator_optimizer, discriminator_optimizer, discriminator_training_ratio=D_UPDATES_PER_G,
         batch_size=BATCH_SIZE, epochs=EPOCHS, checkpoint_dir=CHECKPOINT_DIR,
         fn_save_examples=save_examples
