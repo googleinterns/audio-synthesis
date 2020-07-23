@@ -16,11 +16,12 @@
 """
 
 import tensorflow as tf
+import numpy as np
 from tensorflow.keras import layers
 from tensorflow import keras
 
 
-class Conv1DTranspose(keras.Layer): # pylint: disable=too-many-ancestors
+class Conv1DTranspose(layers.Layer): # pylint: disable=too-many-ancestors
     """Implementation of a 1-dimentional transpose convolution layer.
 
     This implementation is supose to emulate the interface of
@@ -48,38 +49,55 @@ class Conv1DTranspose(keras.Layer): # pylint: disable=too-many-ancestors
         return x_up
 
     
-class HarmonicConvolution(keras.Layer):
-    def __init__(self, filters, K, N, T)
+#class HarmonicConvolution(keras.Layer):
+ #   def __init__(self, filters, K, N, T)
     
     
     
-class HarmonicConvolutionFilter_n():
-    def __init__(self, num_filters, K, n, T):
-        
+class HarmonicConvolutionFilter(layers.Layer):
+    def __init__(self, in_filters, out_filters, K, T):
+        super(HarmonicConvolutionFilter, self).__init__()
         self.T = T
         self.K = K
         # First we construct the harmonic series
         #harmonic_series = []
         #for n in range(N):
         k_range = np.arange(1, K+1, 1, dtype=np.float32)
-        self.series = k_range * (1.0 / n)
+        self.series = k_range# * (1.0 / n)
         #harmonic_series.append(series)
-        self.time = np.arange(-T, T+1, 1, dtype=np.float32)
+        self.time = np.arange(-T, T+1, 1, dtype=np.int32)
         
-        self.filters = tf.Variable()
+        #self.filters = tf.Variable()
         
     def call(self, x_in):
+        print(x_in.shape)
         # Pad edges of input so that we dont exceed the bounds
-        x_in_pad = tf.pad(x_in, [[0, 0], [T]])
+        # Currently, we just pad the time dimention and handle
+        # the frequency dimention later.
+        x_in_pad = tf.pad(x_in, [[0, 0], [self.T, self.T], [0,0], [0,0]])
+        print(x_in_pad.shape)
         
         for tau in range(0, x_in.shape[1]):
             for omega in range(0, x_in.shape[2]):
+                harmonic_series = tf.cast(self.series * omega, tf.int32)
                 # Except here we need to handle the case where we are getting a fractional location
-                x_selection = x_in[:, tau + self.time, omega + self.series, : ]
+                print(harmonic_series)
+                print(tau+self.time)
+                print(-self.T + tau)
+                print(self.T + tau+1)
+                x_selection = x_in_pad[:, self.T + (-self.T + tau): self.T + (tau+self.T+1), :,: ]
+                print(x_selection.shape)
+                x_selection = tf.gather_nd(x_selection, tf.reshape(harmonic_series, (-1, 1, 1)))
+                print(x_selection.shape)
                 
+                sys.exit(0)
                 # Handle padding. Or prehapse we can do this before hand?
+                #if x_selection.shape[2] < len(harmonic_series):
+                #    x_selection = tf.pad(x_selection, [[0,0],[0,0],[0,len(harmonic_series) - x_selection.shape[2]],[0,0]])
+                #print(x_selection.shape)
                 
                 # Multiply by filters
+                
                 
                 # Insert into modified image
     

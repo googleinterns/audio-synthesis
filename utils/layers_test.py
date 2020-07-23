@@ -27,6 +27,12 @@ class LayersTest(tf.test.TestCase):
         
         outputs = conv_transpose(inputs)
         self.assertEqual((10, 10, 2), outputs.shape)
+        
+    def test_harmonic_convolution(self):
+        inputs = np.random.normal(size=(1, 128, 256, 2)).astype(np.float32)
+        l = layers.HarmonicConvolutionFilter(2, 10, 7, 7)
+        l(inputs)
+        
 
 
 if __name__ == '__main__':
