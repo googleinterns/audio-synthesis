@@ -186,8 +186,12 @@ class WGAN: # pylint: disable=too-many-instance-attributes
         with tf.GradientTape() as gen_tape:
             g_loss = 0
             
-            x_gen = self.generator(c_in, training=True)
+            z_in = tf.random.uniform((x_in.shape[0], self.z_dim), -1, 1)
+            x_gen = self.generator(c_gen_in, z_in, training=True)
             x_gen_representations = self.fn_get_discriminator_input_representations(x_gen)
+            
+            c_in_representations = self.fn_get_discriminator_input_representations(c_in)
+            c_gen_representations = self.fn_get_discriminator_input_representations(c_gen_in)
             
             for i in range(len(self.discriminator)):
                 with tf.GradientTape() as disc_tape:
@@ -197,9 +201,16 @@ class WGAN: # pylint: disable=too-many-instance-attributes
                     x_in_representation = tf.reshape(
                         x_in_representations[i], shape=self.d_in_data_shape[i]
                     )
+                    
+                    c_gen_representation = tf.reshape(
+                        c_gen_representations[i], shape=self.d_in_data_shape[i]
+                    )
+                    c_in_representation = tf.reshape(
+                        c_in_representations[i], shape=self.d_in_data_shape[i]
+                    )
 
-                    d_real = self.discriminator[i](x_in_representation, c_in, training=True)
-                    d_fake = self.discriminator[i](x_gen_representation, c_gen_in, training=True)
+                    d_real = self.discriminator[i](x_in_representation, c_in_representation, training=True)
+                    d_fake = self.discriminator[i](x_gen_representation, c_gen_representation, training=True)
 
                     # Compute a linear interpolation of the real and generated
                     # data, this is used to compute the gradient penalty.
@@ -210,11 +221,11 @@ class WGAN: # pylint: disable=too-many-instance-attributes
                     diff = x_gen_representation - x_in_representation
                     interpolation = x_in_representation + (alpha * diff)
                     
-                    alpha_shape = np.ones(len(c_in.shape))
+                    alpha_shape = np.ones(len(c_gen_representation.shape))
                     alpha_shape[0] = x_in.shape[0]
                     alpha = tf.random.uniform(alpha_shape.astype(np.int32), 0.0, 1.0)
-                    diff = c_gen_in - c_in
-                    interpolation_c = c_in + (alpha * diff)
+                    diff = c_gen_representation - c_in_representation
+                    interpolation_c = c_in_representation + (alpha * diff)
 
                     g_loss_i, d_loss_i = self.fn_compute_loss(
                         self.discriminator[i], d_real, d_fake, interpolation, interpolation_c
@@ -247,8 +258,9 @@ class WGAN: # pylint: disable=too-many-instance-attributes
         if self.fn_save_examples:
             x_save = self.raw_dataset[0][0:self.batch_size]
             c_save = self.raw_dataset[1][0:self.batch_size]
+            z_in = tf.random.uniform((x_save.shape[0], self.z_dim), -1, 1)
             
-            generations = tf.squeeze(self.generator(c_save, training=False))
+            generations = tf.squeeze(self.generator(c_save, z_in, training=False))
             self.fn_save_examples(epoch, x_save, generations)
 
 
