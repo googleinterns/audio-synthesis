@@ -21,7 +21,7 @@ from audio_synthesis.datasets import maestro_dataset
 from audio_synthesis.models import conditional_wgan as wgan
 from audio_synthesis.utils import maestro_save_helper as save_helper
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '1'
+os.environ["CUDA_VISIBLE_DEVICES"] = '2'
 print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
 _EPSILON = 1e-6
@@ -80,7 +80,9 @@ def _get_discriminator_input_representations(x_in):
 def main():
     raw_maestro = maestro_dataset.get_maestro_waveform_dataset(MAESTRO_PATH)
     raw_maestro_conditioning = maestro_dataset.get_maestro_midi_conditioning_dataset(MAESTRO_MIDI_PATH).astype(np.float32)
-
+    raw_maestro_conditioning = np.prod(raw_maestro_conditioning, axis=-1)
+    raw_maestro_conditioning = np.squeeze(raw_maestro_conditioning)
+    
     generator = conditional_wave_spec_gan.Generator()
     discriminator = conditional_wave_spec_gan.WaveformDiscriminator()
     spec_discriminator = conditional_wave_spec_gan.SpectogramDiscriminator()
