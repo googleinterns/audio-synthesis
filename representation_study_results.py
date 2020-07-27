@@ -56,7 +56,7 @@ def _data_waveform_griffin_lim_fn(data_waveform):
         frame_step=FFT_FRAME_STEP
     )
     return spectral.magnitude_2_waveform(
-        data_spectogram[:, :, 0],
+        data_spectogram[:, :, :, 0],
         frame_length=FFT_FRAME_LENGTH,
         frame_step=FFT_FRAME_STEP
     )
@@ -87,7 +87,7 @@ MODELS = {
     'SpecGAN': {
         'generator': spec_gan.Generator(activation=activations.tanh),
         'checkpoint_path':\
-            '_results/representation_study/SpecGAN_orig/training_checkpoints/ckpt-30',
+            '_results/representation_study/SpecGAN/training_checkpoints/ckpt-30',
         'preprocess': {
             'unnormalize_magnitude': True,
             'unnormalize_spectogram': False,
@@ -95,7 +95,7 @@ MODELS = {
         'generate_fn': lambda magnitude: spectral.magnitude_2_waveform(
             magnitude, GRIFFIN_LIM_ITERATIONS, FFT_FRAME_LENGTH,
             FFT_FRAME_STEP, LOG_MAGNITUDE
-        ),
+        )[0],
         'waveform': [],
     },
     'SpecPhaseGAN': {
@@ -109,7 +109,7 @@ MODELS = {
         'generate_fn': lambda spectogram: spectral.spectogram_2_waveform(
             spectogram, FFT_FRAME_LENGTH, FFT_FRAME_STEP, LOG_MAGNITUDE,
             INSTANTANEOUS_FREQUENCY
-        ),
+        )[0],
         'waveform': [],
     },
     'WaveSpecGAN': {
@@ -123,10 +123,21 @@ MODELS = {
         'generate_fn': lambda x: x,
         'waveform': [],
     },
+    'WaveSpecGAN_HR': {
+        'generator': wave_gan.Generator(),
+        'checkpoint_path':\
+            '_results/representation_study/WaveSpecGAN_HR/training_checkpoints/ckpt-30',
+        'preprocess': {
+            'unnormalize_magnitude': False,
+            'unnormalize_spectogram': False,
+        },
+        'generate_fn': lambda x: x,
+        'waveform': [],
+    },
     'melWaveSpecGAN': {
         'generator': wave_gan.Generator(),
         'checkpoint_path':\
-            '_results/representation_study/mel_WaveSpecGAN/training_checkpoints/ckpt-26',
+            '_results/representation_study/mel_WaveSpecGAN/training_checkpoints/ckpt-30',
         'preprocess': {
             'unnormalize_magnitude': False,
             'unnormalize_spectogram': False,
@@ -148,7 +159,7 @@ MODELS = {
 
 def main():
     # Set allowed GPUs.
-    os.environ["CUDA_VISIBLE_DEVICES"] = ''
+    os.environ["CUDA_VISIBLE_DEVICES"] = '0'
     print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
     # Build and load MODELS from checkpoints
