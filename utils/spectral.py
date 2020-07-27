@@ -42,13 +42,11 @@ def waveform_2_stft(waveform, frame_length=512, frame_step=128):
         waveform, frame_length=frame_length, frame_step=frame_step, pad_end=True
     )
     
-    real = tf.math.real(stft)
-    img = tf.math.imag(stft)
+    real = tf.math.real(stft)[:, :, 0:-1]
+    img = tf.math.imag(stft)[:, :, 0:-1]
     
     return tf.concat([tf.expand_dims(real, 3),
                       tf.expand_dims(img, 3)], axis=-1)
-
-    return spectogram
 
 def stft_2_waveform(stft, frame_length=512, frame_step=128):
     """Transforms a STFT domain signal into a Waveform.
@@ -64,10 +62,10 @@ def stft_2_waveform(stft, frame_length=512, frame_step=128):
         The waveform representation of the input STFT(s).
     """
     
-    if len(spectogram.shape) == 3:
-        spectogram = tf.expand_dims(spectogram, 0)
+    if len(stft.shape) == 3:
+        stft = tf.expand_dims(stft, 0)
         
-    stft = tf.complex(stft[:,:,:,0], stft[:,:,:,1])
+    stft = tf.complex(stft[:, :, :, 0], stft[:, :, :, 1])
     waveform = tf.signal.inverse_stft(stft, frame_length=frame_length, frame_step=frame_step)
     return waveform
 
