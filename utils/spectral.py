@@ -22,6 +22,19 @@ _EPSILON = 1e-6
 _SAMPLE_RATE = 16000
 
 def waveform_2_stft(waveform, frame_length=512, frame_step=128):
+    """Transforms a Waveform into the STFT domain.
+    
+    Args:
+        waveform: The waveform to be transformed. Expected
+            shape is [time] or [batch, time].
+        frame_length: The length of each stft frame.
+        frame_step: Time increment after each frame, i.e.
+            overlap=frame_length - frame_step.
+    
+    Returns:
+        The STFT representation of the input waveform(s).
+    """
+    
     if len(waveform.shape) == 1:
         waveform = tf.expand_dims(waveform, 0)
 
@@ -38,6 +51,22 @@ def waveform_2_stft(waveform, frame_length=512, frame_step=128):
     return spectogram
 
 def stft_2_waveform(stft, frame_length=512, frame_step=128):
+    """Transforms a STFT domain signal into a Waveform.
+    
+    Args:
+        stft: The stft signal to be transformed. Expected
+            shape is [time, frequency, 2] or [batch, time, frequency, 2].
+        frame_length: The length of each stft frame.
+        frame_step: Time increment after each frame, i.e.
+            overlap=frame_length - frame_step.
+    
+    Returns:
+        The waveform representation of the input STFT(s).
+    """
+    
+    if len(spectogram.shape) == 3:
+        spectogram = tf.expand_dims(spectogram, 0)
+        
     stft = tf.complex(stft[:,:,:,0], stft[:,:,:,1])
     waveform = tf.signal.inverse_stft(stft, frame_length=frame_length, frame_step=frame_step)
     return waveform
@@ -52,7 +81,7 @@ def waveform_2_spectogram(waveform, frame_length=512, frame_step=128,
     clips the last frequency band to make the resulting dimension
     a power of two.
 
-    Paramaters:
+    Args:
         waveform: the signal to be transformed. Expected
             shape is [time] or [batch, time]
         frame_length: The length of each stft frame.
@@ -115,7 +144,7 @@ def waveform_2_magnitude(waveform, frame_length=512, frame_step=128, log_magnitu
     This function is a wrapper for waveform_2_spectogram and removes
     the phase component.
 
-    Paramaters:
+    Args:
         waveform: the signal to be transformed. Expected shape
             is [time], or [batch, time].
         frame_length: The length of each frame.
@@ -149,7 +178,7 @@ def magnitude_2_waveform(magnitude, n_iter=16, frame_length=512,
 
     Uses the Griffin-Lim algorythm, via the librosa implementation.
 
-    Paramaters:
+    Args:
         magnitude: the magnitude spectrum to be transformed. Expected
             shape is [time, frequencies] or [batch, time, frequencies]
         n_iter: number of Griffin-Lim iterations to run.
@@ -183,7 +212,7 @@ def spectogram_2_waveform(spectogram, frame_length=512, frame_step=128,
                           log_magnitude=True, instantaneous_frequency=True):
     """Transforms a Spectogram to a Waveform.
 
-    Paramaters:
+    Args:
         spectogram: the spectogram to be transformed. Expected shape
             is [time, frequencies, 2] or [batch, time, frequencies, 2]
         frame_length: The length of each frame.
