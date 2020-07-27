@@ -23,7 +23,7 @@ import os
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import activations, utils
-from audio_synthesis.structures import spec_gan
+from audio_synthesis.structures import deformable_convolution_spec_gan as spec_gan
 from audio_synthesis.models import wgan
 from audio_synthesis.datasets import maestro_dataset
 from audio_synthesis.utils import maestro_save_helper as save_helper
@@ -31,7 +31,7 @@ from audio_synthesis.utils import maestro_save_helper as save_helper
 # Setup Paramaters
 D_UPDATES_PER_G = 5
 Z_DIM = 64
-BATCH_SIZE = 64
+BATCH_SIZE = 16
 EPOCHS = 300
 SAMPLING_RATE = 16000
 FFT_FRAME_LENGTH = 512
@@ -45,7 +45,7 @@ RESULT_DIR = '_results/representation_study/SpecPhaseGAN_HR/audio/'
 MAESTRO_PATH = 'data/MAESTRO_6h.npz'
 
 def main():
-    os.environ['CUDA_VISIBLE_DEVICES'] = ''
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
     print('Num GPUs Available: ', len(tf.config.experimental.list_physical_devices('GPU')))
 
     raw_maestro, magnitude_stats, phase_stats =\

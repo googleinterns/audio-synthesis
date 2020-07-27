@@ -21,6 +21,27 @@ from librosa.core import griffinlim
 _EPSILON = 1e-6
 _SAMPLE_RATE = 16000
 
+def waveform_2_stft(waveform, frame_length=512, frame_step=128):
+    if len(waveform.shape) == 1:
+        waveform = tf.expand_dims(waveform, 0)
+
+    stft = tf.signal.stft(
+        waveform, frame_length=frame_length, frame_step=frame_step, pad_end=True
+    )
+    
+    real = tf.math.real(stft)
+    img = tf.math.imag(stft)
+    
+    return tf.concat([tf.expand_dims(real, 3),
+                      tf.expand_dims(img, 3)], axis=-1)
+
+    return spectogram
+
+def stft_2_waveform(stft, frame_length=512, frame_step=128):
+    stft = tf.complex(stft[:,:,:,0], stft[:,:,:,1])
+    waveform = tf.signal.inverse_stft(stft, frame_length=frame_length, frame_step=frame_step)
+    return waveform
+
 def waveform_2_spectogram(waveform, frame_length=512, frame_step=128,
                           log_magnitude=True, instantaneous_frequency=True,
                           n_mel_bins=None, mel_lower_hertz_edge=None,
