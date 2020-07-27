@@ -21,6 +21,25 @@ from tensorflow.keras import layers
 from tensorflow import keras
 
 
+class PadZeros2D(layers.Layer):
+    """
+    """
+    
+    def __init__(self, num_zeros=(1,1)):
+        super(PadZeros2D, self).__init__()
+        assert len(num_zeros) == 2
+        
+        self.shape_multiplier = np.array([1, num_zeros[0], num_zeros[1], 1], dtype=np.int32)
+        self.num_zeros = num_zeros
+        
+        
+    def call(self, x_in):
+        output_shape = x_in.shape * self.shape_multiplier
+        return tf.nn.conv2d_transpose(
+            x_in, tf.ones([1,1,1,x_in.shape[-1]]), output_shape, strides=self.num_zeros, padding='VALID'
+        )
+    
+
 class Conv1DTranspose(layers.Layer): # pylint: disable=too-many-ancestors
     """Implementation of a 1-dimentional transpose convolution layer.
 

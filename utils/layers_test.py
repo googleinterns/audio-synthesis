@@ -27,11 +27,25 @@ class LayersTest(tf.test.TestCase):
         
         outputs = conv_transpose(inputs)
         self.assertEqual((10, 10, 2), outputs.shape)
+     
+    def test_pad_zeros_2d_shape(self):
+        inputs = np.random.normal(size=(10, 5, 2, 1)).astype(np.float32)
+        pad_zeros_layer = layers.PadZeros2D(num_zeros=(2,2))
         
-    def test_harmonic_convolution(self):
-        inputs = np.random.normal(size=(1, 128, 256, 2)).astype(np.float32)
-        l = layers.HarmonicConvolutionFilter(2, 10, 7, 7)
-        l(inputs)
+        outputs = pad_zeros_layer(inputs)
+        self.assertEqual((10, 10, 4, 1), outputs.shape)
+        
+    def test_pad_zeros_2d_shape_channels(self):
+        inputs = np.random.normal(size=(10, 5, 2, 100)).astype(np.float32)
+        pad_zeros_layer = layers.PadZeros2D(num_zeros=(2,2))
+        
+        outputs = pad_zeros_layer(inputs)
+        self.assertEqual((10, 10, 4, 100), outputs.shape)
+        
+    #def test_harmonic_convolution(self):
+    #    inputs = np.random.normal(size=(1, 128, 256, 2)).astype(np.float32)
+    #    l = layers.HarmonicConvolutionFilter(2, 10, 7, 7)
+    #    l(inputs)
         
 
 
