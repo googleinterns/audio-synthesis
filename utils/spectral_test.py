@@ -32,6 +32,16 @@ class SpectralTest(tf.test.TestCase):
         
         self.assertAllClose(waveform, waveform_hat)
         
+    def test_waveform_to_stft_return(self):
+        waveform = np.sin(np.linspace(0, 4 * np.pi, 2**14)).astype(np.float32)
+        stft = spectral.waveform_2_stft(waveform, frame_length=512, frame_step=128)
+        waveform_hat = spectral.stft_2_waveform(stft, frame_length=512, frame_step=128)[0]
+        
+        # Account for extra samples from reverse transform
+        waveform_hat = waveform[0:len(waveform)]
+        
+        self.assertAllClose(waveform, waveform_hat)
+        
     def test_waveform_to_magnitude_return(self):
         waveform = np.sin(np.linspace(0, 4 * np.pi, 2**14)).astype(np.float32)
         spectogram = spectral.waveform_2_magnitude(waveform, frame_length=512, frame_step=128)
