@@ -23,7 +23,7 @@ import os
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import activations, utils
-from audio_synthesis.structures import spec_gan
+from audio_synthesis.structures import deformable_convolution_spec_gan as spec_gan
 from audio_synthesis.models import wgan
 from audio_synthesis.datasets import maestro_dataset
 from audio_synthesis.utils import maestro_save_helper as save_helper
@@ -32,19 +32,19 @@ from audio_synthesis.utils import spectral
 # Setup Paramaters
 D_UPDATES_PER_G = 5
 Z_DIM = 64
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 EPOCHS = 300
 SAMPLING_RATE = 16000
 FFT_FRAME_LENGTH = 512
 FFT_FRAME_STEP = 128
 Z_IN_SHAPE = [4, 8, 1024]
 SPECTOGRAM_IMAGE_SHAPE = [-1, 128, 256, 2]
-CHECKPOINT_DIR = '_results/representation_study/STFTGAN_HR/training_checkpoints/'
-RESULT_DIR = '_results/representation_study/STFTGAN_HR/audio/'
+CHECKPOINT_DIR = '_results/harmonic_convolution/DC_STFTGAN_HR/training_checkpoints/'
+RESULT_DIR = '_results/harmonic_convolution/DC_STFTGAN_HR/audio/'
 MAESTRO_PATH = 'data/MAESTRO_6h.npz'
 
 def main():
-    os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
     print('Num GPUs Available: ', len(tf.config.experimental.list_physical_devices('GPU')))
 
     raw_maestro = maestro_dataset.get_maestro_stft_dataset(MAESTRO_PATH)
