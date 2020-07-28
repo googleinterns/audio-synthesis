@@ -23,6 +23,7 @@ with our implementation of WaveGAN. We choose a kernel size of 6x6 (instead of 5
 such that it is divisible by the stride.
 """
 
+import numpy as np
 import tensorflow as tf
 from tensorflow.keras import activations, layers
 from tensorflow import keras
@@ -30,7 +31,7 @@ from tensorflow import keras
 class Generator(keras.Model):
     """Implementation of the SpecGAN Generator Function."""
 
-    def __init__(self, channels=1, activation=activations.linear):
+    def __init__(self, channels=1, activation=activations.linear, in_shape=(4, 4, 1024)):
         """Initilizes the SpecGAN Generator function.
 
         Paramaters:
@@ -40,6 +41,8 @@ class Generator(keras.Model):
                 are two output channels.
             acitvation: Activation function applied to generation
                 before being returned. Default is linear.
+            in_shape: Transformed noise shape as input to the
+                generator function.
         """
 
         super(Generator, self).__init__()
@@ -47,8 +50,8 @@ class Generator(keras.Model):
         self.activation = activation
 
         sequential = []
-        sequential.append(layers.Dense(4 * 4 * 1024))
-        sequential.append(layers.Reshape((4, 4, 1024)))
+        sequential.append(layers.Dense(np.prod(in_shape)))
+        sequential.append(layers.Reshape((in_shape)))
         sequential.append(layers.ReLU())
         sequential.append(layers.Conv2DTranspose(filters=512, kernel_size=(6, 6),
                                                  strides=(2, 2), padding='same'))
