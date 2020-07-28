@@ -25,6 +25,7 @@ such that it is divisible by the stride.
 """
 
 import tensorflow as tf
+import numpy as np
 from tensorflow.keras import activations, layers
 from tensorflow import keras
 from audio_synthesis.third_party import deformable_conv_layer
@@ -33,7 +34,7 @@ from audio_synthesis.utils import layers as layer_utils
 class Generator(keras.Model):
     """Implementation of the SpecGAN Generator Function."""
 
-    def __init__(self, channels=1, activation=activations.linear):
+    def __init__(self, channels=1, activation=activations.linear, in_shape=(4, 4, 1024)):
         """Initilizes the SpecGAN Generator function.
 
         Paramaters:
@@ -50,8 +51,8 @@ class Generator(keras.Model):
         self.activation = activation
 
         sequential = []
-        sequential.append(layers.Dense(4 * 8 * 1024))
-        sequential.append(layers.Reshape((4, 8, 1024)))
+        sequential.append(layers.Dense(np.prod(in_shape)))
+        sequential.append(layers.Reshape((in_shape)))
         sequential.append(layers.ReLU())
         sequential.append(layer_utils.PadZeros2D(num_zeros=(2, 2)))
         sequential.append(deformable_conv_layer.DeformableConvLayer(
