@@ -197,7 +197,7 @@ class WGAN: # pylint: disable=too-many-instance-attributes
                     x_in_representation = tf.reshape(
                         x_in_representations[i], shape=self.d_in_data_shape[i]
                     )
-
+                    
                     d_real = self.discriminator[i](x_in_representation, c_in, training=True)
                     d_fake = self.discriminator[i](x_gen_representation, c_gen_in, training=True)
 

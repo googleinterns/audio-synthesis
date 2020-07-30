@@ -29,7 +29,7 @@ class Generator(keras.Model):
         sequential = [] 
         sequential.append(layers.Conv1D(filters=1024, strides=1, kernel_size=36, padding='same'))
         sequential.append(layers.ReLU())
-        sequential.append(layer_utils.Conv1DTranspose(filters=512, strides=4, kernel_size=36))
+        sequential.append(layer_utils.Conv1DTranspose(filters=512, strides=2, kernel_size=36))
         sequential.append(layers.ReLU())
         sequential.append(layer_utils.Conv1DTranspose(filters=256, strides=2, kernel_size=36))
         sequential.append(layers.ReLU())
@@ -56,7 +56,7 @@ class WaveformDiscriminator(keras.Model):
         conditional_sequental = []
         conditional_sequental.append(layers.Conv1D(128, kernel_size=36, strides=2, padding='same'))
         conditional_sequental.append(layers.LeakyReLU(alpha=0.2))
-        conditional_sequental.append(layers.Conv1D(256, kernel_size=36, strides=1, padding='same'))
+        conditional_sequental.append(layers.Conv1D(256, kernel_size=36, strides=2, padding='same'))
         conditional_sequental.append(layers.LeakyReLU(alpha=0.2))
         self.sequential_conditional = keras.Sequential(conditional_sequental)
         
@@ -81,7 +81,7 @@ class WaveformDiscriminator(keras.Model):
 
         self.sequential_joint = keras.Sequential(sequential_joint)
 
-    def call(self, x_in, c_in):  
+    def call(self, x_in, c_in): 
         x_processed = self.sequential_waveform(x_in)
         c_processed = self.sequential_conditional(c_in)
         xc_in = tf.concat([x_processed, c_processed], axis=-1)
@@ -94,7 +94,7 @@ class SpectogramDiscriminator(keras.Model):
 
     def __init__(self):
         super(SpectogramDiscriminator, self).__init__()
-        self.c_pre_process = layers.Conv1D(256, kernel_size=36, strides=2, padding='same')
+        self.c_pre_process = layers.Conv1D(256, kernel_size=36, strides=4, padding='same')
 
         sequential = []
         sequential.append(layers.Conv2D(filters=64, kernel_size=(6, 6),
