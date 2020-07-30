@@ -85,7 +85,7 @@ class WGAN: # pylint: disable=too-many-instance-attributes
     [2] Improved Training of Wasserstein GANs - https://arxiv.org/abs/1704.00028.
     """
 
-    def __init__(self, raw_dataset, d_in_data_shape, generator, # pylint: disable=too-many-arguments, too-many-locals
+    def __init__(self, raw_dataset, d_in_data_shape, d_in_cond_shape, generator, # pylint: disable=too-many-arguments, too-many-locals
                  discriminator, z_dim, generator_optimizer, discriminator_optimizer,
                  discriminator_training_ratio=5, batch_size=64, epochs=1, lambdas=None, checkpoint_dir=None,
                  epochs_per_save=10, fn_compute_loss=_compute_losses,
@@ -125,6 +125,7 @@ class WGAN: # pylint: disable=too-many-instance-attributes
         """
         self.raw_dataset = raw_dataset
         self.d_in_data_shape = d_in_data_shape
+        self.d_in_cond_shape = d_in_cond_shape
         self.generator = generator
         self.discriminator = discriminator
         self.z_dim = z_dim
@@ -203,10 +204,10 @@ class WGAN: # pylint: disable=too-many-instance-attributes
                     )
                     
                     c_gen_representation = tf.reshape(
-                        c_gen_representations[i], shape=self.d_in_data_shape[i]
+                        c_gen_representations[i], shape=self.d_in_cond_shape[i]
                     )
                     c_in_representation = tf.reshape(
-                        c_in_representations[i], shape=self.d_in_data_shape[i]
+                        c_in_representations[i], shape=self.d_in_cond_shape[i]
                     )
 
                     d_real = self.discriminator[i](x_in_representation, c_in_representation, training=True)

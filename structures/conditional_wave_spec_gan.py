@@ -36,7 +36,7 @@ class Generator(keras.Model):
         encoder.append(layers.LeakyReLU(alpha=0.2))
         encoder.append(layers.Conv1D(512, kernel_size=36, strides=4, padding='same'))
         encoder.append(layers.LeakyReLU(alpha=0.2))
-        encoder.append(layers.Conv1D(512, kernel_size=36, strides=4, padding='same'))
+        encoder.append(layers.Conv1D(512, kernel_size=36, strides=2, padding='same'))
         self.encoder = keras.Sequential(encoder)
         
         z_preprocess = []

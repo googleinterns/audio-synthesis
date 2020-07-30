@@ -21,7 +21,7 @@ from audio_synthesis.datasets import maestro_dataset
 from audio_synthesis.models import conditional_wgan as wgan
 from audio_synthesis.utils import maestro_save_helper as save_helper
 
-os.environ["CUDA_VISIBLE_DEVICES"] = '0'
+os.environ["CUDA_VISIBLE_DEVICES"] = '1'
 print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
 _EPSILON = 1e-6
@@ -40,10 +40,10 @@ SIGNAL_LENGTH = 2**14
 WAVEFORM_SHAPE = [-1, SIGNAL_LENGTH, 1]
 MAGNITUDE_IMAGE_SHAPE = [-1, 128, 256, 1]
 CRITIC_WEIGHTINGS = [1.0, 1.0/1000.0]
-CHECKPOINT_DIR = '_results/conditioning/LSC_WaveSpecGAN_HR/training_checkpoints/'
-RESULT_DIR = '_results/conditioning/LSC_WaveSpecGAN_HR/audio/'
+CHECKPOINT_DIR = '_results/conditioning/LSC_WaveSpecGAN_HR_8192/training_checkpoints/'
+RESULT_DIR = '_results/conditioning/LSC_WaveSpecGAN_HR_8192/audio/'
 MAESTRO_PATH = 'data/MAESTRO_ls_6h.npz'
-MAESTRO_CONDITIONING_PATH = 'data/MAESTRO_ls_cond_6h.npz'
+MAESTRO_CONDITIONING_PATH = 'data/MAESTRO_ls_hlf_cond_6h.npz'
 
 def _get_discriminator_input_representations(x_in):
     """Computes the input representations for the WaveSpecGAN discriminator models,
@@ -96,7 +96,7 @@ def main():
         )
     
     wave_gan_model = wgan.WGAN(
-        (raw_maestro, raw_maestro_conditioning), [WAVEFORM_SHAPE, MAGNITUDE_IMAGE_SHAPE], generator,
+        (raw_maestro, raw_maestro_conditioning), [WAVEFORM_SHAPE, MAGNITUDE_IMAGE_SHAPE], [(-1, 2**14//2, 1), (-1, 64, 256, 1)], generator,
         [discriminator, spec_discriminator], Z_DIM, generator_optimizer,
         discriminator_optimizer, discriminator_training_ratio=D_UPDATES_PER_G,
         batch_size=BATCH_SIZE, epochs=EPOCHS, lambdas=CRITIC_WEIGHTINGS,

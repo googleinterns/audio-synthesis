@@ -54,9 +54,14 @@ def main():
         wav = np.pad(wav, [[0, padded_wav_length - len(wav)]])
 
         chunks = np.reshape(wav, (-1, DATA_POINT_LENGTH))
+        print(chunks.shape)
         
         conditioning_chunks = chunks[0:-1]
+        conditioning_chunks = conditioning_chunks[:, (2**14//2):]
         chunks = chunks[1:]
+        
+        print(conditioning_chunks.shape)
+        print(chunks.shape)
         
         data.extend(chunks)
         data_conditioning.extend(conditioning_chunks)
@@ -74,7 +79,7 @@ def main():
     np.savez_compressed(os.path.join(PROCESSED_DATA_PATH, 'MAESTRO_ls_{}h.npz'\
                         .format(APPROX_TOTAL_HOURS)),
                         np.array(data))
-    np.savez_compressed(os.path.join(PROCESSED_DATA_PATH, 'MAESTRO_ls_cond_{}h.npz'\
+    np.savez_compressed(os.path.join(PROCESSED_DATA_PATH, 'MAESTRO_ls_hlf_cond_{}h.npz'\
                         .format(APPROX_TOTAL_HOURS)),
                         np.array(data_conditioning))
 
