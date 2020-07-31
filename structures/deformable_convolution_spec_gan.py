@@ -56,27 +56,27 @@ class Generator(keras.Model):
         sequential.append(layers.ReLU())
         sequential.append(layer_utils.PadZeros2D(num_zeros=(2, 2)))
         sequential.append(deformable_conv_layer.DeformableConvLayer(
-            filters=512, kernel_size=(6, 6), strides=(1, 1), padding='same'
+            filters=7, kernel_size=(7, 7), strides=(1, 1), padding='same'
         ))
         sequential.append(layers.ReLU())
         sequential.append(layer_utils.PadZeros2D(num_zeros=(2, 2)))
         sequential.append(deformable_conv_layer.DeformableConvLayer(
-            filters=256, kernel_size=(6, 6), strides=(1, 1), padding='same'
+            filters=7, kernel_size=(7, 7), strides=(1, 1), padding='same'
         ))
         sequential.append(layers.ReLU())
         sequential.append(layer_utils.PadZeros2D(num_zeros=(2, 2)))
         sequential.append(deformable_conv_layer.DeformableConvLayer(
-            filters=128, kernel_size=(6, 6), strides=(1, 1), padding='same'
+            filters=7, kernel_size=(7, 7), strides=(1, 1), padding='same'
         ))
         sequential.append(layers.ReLU())
         sequential.append(layer_utils.PadZeros2D(num_zeros=(2, 2)))
         sequential.append(deformable_conv_layer.DeformableConvLayer(
-            filters=64, kernel_size=(6, 6), strides=(1, 1), padding='same'
+            filters=7, kernel_size=(7, 7), strides=(1, 1), padding='same'
         ))
         sequential.append(layers.ReLU())
         sequential.append(layer_utils.PadZeros2D(num_zeros=(2, 2)))
         sequential.append(deformable_conv_layer.DeformableConvLayer(
-            filters=channels, kernel_size=(6, 6), strides=(1, 1), padding='same'
+            filters=channels, kernel_size=(7, 7), strides=(1, 1), padding='same'
         ))
 
         self.l = keras.Sequential(sequential)
@@ -94,19 +94,19 @@ class Discriminator(keras.Model):
         self.weighting = weighting
         
         sequential = []
-        sequential.append(layers.Conv2D(filters=64, kernel_size=(6, 6),
+        sequential.append(layers.Conv2D(filters=32, kernel_size=(6, 6),
                                         strides=(2, 2), padding='same'))
         sequential.append(layers.LeakyReLU(alpha=0.2))
-        sequential.append(layers.Conv2D(filters=128, kernel_size=(6, 6),
+        sequential.append(layers.Conv2D(filters=32, kernel_size=(6, 6),
                                         strides=(2, 2), padding='same'))
         sequential.append(layers.LeakyReLU(alpha=0.2))
-        sequential.append(layers.Conv2D(filters=256, kernel_size=(6, 6),
+        sequential.append(layers.Conv2D(filters=32, kernel_size=(6, 6),
                                         strides=(2, 2), padding='same'))
         sequential.append(layers.LeakyReLU(alpha=0.2))
-        sequential.append(layers.Conv2D(filters=512, kernel_size=(6, 6),
+        sequential.append(layers.Conv2D(filters=32, kernel_size=(6, 6),
                                         strides=(2, 2), padding='same'))
         sequential.append(layers.LeakyReLU(alpha=0.2))
-        sequential.append(layers.Conv2D(filters=1024, kernel_size=(6, 6),
+        sequential.append(layers.Conv2D(filters=32, kernel_size=(6, 6),
                                         strides=(2, 2), padding='same'))
         sequential.append(layers.LeakyReLU(alpha=0.2))
         sequential.append(layers.Flatten())
