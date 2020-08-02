@@ -23,12 +23,13 @@ from audio_synthesis.datasets import maestro_dataset
 from audio_synthesis.models import learned_basis_decomposition
 from audio_synthesis.structures import learned_basis_function
 
-FILTER_LENGTH = 64
-NUMBER_OF_FILTERS = 1024
+FILTER_LENGTH = 32
+NUMBER_OF_FILTERS = 512
 BATCH_SIZE = 64
 EPOCHS = 100
+N_MIDI_KEYS = 89
 MAESTRO_PATH = 'data/MAESTRO_6h.npz'
-MAESTRO_MIDI_PATH = 'data/MAESTRO_midi_6h.npz'
+MAESTRO_MIDI_PATH = 'data/MAESTRO_midi_512_6h.npz'
 CHECKPOINT_DIR = '_results/learned_decomposition/classifier/training_checkpoints/'
 RESULTS_DIR = '_results/learned_decomposition/classifier/audio/'
 
@@ -66,7 +67,7 @@ def compute_auxiliary_loss(num_steps, x_in, decomposition, x_hat,
 
     with tf.GradientTape() as classifier_tape:
         logits, _ = classifier(classifier_input)
-        midi = tf.cast(tf.reshape(midi, (-1, 88)), tf.float32)
+        midi = tf.cast(tf.reshape(midi, (-1, N_MIDI_KEYS)), tf.float32)
         prediction_error = tf.nn.sigmoid_cross_entropy_with_logits(midi, logits)
         prediction_error = tf.reduce_mean(tf.reduce_sum(prediction_error, axis=[1]))
 
@@ -80,25 +81,23 @@ def compute_auxiliary_loss(num_steps, x_in, decomposition, x_hat,
     return prediction_error, True
 
 def main():
-    os.environ["CUDA_VISIBLE_DEVICES"] = '1'
+    os.environ["CUDA_VISIBLE_DEVICES"] = '3'
     print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
     raw_maestro = maestro_dataset.get_maestro_waveform_dataset(MAESTRO_PATH)
     raw_maestro_midi = maestro_dataset.get_maestro_midi_conditioning_dataset(MAESTRO_MIDI_PATH)
-    raw_maestro_midi = raw_maestro_midi[:, :, :, 0] * raw_maestro_midi[:, :, :, 1]
 
     optimizer = tf.keras.optimizers.Adam(1e-4)
     classifier_optimizer = tf.keras.optimizers.Adam(1e-4)
 
     encoder = learned_basis_function.Encoder(FILTER_LENGTH, NUMBER_OF_FILTERS)
     decoder = learned_basis_function.Decoder(FILTER_LENGTH)
-    classifier = learned_basis_function.Classifier(88)
+    classifier = learned_basis_function.Classifier(N_MIDI_KEYS)
 
     learned_decomposition_model = learned_basis_decomposition.LearnedBasisDecomposition(
         encoder, decoder, optimizer, (raw_maestro, raw_maestro_midi), BATCH_SIZE, EPOCHS,
         CHECKPOINT_DIR, RESULTS_DIR, compute_auxiliary_loss_fn=compute_auxiliary_loss,
-        auxiliary_models=[classifier], auxiliary_optimizers=[classifier_optimizer],
-        contains_auxiliary_data=True
+        auxiliary_models=[classifier], auxiliary_optimizers=[classifier_optimizer]
     )
 
     learned_decomposition_model.train()
