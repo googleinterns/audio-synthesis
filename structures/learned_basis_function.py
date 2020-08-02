@@ -90,7 +90,7 @@ class Decoder(keras.Model):
             use_bias=False, padding='SAME'
         )
 
-    def call(Applies, x_in):
+    def call(self, x_in):
         """Applys the decoder function to the input. Reconstructing the
         signal domain representation.
         
