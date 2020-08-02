@@ -35,16 +35,17 @@ BATCH_SIZE = 64
 EPOCHS = 300
 SAMPLING_RATE = 16000
 GRIFFIN_LIM_ITERATIONS = 16
-FFT_FRAME_LENGTH = 256
+FFT_FRAME_LENGTH = 512
 FFT_FRAME_STEP = 128
 LOG_MAGNITUDE = True
-SPECTOGRAM_IMAGE_SHAPE = [-1, FFT_FRAME_LENGTH // 2, FFT_FRAME_LENGTH // 2, 1]
-CHECKPOINT_DIR = '_results/representation_study/SpecGAN/training_checkpoints/'
-RESULT_DIR = '_results/representation_study/SpecGAN/audio/'
+Z_IN_SHAPE = [4, 8, 1024]
+SPECTOGRAM_IMAGE_SHAPE = [-1, 128, 256, 1]
+CHECKPOINT_DIR = '_results/representation_study/SpecGAN_HR/training_checkpoints/'
+RESULT_DIR = '_results/representation_study/SpecGAN_HR/audio/'
 MAESTRO_PATH = 'data/MAESTRO_6h.npz'
 
 def main():
-    os.environ['CUDA_VISIBLE_DEVICES'] = ''
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     print('Num GPUs Available: ', len(tf.config.experimental.list_physical_devices('GPU')))
 
     raw_maestro, magnitude_stats, _ =\
@@ -62,7 +63,7 @@ def main():
         pb_i.add(1)
     normalized_raw_maestro = np.array(normalized_raw_maestro)
 
-    generator = spec_gan.Generator(activation=activations.tanh)
+    generator = spec_gan.Generator(activation=activations.tanh, in_shape=Z_IN_SHAPE)
     discriminator = spec_gan.Discriminator(input_shape=SPECTOGRAM_IMAGE_SHAPE)
 
     generator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
@@ -86,6 +87,7 @@ def main():
         fn_save_examples=save_examples
     )
 
+    spec_gan_model.restore('ckpt-11', 110)
     spec_gan_model.train()
 
 if __name__ == '__main__':
