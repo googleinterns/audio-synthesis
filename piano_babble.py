@@ -35,7 +35,7 @@ def main():
 
     generator = conditional_wave_spec_gan.Generator()
 
-    checkpoint_path = '_results/conditioning/LSC_WaveSpecGAN_HR/training_checkpoints/ckpt-6'
+    checkpoint_path = '_results/conditioning/LSC_WaveSpecGAN_HR_8192/training_checkpoints/ckpt-2'
 
     checkpoint = tf.train.Checkpoint(generator=generator)
     checkpoint.restore(checkpoint_path).expect_partial()
@@ -45,23 +45,15 @@ def main():
     sequence = [np.reshape(seed, (2**14))]
     for i in range(N_GENERATIONS):
         z_in = tf.random.uniform((1, 64), -1, 1)
-        seed_in = np.expand_dims(sequence[i], 0)
-        print(z_in.shape)
-        print(seed_in.shape)
+        seed_in = sequence[i][2**13:]
+        seed_in = np.expand_dims(seed_in, 0)
         gen = generator(seed_in, z_in)
-        print(gen.shape)
         sequence.append(np.reshape(gen, (2**14)))
      
-    #c_in = raw_maestro[60:60 + N_GENERATIONS]
-    #z_in = tf.random.uniform((N_GENERATIONS, 64), -1, 1)
-    #audio = generator(c_in, z_in)
     audio = np.array(sequence)
-    print(audio.shape)
     audio = np.squeeze(audio)
-    print(audio.shape)
     audio = np.reshape(audio, (-1))
-    print(audio.shape)
-    sf.write('test.wav', audio, 16000)
+    sf.write('babble.wav', audio, 16000)
     
 if __name__ == '__main__':
     main()
