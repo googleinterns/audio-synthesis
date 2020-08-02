@@ -71,12 +71,32 @@ class Generator(keras.Model):
         self.l = keras.Sequential(sequential)
 
     def call(self, z_in):
+        """Generates spectograms from input noise vectors.
+
+        Args:
+            z_in: A batch of random noise vectors. Expected shape
+            is (batch_size, z_dim).
+
+        Returns:
+            The output from the generator network. Same number of
+            batch elements.
+        """
+
         return self.activation(self.l(z_in))
 
 class Discriminator(keras.Model):
     """Implementation of the SpecGAN Discriminator Function."""
 
     def __init__(self, input_shape, weighting=1.0):
+        """Initilizes the SpecGAN Discriminator function
+        
+        Args:
+            input_shape: The required shape for inputs to the
+                discriminator functions.
+            weighting: The relative weighting of this discriminator in
+                the overall loss.
+        """
+        
         super(Discriminator, self).__init__()
 
         self.in_shape = input_shape
@@ -104,5 +124,16 @@ class Discriminator(keras.Model):
         self.l = keras.Sequential(sequential)
 
     def call(self, x_in):
+        """Produces discriminator scores for the inputs.
+
+        Args:
+            x_in: A batch of input data. Expected shape
+            is expected to be consistant with self.in_shape.
+
+        Returns:
+            A batch of real valued scores. This is inlign with
+            the WGAN setup.
+        """
+
         x_in = tf.reshape(x_in, self.in_shape)
         return self.l(x_in)
