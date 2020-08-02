@@ -12,17 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Training Script for SpecPhaseGAN on MAESTRO.
+"""Training Script for STFTGAN on MAESTRO.
 
-This follows the origonal SpecGAN training,
-where the magnitude and phase (instantaneous frequency)
-are normalized to sit between -1 and 1.
+Follows the same setup as SpecPhaseGAN, but
+generates STFTs instead of Magnitude and Instantaneous
+Frequency.
 """
 
 import os
-import numpy as np
 import tensorflow as tf
-from tensorflow.keras import activations, utils
 from audio_synthesis.structures import spec_gan
 from audio_synthesis.models import wgan
 from audio_synthesis.datasets import maestro_dataset
