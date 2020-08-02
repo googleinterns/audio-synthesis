@@ -42,6 +42,12 @@ class SpectralTest(tf.test.TestCase):
         
         self.assertAllClose(waveform, waveform_hat)
         
+    def test_waveform_to_stft_shape(self):
+        waveform = np.random.normal(size=(2**14,)).astype(np.float32)
+        spectogram = spectral.waveform_2_stft(waveform, frame_length=512, frame_step=128)[0]
+        
+        self.assertEqual((128, 256, 2), spectogram.shape)
+        
     def test_waveform_to_magnitude_return(self):
         waveform = np.sin(np.linspace(0, 4 * np.pi, 2**14)).astype(np.float32)
         spectogram = spectral.waveform_2_magnitude(waveform, frame_length=512, frame_step=128)
