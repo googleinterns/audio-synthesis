@@ -96,7 +96,6 @@ class LearnedBasisDecomposition:
         self.decoder = decoder
         self.optimizer = optimizer
         self.raw_dataset = raw_dataset
-        self.contains_auxiliary_data = contains_auxiliary_data
         self.batch_size = batch_size
         self.buffer_size = _SHUFFLE_BUFFER_SIZE
         self.epochs = epochs
