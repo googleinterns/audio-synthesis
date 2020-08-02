@@ -289,6 +289,9 @@ def main():
 
     # Save the waveforms for each model as one long audio clip
     for model_name in MODELS:
+        if not MODELS[model_name]['loaded']:
+                continue
+        
         wav = np.reshape(MODELS[model_name]['waveform'], (-1))
         sf.write(os.path.join(RESULTS_PATH, model_name + '.wav'), wav, SAMPLING_RATE)
 
