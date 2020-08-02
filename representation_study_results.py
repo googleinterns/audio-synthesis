@@ -84,6 +84,20 @@ MODELS = {
         'generate_fn': lambda x: x,
         'waveform': [],
     },
+    'STFTGAN_HR': {
+        'generator': spec_gan.Generator(channels=2, in_shape=[4, 8, 1024]),
+        'checkpoint_path':\
+            '_results/representation_study/STFTGAN_HR/training_checkpoints/ckpt-30',
+        'preprocess': {
+            'unnormalize_magnitude': False,
+            'unnormalize_spectogram': False,
+        },
+        'fft_config': 1,
+        'generate_fn': lambda stfts: spectral.stft_2_waveform(
+            stfts, FFT_FRAME_LENGTHS[1], FFT_FRAME_STEPS[1]
+        )[0],
+        'waveform': [],
+    },
     'SpecGAN': {
         'generator': spec_gan.Generator(activation=activations.tanh),
         'checkpoint_path':\
@@ -202,18 +216,22 @@ MODELS = {
 
 def main():
     # Set allowed GPUs.
-    os.environ["CUDA_VISIBLE_DEVICES"] = '0'
+    os.environ["CUDA_VISIBLE_DEVICES"] = '3'
     print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
     # Build and load MODELS from checkpoints
     for model_name in MODELS:
+        MODELS[model_name]['loaded'] = True
         if 'data' in MODELS[model_name] and MODELS[model_name]['data']:
             continue
 
-        checkpoint = tf.train.Checkpoint(generator=MODELS[model_name]['generator'])
-        checkpoint.restore(MODELS[model_name]['checkpoint_path']).expect_partial()
-        print('Loaded ', model_name)
-
+        try:
+            checkpoint = tf.train.Checkpoint(generator=MODELS[model_name]['generator'])
+            checkpoint.restore(MODELS[model_name]['checkpoint_path']).expect_partial()
+            print('Loaded ', model_name)
+        except:
+            print(model_name, ' not found')
+            MODELS[model_name]['loaded'] = False
 
     maestro = maestro_dataset.get_maestro_waveform_dataset(MAESTRO_PATH)
 
@@ -237,6 +255,9 @@ def main():
         z_in = tf.reshape(z_gen[i], (1, Z_DIM))
 
         for model_name in MODELS:
+            if not MODELS[model_name]['loaded']:
+                continue
+            
             # If the model is a generator then produce a random generation,
             # otherwise take the current data point.
             if 'data' in MODELS[model_name] and MODELS[model_name]['data']:
