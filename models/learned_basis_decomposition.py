@@ -14,7 +14,7 @@
 
 """Exports the model responsible for training the learned basis function
 setup based on the Conv TasNet model. Note that here we are not interested in
-source separation, on in learning the decomposition.
+source separation, only in learning the decomposition.
 """
 
 import time
@@ -47,6 +47,7 @@ def _compute_auxiliary_loss_fn(num_steps, x_in, decomposition, x_hat,
 
     Returns:
         auxiliary_loss: The auxiliary loss computed by the function.
+            A scalar value.
         update_enc_dec: True if the encoder/decoder weights should be
             updated, otherwise false. Allows for an uneven update rule,
             e.g. WGAN.
@@ -64,7 +65,7 @@ class LearnedBasisDecomposition:
                  batch_size, epochs, checkpoint_dir, results_dir,
                  compute_auxiliary_loss_fn=_compute_auxiliary_loss_fn,
                  auxiliary_models=None, auxiliary_optimizers=None,
-                 contains_auxiliary_data=False, auxiliary_update_ratio=1):
+                 auxiliary_update_ratio=1):
         """Initilizes the LearnedBasisDecomposition class.
 
         Args:
@@ -74,8 +75,6 @@ class LearnedBasisDecomposition:
             raw_dataset: The raw dataset, an array of datapoints. Could be
                 an n-ple (waveform_data, ....) where successive arrays of data
                 are auxiliary data.
-            contains_auxiliary_data: If true, the model will handle the auxiliary
-                data.
             batch_size: The batch size for training
             epochs: The number of epochs to train for
             checkpoint_dir: The directory in which to save training progress
@@ -108,6 +107,7 @@ class LearnedBasisDecomposition:
         self.auxiliary_models = auxiliary_models
         self.auxiliary_optimizers = auxiliary_optimizers
         self.auxiliary_update_ratio = auxiliary_update_ratio
+        self.contains_auxiliary_data = isinstance(self.raw_dataset, tuple)
         
         if self.contains_auxiliary_data:
             self.dataset_length = len(self.raw_dataset[0])
@@ -115,8 +115,8 @@ class LearnedBasisDecomposition:
             self.dataset_length = len(self.raw_dataset)
 
         self.dataset = tf.data.Dataset.from_tensor_slices(self.raw_dataset).shuffle(
-            self.buffer_size).repeat(self.auxiliary_update_ratio).batch(
-            self.batch_size, drop_remainder=False)
+                self.buffer_size).repeat(self.auxiliary_update_ratio).batch(
+                self.batch_size, drop_remainder=False)
 
         self.checkpoint_prefix = os.path.join(self.checkpoint_dir, "ckpt")
         self.checkpoint = tf.train.Checkpoint(
@@ -124,12 +124,14 @@ class LearnedBasisDecomposition:
             decoder=self.decoder
         )
 
-    def train_step(self, epoch, x_in):
+    def train_step(self, num_steps, x_in):
         """Executes one training step
 
         Args:
-            epoch: The current epoch.
-            x_in: The batch of training data to train on.
+            num_steps: The number of ellapsed steps this training epoch.
+            x_in: The batch of training data to train on. Shape
+                is (batch_size, signal_length, 1), or [(batch_size,
+                signal_length, 1), auxiliary_data_shapes].
 
         Returns:
             train_enc_dec: True if the encoder and decoder weights
@@ -144,13 +146,13 @@ class LearnedBasisDecomposition:
             decomposition = self.encoder(x_signal_noisy)
             x_signal_hat = self.decoder(decomposition)
 
-            x_signal_hat = tf.reshape(x_signal_hat, (-1, 2**14))
+            x_signal_hat = tf.squeeze(x_signal_hat)
             reconstruction_loss = tf.reduce_mean(
                 tf.reduce_sum(tf.abs(x_signal_in - x_signal_hat), axis=1)
             )
 
             auxiliary_loss, train_enc_dec = self.compute_auxiliary_loss_fn(
-                epoch, x_in, decomposition, x_signal_hat,
+                num_steps, x_in, decomposition, x_signal_hat,
                 self.auxiliary_models, self.auxiliary_optimizers
             )
 
@@ -173,7 +175,8 @@ class LearnedBasisDecomposition:
         """Saves a batch of real and reconstructed audio
 
         Args:
-            x_batch: The batch of real data to be saved
+            x_batch: The batch of real data to be saved. Expected
+                shape is (-1, signal_length).
             epoch: The current number of training epochs
                 ellapsed.
         """
@@ -225,4 +228,4 @@ class LearnedBasisDecomposition:
             if self.checkpoint_prefix and (epoch + 1) % 10 == 0:
                 self.checkpoint.save(file_prefix=self.checkpoint_prefix)
 
-            print('\nTime for epoch {} is {} minutes'.format(epoch + 1, (time.time()-start) / 60))
+            print('\nTime for epoch {} is {} minutes'.format(epoch + 1, (time.time() - start) / 60))

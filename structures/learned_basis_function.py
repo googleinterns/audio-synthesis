@@ -46,19 +46,29 @@ class Encoder(keras.Model):
         self.stride = self.length // _OVERLAP_FACTOR
         self.num_filters = num_filters
 
-        self.enc = layers.Conv1D(
-            filters=num_filters, kernel_size=length, strides=self.stride, use_bias=False
+        self.conv_layer = layers.Conv1D(
+            filters=num_filters, kernel_size=length, strides=self.stride,
+            use_bias=False, padding='SAME'
         )
 
     def call(self, x_in):
+        """Applies the Encoder model, decomposing the input signals
+        onto the learned basis functions.
+        
+        Args:
+            x_in: A batch of time domain signals. Expected shape is
+                (batch_size, signal_duration, 1).
+                
+        Returns:
+            The signals decomposed onto the encoder basis functions.
+            Shape is (batch_size, signal_duration // self.stride, num_filters),
+            where signal_duration // self.stride is integer division, rounded up.
+        """
+
         x_in = tf.expand_dims(x_in, axis=2)
 
-        diff = self.length - (self.stride + x_in.shape[1] % self.length) % self.length
-        if diff > 0:
-            x_in = tf.pad(x_in, [[0, 0], [0, diff], [0, 0]])
-
-        enc = self.enc(x_in)
-        return tf.nn.relu(enc)
+        encoded_signals = self.conv_layer(x_in)
+        return tf.nn.relu(encoded_signals)
 
 class Decoder(keras.Model):
     """The decoder model for the learned basis decomposition."""
@@ -73,18 +83,34 @@ class Decoder(keras.Model):
         super(Decoder, self).__init__()
 
         self.length = length
-        self.stride = self.length // 2
+        self.stride = self.length // _OVERLAP_FACTOR
 
-        self.dec = layer_util.Conv1DTranspose(
-            1, kernel_size=length, strides=self.stride, use_bias=False
+        self.transpose_conv_layer = layer_util.Conv1DTranspose(
+            1, kernel_size=length, strides=self.stride,
+            use_bias=False, padding='SAME'
         )
 
-    def call(self, x_in):
-        return self.dec(x_in)
+    def call(Applies, x_in):
+        """Applys the decoder function to the input. Reconstructing the
+        signal domain representation.
+        
+        Args:
+            x_in: Signals in a decomposed representation. 
+                Shape is (batch_size, signal_duration // self.stride,
+                num_filters).
+            
+        Returns:
+            A batch of time-domain waveforms. Shape is
+            (batch_size, signal_duration, 1).
+        """
+
+        return self.transpose_conv_layer(x_in)
 
 class Classifier(keras.Model):
     """The classifier used in some learned decomposition experiments.
     Used for classifing the midi data from the decomposed representation.
+    Multiple keys can be active at once. Hence, we use a sigmoid activation,
+    not softmax.
     """
 
     def __init__(self, num_keys, structure=[512, 128, 100]):
@@ -110,8 +136,21 @@ class Classifier(keras.Model):
         self.classifier = keras.Sequential(classifier)
 
     def call(self, blocks):
+        """Takes in decomposed signal representation and produces a
+        classification.
+        
+        Args:
+            blocks: The blocks to be classified. Shape is
+                (-1, self.num_keys)
+                
+        Returns:
+            logits: The logit output from the classifier.
+            probabilities: The probability output from the 
+                classifier, logits after a sigmoid activation.
+        """
+
         logits = self.classifier(blocks)
-        probabilities = tf.nn.softmax(logits)
+        probabilities = tf.nn.sigmoid(logits)
 
         return logits, probabilities
 
@@ -134,8 +173,19 @@ class Discriminator(keras.Model):
         sequential.append(layers.Flatten())
         sequential.append(layers.Dense(1))
 
-        self.l = keras.Sequential(sequential, name=name)
+        self.discriminator = keras.Sequential(sequential, name=name)
 
     def call(self, x_in):
-        output = self.l(x_in)
+        """Applies the discriminator network.
+        
+        Args:
+            x_in: A batch of time-domain waveforms. Expected shape
+                is (batch_size, signal_duration, 1).
+                
+        Returns:
+            Real-valued scores, according to the WGAN implementation.
+            Shape is (batch_size, 1).
+        """
+
+        output = self.discriminator(x_in)
         return output
