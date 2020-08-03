@@ -74,11 +74,23 @@ def plot_basis_functions(basis_functions, fn_name):
         fn_name: The file name for the figure.
     """
 
-    plt.imshow(np.transpose(basis_functions), interpolation='nearest', origin='lower')
+    plt.imshow(np.transpose(basis_functions), interpolation='nearest', origin='lower', cmap='bwr')
     plt.colorbar(orientation='horizontal')
     plt.savefig(fn_name, bbox_inches='tight')
     plt.clf()
 
+def plot_basis_functions_frequency_domain(basis_functions, fn_name):
+    """Plots a give set of learned basis functions in the frequency domain.
+
+    Args:
+        basis_functions: The set of basis functions to plot.
+        fn_name: The file name for the figure.
+    """
+
+    frequency_basis_functions = np.abs(np.fft.rfft(basis_functions))
+    plot_basis_functions(frequency_basis_functions, fn_name)
+
+    
 def plot_decomposition(spectogram_like, fn_name):
     """Plots the encoder decomposition of a signal.
 
@@ -125,6 +137,9 @@ def main():
 
         plot_basis_functions(sorted_encoder_basis, '{}_encoder.png'.format(model))
         plot_basis_functions(sorted_decoder_basis, '{}_decoder.png'.format(model))
+        
+        plot_basis_functions_frequency_domain(sorted_encoder_basis, '{}_encoder_frequency.png'.format(model))
+        plot_basis_functions_frequency_domain(sorted_decoder_basis, '{}_decoder_frequency.png'.format(model))
 
         spectogram_like = tf.squeeze(spectogram_like)
         spectogram_like = np.array(spectogram_like)[:, sorted_encoder_ids]
