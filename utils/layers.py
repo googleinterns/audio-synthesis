@@ -34,10 +34,15 @@ class PadZeros2D(layers.Layer):
         
         
     def call(self, x_in):
+        print()
+        print('-----')
+        print(x_in.shape)
         output_shape = x_in.shape * self.shape_multiplier
-        return tf.nn.conv2d_transpose(
+        result = tf.nn.conv2d_transpose(
             x_in, tf.ones([1,1,1,x_in.shape[-1]]), output_shape, strides=self.num_zeros, padding='VALID'
         )
+        print(result.shape)
+        return result
     
 
 class Conv1DTranspose(layers.Layer): # pylint: disable=too-many-ancestors

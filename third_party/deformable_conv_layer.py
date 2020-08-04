@@ -128,6 +128,7 @@ class DeformableConvLayer(Conv2D):
                               strides=[1, *self.strides, 1],
                               padding=self.padding.upper(),
                               dilations=[1, *self.dilation_rate, 1])
+        print(offset.shape)
         offset += self.offset_layer_bias
 
         # add padding if needed
@@ -177,7 +178,8 @@ class DeformableConvLayer(Conv2D):
         # expand dim for broadcast
         w0, w1, w2, w3 = [tf.expand_dims(i, axis=-1) for i in [w0, w1, w2, w3]]
         # bilinear interpolation
-        pixels = tf.add_n([w0 * p0, w1 * p1, w2 * p2, w3 * p3])
+        #pixels = tf.add_n([w0 * p0, w1 * p1, w2 * p2, w3 * p3])
+        pixles = w0 * p0 + w1 * p1 + w2 * p2 + w3 * p3
 
         # reshape the "big" feature map
         pixels = tf.reshape(pixels, [batch_size, out_h, out_w, filter_h, filter_w, self.num_deformable_group, channel_in])
