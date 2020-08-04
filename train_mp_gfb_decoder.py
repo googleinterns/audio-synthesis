@@ -46,7 +46,7 @@ def main():
     optimizer = tf.keras.optimizers.Adam(1e-4)
 
     encoder = learned_basis_function.MPGFBEncoder(FILTER_LENGTH, NUMBER_OF_FILTERS)
-    decoder = learned_basis_function.Decoder(FILTER_LENGTH)
+    decoder = learned_basis_function.NLDecoder(FILTER_LENGTH, NUMBER_OF_FILTERS)
 
     learned_decomposition_model = learned_basis_decomposition.LearnedBasisDecomposition(
         encoder, decoder, optimizer, raw_maestro_8000, BATCH_SIZE, EPOCHS, CHECKPOINT_DIR, RESULTS_DIR

@@ -123,6 +123,49 @@ class Decoder(keras.Model):
 
         return self.transpose_conv_layer(x_in)
 
+class NLDecoder(keras.Model):
+    """The decoder model for the learned basis decomposition."""
+
+    def __init__(self, length, num_filters):
+        """The initilizer for the Decoder model.
+
+        Args:
+            length: The length of the filters.
+        """
+
+        super(NLDecoder, self).__init__()
+
+        self.length = length
+        self.stride = self.length // _OVERLAP_FACTOR
+        self.num_filters = num_filters
+
+        sequential = []
+        sequential.append(layer_util.Conv1DTranspose(filters=self.num_filters, strides=self.stride, kernel_size=length))
+        sequential.append(layers.ReLU())
+        sequential.append(layer_util.Conv1DTranspose(filters=self.num_filters//2, strides=1, kernel_size=length))
+        sequential.append(layers.ReLU())
+        sequential.append(layer_util.Conv1DTranspose(filters=self.num_filters//4, strides=1, kernel_size=length))
+        sequential.append(layers.ReLU())
+        sequential.append(layer_util.Conv1DTranspose(filters=1, strides=1, kernel_size=length))
+        
+        self.l = keras.Sequential(sequential)
+
+    def call(self, x_in):
+        """Applys the decoder function to the input. Reconstructing the
+        signal domain representation.
+        
+        Args:
+            x_in: Signals in a decomposed representation. 
+                Shape is (batch_size, signal_duration // self.stride,
+                num_filters).
+            
+        Returns:
+            A batch of time-domain waveforms. Shape is
+            (batch_size, signal_duration, 1).
+        """
+
+        return self.l(x_in)
+    
 class Classifier(keras.Model):
     """The classifier used in some learned decomposition experiments.
     Used for classifing the midi data from the decomposed representation.
