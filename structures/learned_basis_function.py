@@ -73,7 +73,7 @@ class Encoder(keras.Model):
         return tf.nn.relu(encoded_signals)
     
 class MPGFBEncoder(keras.Model):
-    def __init__(self, length, num_filters, sr=16000.0):
+    def __init__(self, length, num_filters, sr=8000.0):
         super(MPGFBEncoder, self).__init__()
         
         self.length = length
