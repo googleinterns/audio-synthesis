@@ -16,10 +16,12 @@
 Based on the TasNet learned decomposition setup.
 """
 
+import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 from audio_synthesis.utils import layers as layer_util
+from audio_synthesis.third_party import gammatone_filterbank
 
 # Controlls the amount of overlap between adjacent windows.
 # An overlap factor of 2 means a 50 percent overlap, this is following
@@ -69,6 +71,21 @@ class Encoder(keras.Model):
 
         encoded_signals = self.conv_layer(x_in)
         return tf.nn.relu(encoded_signals)
+    
+class MPGFBEncoder(keras.Model):
+    def __init__(self, length, num_filters, sr=16000.0):
+        super(MPGFBEncoder, self).__init__()
+        
+        self.length = length
+        self.num_filters = num_filters
+        self.sr = sr
+        self.filterbank = gammatone_filterbank.generate_mpgtf(sr, length/sr, num_filters)
+        self.filterbank = np.expand_dims(self.filterbank, 1).astype(np.float32)
+        
+    def call(self, x_in):
+        x_in = tf.expand_dims(x_in, axis=2)
+        encoded_signals = tf.nn.conv1d(x_in, tf.stop_gradient(self.filterbank), stride=self.length // _OVERLAP_FACTOR, padding='SAME')
+        return encoded_signals
 
 class Decoder(keras.Model):
     """The decoder model for the learned basis decomposition."""
