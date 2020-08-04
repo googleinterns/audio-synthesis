@@ -139,6 +139,8 @@ class LearnedBasisDecomposition:
 
         if self.contains_auxiliary_data:
             x_signal_in = x_in[0]
+        else:
+            x_signal_in = x_in
             
         with tf.GradientTape() as enc_tape, tf.GradientTape() as dec_tape:
             x_signal_noisy = x_signal_in + tf.random.normal(shape=x_signal_in.shape, stddev=0.05)
