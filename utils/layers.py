@@ -34,14 +34,10 @@ class PadZeros2D(layers.Layer):
         
         
     def call(self, x_in):
-        print()
-        print('-----')
-        print(x_in.shape)
         output_shape = x_in.shape * self.shape_multiplier
         result = tf.nn.conv2d_transpose(
             x_in, tf.ones([1,1,1,x_in.shape[-1]]), output_shape, strides=self.num_zeros, padding='VALID'
         )
-        print(result.shape)
         return result
     
 
@@ -72,11 +68,41 @@ class Conv1DTranspose(layers.Layer): # pylint: disable=too-many-ancestors
 
         return x_up
 
-    
 #class HarmonicConvolution(keras.Layer):
  #   def __init__(self, filters, K, N, T)
     
-    
+class DeformableConvolutional2D(layers.Layer):
+    def __init__(self, filters, kernel_size):
+        super(DeformableConvolutional2D, self).__init__()
+        self.filters = filters
+        self.kernel_size = kernel_size
+        
+        # Construct the receptive field
+        self.R = [[]]
+        
+        
+        self.offset_kernel = layers.Conv2D(filters=kernel_size * kernel_size, kernel_size=kernel_size, strides=1, padding='SAME')
+        
+    def call(self, x_in):
+        x_shape = x_in.shape
+        batch_size, in_w, in_h, channels_in = x_shape
+        offsets = self.offset_kernel(x_in)
+        print(offsets.shape)
+        offsets = tf.reshape(offsets, (x_shape[0], x_shape[1], x_shape[2], self.kernel_size, self.kernel_size))
+        
+        # TODO: Include the bias.
+        
+        # TODO: Add the center point
+        y, x = _get_conv_indices([in_h, in_w])
+        print(y.shape)
+        print(x.shape)
+        
+        
+        # Have the final (floating point) indicies. #
+        
+        
+        
+        
     
 class HarmonicConvolutionFilter(layers.Layer):
     def __init__(self, in_filters, out_filters, K, T):

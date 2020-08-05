@@ -42,10 +42,10 @@ class LayersTest(tf.test.TestCase):
         outputs = pad_zeros_layer(inputs)
         self.assertEqual((10, 10, 4, 100), outputs.shape)
         
-    #def test_harmonic_convolution(self):
-    #    inputs = np.random.normal(size=(1, 128, 256, 2)).astype(np.float32)
-    #    l = layers.HarmonicConvolutionFilter(2, 10, 7, 7)
-    #    l(inputs)
+    def test_deformable_convolution(self):
+        inputs = np.random.normal(size=(1, 128, 256, 2)).astype(np.float32)
+        l = layers.DeformableConvolutional2D(16, 5)
+        l(inputs)
         
 
 
