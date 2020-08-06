@@ -78,31 +78,60 @@ class DeformableConvolutional2D(layers.Layer):
         self.kernel_size = kernel_size
         
         # Construct the receptive field
-        self.R = [[]]
+        self.R = np.reshape([np.arange(-kernel_size // 2 + 1, kernel_size//2 + 1, 1) for i in range(kernel_size)], (-1)).astype(np.float32)
+        self.R = np.reshape(self.R, (1, 1, 1, -1))
+        print(self.R)
         
         
-        self.offset_kernel = layers.Conv2D(filters=kernel_size * kernel_size, kernel_size=kernel_size, strides=1, padding='SAME')
+        self.offset_kernel = layers.Conv2D(filters=kernel_size * kernel_size * 2, kernel_size=kernel_size, strides=1, padding='SAME')
         
     def call(self, x_in):
         x_shape = x_in.shape
         batch_size, in_w, in_h, channels_in = x_shape
         offsets = self.offset_kernel(x_in)
         print(offsets.shape)
-        offsets = tf.reshape(offsets, (x_shape[0], x_shape[1], x_shape[2], self.kernel_size, self.kernel_size))
+        offsets = tf.reshape(offsets, (x_shape[0], x_shape[1], x_shape[2], -1, 2))
+        y_offset = offsets[:,:,:,:,0]
+        x_offset = offsets[:,:,:,:,1]
+        print(y_offset.shape)
+        print(x_offset.shape)
+        # TODO: Include the bias. offest + bias
         
-        # TODO: Include the bias.
         
         # TODO: Add the center point
-        y, x = _get_conv_indices([in_h, in_w])
-        print(y.shape)
-        print(x.shape)
+        #y, x = _get_conv_indices([in_h, in_w])
+        x_origin, y_origin = tf.meshgrid(tf.range(x_shape[2]), tf.range(x_shape[1]))
+        print(y_origin.shape)
+        print(x_origin.shape)
+        x_origin = tf.cast(tf.reshape(x_origin, (1, x_shape[1], x_shape[2], 1)), tf.float32)
+        y_origin = tf.cast(tf.reshape(y_origin, (1, x_shape[1], x_shape[2], 1)), tf.float32)
+        print(y_origin.shape)
+        print(x_origin.shape)
         
-        
+        x_relative = x_origin + x_offset + self.R
+        y_relative = y_origin + x_offset + self.R
+        print(x_relative.shape)
+        print(y_relative.shape)
+        y_relative = tf.clip_by_value(y_relative, 0, in_h - 1)
+        y_relative = tf.clip_by_value(y_relative, 0, in_h - 1)
         # Have the final (floating point) indicies. #
         
+        # Get coordinates of the points around (x,y)
         
         
-        
+def _get_pixel_values_at_point(inputs, indices):
+    """get pixel values
+    :param inputs:
+    :param indices: shape [batch_size, H, W, I], I = filter_h * filter_w * channel_out
+    :return:
+    """
+    y, x = indices
+    batch, h, w, n = y.get_shape().as_list()[0: 4]
+
+    batch_idx = tf.reshape(tf.range(0, batch), (batch, 1, 1, 1))
+    b = tf.tile(batch_idx, (1, h, w, n))
+    pixel_idx = tf.stack([b, y, x], axis=-1)
+    return tf.gather_nd(inputs, pixel_idx)
     
 class HarmonicConvolutionFilter(layers.Layer):
     def __init__(self, in_filters, out_filters, K, T):

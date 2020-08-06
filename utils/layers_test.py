@@ -43,7 +43,7 @@ class LayersTest(tf.test.TestCase):
         self.assertEqual((10, 10, 4, 100), outputs.shape)
         
     def test_deformable_convolution(self):
-        inputs = np.random.normal(size=(1, 128, 256, 2)).astype(np.float32)
+        inputs = np.random.normal(size=(3, 128, 256, 2)).astype(np.float32)
         l = layers.DeformableConvolutional2D(16, 5)
         l(inputs)
         
