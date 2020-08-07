@@ -27,12 +27,13 @@ from tensorflow.keras import utils
 _SAMPLE_RATE = 16000
 _SHUFFLE_BUFFER_SIZE = 1000
 
-def _compute_auxiliary_loss_fn(num_steps, x_in, decomposition, x_hat,
+def _compute_auxiliary_loss_fn(model, num_steps, x_in, decomposition, x_hat,
                                auxiliary_models, auxiliary_optimizers):
     """Example of an implementation of the compute auxiliary loss function.
     This implementation does nothing but describes the paramaters.
 
     Args:
+        model: The learned basis decomposition model.
         num_steps: The number of training steps past this epoch.
         x_in: The batch of input data. May be a tuple,
             if multiple input streams are given. Waveform data
@@ -139,6 +140,8 @@ class LearnedBasisDecomposition:
 
         if self.contains_auxiliary_data:
             x_signal_in = x_in[0]
+        else:
+            x_signal_in = x_in
             
         with tf.GradientTape() as enc_tape, tf.GradientTape() as dec_tape:
             x_signal_noisy = x_signal_in + tf.random.normal(shape=x_signal_in.shape, stddev=0.05)
@@ -151,7 +154,7 @@ class LearnedBasisDecomposition:
             )
 
             auxiliary_loss, train_enc_dec = self.compute_auxiliary_loss_fn(
-                num_steps, x_in, decomposition, x_signal_hat,
+                self, num_steps, x_in, decomposition, x_signal_hat,
                 self.auxiliary_models, self.auxiliary_optimizers
             )
 

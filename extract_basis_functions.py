@@ -30,6 +30,12 @@ DECOMPOSITION_IDX = 100
 RANDOM_SIGNAL = np.random.normal(size=(1, 2**14)).astype(np.float32)
 
 MODELS = {
+    'Perceptual': {
+        'num_basis_functions': 512,
+        'basis_function_legnth': 32,
+        'checkpoint_path':\
+            '_results/learned_decomposition/percep_loss/training_checkpoints/ckpt-8',
+    },
     'Classifier': {
         'num_basis_functions': 512,
         'basis_function_legnth': 32,
