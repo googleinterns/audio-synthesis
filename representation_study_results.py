@@ -84,6 +84,20 @@ MODELS = {
         'generate_fn': lambda x: x,
         'waveform': [],
     },
+    'STFTGAN': {
+        'generator': spec_gan.Generator(channels=2, in_shape=[4, 4, 1024]),
+        'checkpoint_path':\
+            '_results/representation_study/STFTGAN/training_checkpoints/ckpt-30',
+        'preprocess': {
+            'unnormalize_magnitude': False,
+            'unnormalize_spectogram': False,
+        },
+        'fft_config': 0,
+        'generate_fn': lambda stfts: spectral.stft_2_waveform(
+            stfts, FFT_FRAME_LENGTHS[0], FFT_FRAME_STEPS[0]
+        )[0],
+        'waveform': [],
+    },
     'STFTGAN_HR': {
         'generator': spec_gan.Generator(channels=2, in_shape=[4, 8, 1024]),
         'checkpoint_path':\
