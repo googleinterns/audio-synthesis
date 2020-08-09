@@ -42,7 +42,7 @@ RESULT_DIR = '_results/representation_study/STFTGAN_SHR/audio/'
 MAESTRO_PATH = 'data/MAESTRO_6h.npz'
 
 def main():
-    os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     print('Num GPUs Available: ', len(tf.config.experimental.list_physical_devices('GPU')))
 
     raw_maestro = maestro_dataset.get_maestro_stft_dataset(
@@ -66,14 +66,14 @@ def main():
             epoch, real, generated, SAMPLING_RATE, RESULT_DIR, get_waveform
         )
 
-    spec_phase_gan_model = wgan.WGAN(
+    stft_gan_model = wgan.WGAN(
         raw_maestro, generator, [discriminator], Z_DIM,
         generator_optimizer, discriminator_optimizer, discriminator_training_ratio=D_UPDATES_PER_G,
         batch_size=BATCH_SIZE, epochs=EPOCHS, checkpoint_dir=CHECKPOINT_DIR,
         fn_save_examples=save_examples
     )
 
-    spec_phase_gan_model.train()
+    stft_gan_model.train()
 
 if __name__ == '__main__':
     main()
