@@ -93,14 +93,14 @@ def main():
             epoch, real, generated, SAMPLING_RATE, RESULT_DIR, get_waveform
         )
 
-    spec_phase_gan_model = wgan.WGAN(
+    stft_wave_gan_model = wgan.WGAN(
         raw_maestro, generator, [discriminator, waveform_discriminator], Z_DIM,
         generator_optimizer, discriminator_optimizer, discriminator_training_ratio=D_UPDATES_PER_G,
         batch_size=BATCH_SIZE, epochs=EPOCHS, checkpoint_dir=CHECKPOINT_DIR, fn_save_examples=save_examples,
         fn_get_discriminator_input_representations=_get_discriminator_input_representations
     )
 
-    spec_phase_gan_model.train()
+    stft_wave_gan_model.train()
 
 if __name__ == '__main__':
     main()
