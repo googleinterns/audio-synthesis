@@ -28,7 +28,6 @@ import tensorflow as tf
 import numpy as np
 from tensorflow.keras import activations, layers
 from tensorflow import keras
-from audio_synthesis.third_party import deformable_conv_layer
 from audio_synthesis.utils import layers as layer_utils
 
 class Generator(keras.Model):
@@ -55,28 +54,28 @@ class Generator(keras.Model):
         sequential.append(layers.Reshape((in_shape)))
         sequential.append(layers.ReLU())
         sequential.append(layer_utils.PadZeros2D(num_zeros=(2, 2)))
-        sequential.append(deformable_conv_layer.DeformableConvLayer(
-            filters=7, kernel_size=(7, 7), strides=(1, 1), padding='same'
+        sequential.append(layer_utils.DeformableConvLayer(
+            filters=7, kernel_size=(7, 7)
         ))
         sequential.append(layers.ReLU())
         sequential.append(layer_utils.PadZeros2D(num_zeros=(2, 2)))
-        sequential.append(deformable_conv_layer.DeformableConvLayer(
-            filters=7, kernel_size=(7, 7), strides=(1, 1), padding='same'
+        sequential.append(layer_utils.DeformableConvLayer(
+            filters=7, kernel_size=(7, 7)
         ))
         sequential.append(layers.ReLU())
         sequential.append(layer_utils.PadZeros2D(num_zeros=(2, 2)))
-        sequential.append(deformable_conv_layer.DeformableConvLayer(
-            filters=7, kernel_size=(7, 7), strides=(1, 1), padding='same'
+        sequential.append(layer_utils.DeformableConvLayer(
+            filters=7, kernel_size=(7, 7)
         ))
         sequential.append(layers.ReLU())
         sequential.append(layer_utils.PadZeros2D(num_zeros=(2, 2)))
-        sequential.append(deformable_conv_layer.DeformableConvLayer(
-            filters=7, kernel_size=(7, 7), strides=(1, 1), padding='same'
+        sequential.append(layer_utils.DeformableConvLayer(
+            filters=7, kernel_size=(7, 7)
         ))
         sequential.append(layers.ReLU())
         sequential.append(layer_utils.PadZeros2D(num_zeros=(2, 2)))
-        sequential.append(deformable_conv_layer.DeformableConvLayer(
-            filters=channels, kernel_size=(7, 7), strides=(1, 1), padding='same'
+        sequential.append(layer_utils.DeformableConvLayer(
+            filters=channels, kernel_size=(7, 7)
         ))
 
         self.l = keras.Sequential(sequential)
