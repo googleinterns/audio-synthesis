@@ -42,11 +42,26 @@ class LayersTest(tf.test.TestCase):
         outputs = pad_zeros_layer(inputs)
         self.assertEqual((10, 10, 4, 100), outputs.shape)
         
-    def test_deformable_convolution(self):
+    def test_deformable_convolution_shape(self):
         inputs = np.random.normal(size=(3, 128, 256, 2)).astype(np.float32)
-        l = layers.DeformableConvolutional2D(16, 5)
-        l(inputs)
+        deformable_convolution = layers.DeformableConvolutional2D(16, (5, 5), 2)
+        output = deformable_convolution(inputs)
         
+        self.assertEqual((3, 128, 256, 16), output.shape)
+        
+    def test_get_pixel_values_at_point(self):
+        N = 25
+        array = np.arange(N)
+        array = np.reshape(array, (1, 5, 5, 1))
+        
+        index = tf.reshape([0,1,2,3,4], (1, 1, 1, -1))
+        gathered = layers._get_pixel_values_at_point(array, [index, index])
+        gathered = np.reshape(gathered, (-1))
+        self.assertAllEqual(gathered, [0, 6, 12, 18, 24])
+        
+    def test_harmonic_convolution_filter_shape(self):
+        inputs = np.random.normal(size=(3, 128, 256, 2)).astype(np.float32)
+        harmonic_convolution_filter
 
 
 if __name__ == '__main__':

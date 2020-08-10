@@ -17,7 +17,7 @@
 
 import tensorflow as tf
 import numpy as np
-from tensorflow.keras import layers
+from tensorflow.keras import layers, activations
 from tensorflow import keras
 
 
@@ -67,57 +67,85 @@ class Conv1DTranspose(layers.Layer): # pylint: disable=too-many-ancestors
         x_up = tf.squeeze(x_up, axis=2)
 
         return x_up
-
-#class HarmonicConvolution(keras.Layer):
- #   def __init__(self, filters, K, N, T)
     
-class DeformableConvolutional2D(layers.Layer):
-    def __init__(self, filters, kernel_size):
-        super(DeformableConvolutional2D, self).__init__()
+    
+class AbstractDeformableConvolutional2D(layers.Layer):
+    def __init__(self, filters, kernel_size, input_filters, activation=activations.linear):
+        super(AbstractDeformableConvolutional2D, self).__init__()
         self.filters = filters
         self.kernel_size = kernel_size
+        self.input_filters = input_filters
+        self.activation = activation
         
         # Construct the receptive field
-        self.R = np.reshape([np.arange(-kernel_size // 2 + 1, kernel_size//2 + 1, 1) for i in range(kernel_size)], (-1)).astype(np.float32)
+        self.R = np.reshape([np.arange(-kernel_size[0] // 2 + 1, kernel_size[0]//2 + 1, 1) for i in range(kernel_size[1])], (-1)).astype(np.float32)
         self.R = np.reshape(self.R, (1, 1, 1, -1))
-        print(self.R)
         
+        self.kernel_shape = self.kernel_size + (input_filters, filters)
+        self.kernel = tf.Variable(np.random.normal(size=self.kernel_shape, scale=0.01).astype(np.float32), trainable=True)
         
-        self.offset_kernel = layers.Conv2D(filters=kernel_size * kernel_size * 2, kernel_size=kernel_size, strides=1, padding='SAME')
+    def _get_offset(self, x_in):
+        raise NotImplementedError()
         
     def call(self, x_in):
         x_shape = x_in.shape
-        batch_size, in_w, in_h, channels_in = x_shape
-        offsets = self.offset_kernel(x_in)
-        print(offsets.shape)
-        offsets = tf.reshape(offsets, (x_shape[0], x_shape[1], x_shape[2], -1, 2))
-        y_offset = offsets[:,:,:,:,0]
-        x_offset = offsets[:,:,:,:,1]
-        print(y_offset.shape)
-        print(x_offset.shape)
-        # TODO: Include the bias. offest + bias
+        batch_size, in_h, in_w, channel_in = x_shape
+        filter_h, filter_w = self.kernel_size
         
+        y_offset, x_offset = self._get_offset(x_in)
         
-        # TODO: Add the center point
-        #y, x = _get_conv_indices([in_h, in_w])
         x_origin, y_origin = tf.meshgrid(tf.range(x_shape[2]), tf.range(x_shape[1]))
-        print(y_origin.shape)
-        print(x_origin.shape)
-        x_origin = tf.cast(tf.reshape(x_origin, (1, x_shape[1], x_shape[2], 1)), tf.float32)
-        y_origin = tf.cast(tf.reshape(y_origin, (1, x_shape[1], x_shape[2], 1)), tf.float32)
-        print(y_origin.shape)
-        print(x_origin.shape)
+        x_origin = tf.cast(tf.reshape(x_origin, (1, x_shape[1], x_shape[2], 1)), tf.float32) + 1.0
+        y_origin = tf.cast(tf.reshape(y_origin, (1, x_shape[1], x_shape[2], 1)), tf.float32) + 1.0
         
         x_relative = x_origin + x_offset + self.R
         y_relative = y_origin + x_offset + self.R
-        print(x_relative.shape)
-        print(y_relative.shape)
-        y_relative = tf.clip_by_value(y_relative, 0, in_h - 1)
-        y_relative = tf.clip_by_value(y_relative, 0, in_h - 1)
+
+        # Rather than add lots of padding, add border of zeros
+        # and then clip to border. Hence, any value that sits outside
+        # the image bounds is clipped to a position with a zero.
+        x_in_padded = tf.pad(x_in, [[0,0],[1,1], [1,1], [0,0]])
+        x_in_padded = tf.cast(x_in_padded, tf.float32)
+        #x_relative = tf.clip_by_value(x_relative, 0, in_w)
+        #y_relative = tf.clip_by_value(y_relative, 0, in_h)
         # Have the final (floating point) indicies. #
         
         # Get coordinates of the points around (x,y)
+        x0 = tf.cast(tf.floor(x_relative), tf.int32)
+        x1 = x0 + 1
         
+        y0 = tf.cast(tf.floor(y_relative), tf.int32)
+        y1 = y0 + 1
+        
+        x0 = tf.clip_by_value(x0, 0, in_w+1)
+        x1 = tf.clip_by_value(x1, 0, in_w+1)
+        y0 = tf.clip_by_value(y0, 0, in_h+1)
+        y1 = tf.clip_by_value(y1, 0, in_h+1)
+                
+        indices = [[y0, x0], [y0, x1], [y1, x0], [y1, x1]]
+        p0, p1, p2, p3 = [_get_pixel_values_at_point(x_in_padded, i) for i in indices]
+
+        x0 = tf.cast(x0, tf.float32)
+        x1 = tf.cast(x1, tf.float32)
+        y0 = tf.cast(y0, tf.float32)
+        y1 = tf.cast(y1, tf.float32)
+        
+        # weights
+        w0 = (y1 - y_relative) * (x1 - x_relative)
+        w1 = (y1 - y_relative) * (x_relative - x0)
+        w2 = (y_relative - y0) * (x1 - x_relative)
+        w3 = (y_relative - y0) * (x_relative - x0)
+        w0, w1, w2, w3 = [tf.expand_dims(i, axis=-1) for i in [w0, w1, w2, w3]]
+        
+        pixles = w0 * p0 + w1 * p1 + w2 * p2 + w3 * p3
+        
+        pixles = tf.reshape(pixles, [batch_size, in_h, in_w, filter_h, filter_w, channel_in])
+        pixles = tf.transpose(pixles, [0, 1, 3, 2, 4, 5])
+        pixles = tf.reshape(pixles, [batch_size, in_h * filter_h, in_w * filter_w, channel_in])
+
+        out = tf.nn.conv2d(pixles, self.kernel, strides=[1, filter_h, filter_w, 1], padding='VALID')
+        
+        return self.activation(out)
         
 def _get_pixel_values_at_point(inputs, indices):
     """get pixel values
@@ -125,59 +153,60 @@ def _get_pixel_values_at_point(inputs, indices):
     :param indices: shape [batch_size, H, W, I], I = filter_h * filter_w * channel_out
     :return:
     """
+    
     y, x = indices
-    batch, h, w, n = y.get_shape().as_list()[0: 4]
+    batch, h, w, n = y.shape
 
     batch_idx = tf.reshape(tf.range(0, batch), (batch, 1, 1, 1))
     b = tf.tile(batch_idx, (1, h, w, n))
     pixel_idx = tf.stack([b, y, x], axis=-1)
-    return tf.gather_nd(inputs, pixel_idx)
+
+    result = tf.gather_nd(inputs, pixel_idx)
+    return result
     
-class HarmonicConvolutionFilter(layers.Layer):
-    def __init__(self, in_filters, out_filters, K, T):
-        super(HarmonicConvolutionFilter, self).__init__()
+class DeformableConvolutional2D(AbstractDeformableConvolutional2D):
+    def __init__(self, filters, kernel_size, input_filters, strides=(1, 1), padding='same', activation=activations.linear):
+        super(DeformableConvolutional2D, self).__init__(filters, kernel_size, input_filters, activation)
+        
+        self.strides = strides
+        self.padding = padding
+        
+        self.offset_kernel = layers.Conv2D(
+            filters=kernel_size[0] * kernel_size[1] * 2,
+            kernel_size=kernel_size, strides=self.strides,
+            padding=self.padding
+        )
+        self.offset_bias = tf.Variable(
+            np.random.normal(
+                size=(1, 1, 1, kernel_size[0] * kernel_size[1] * 2), scale=0.01
+            ).astype(np.float32),
+            trainable=True
+        )
+        
+    def _get_offset(self, x_in):
+        x_shape = x_in.shape
+        offsets = self.offset_kernel(x_in)
+        offsets = offsets + self.offset_bias
+        
+        offsets = tf.reshape(offsets, (x_shape[0], x_shape[1], x_shape[2], -1, 2))
+        y_offset = offsets[:,:,:,:,0]
+        x_offset = offsets[:,:,:,:,1]
+        
+        return y_offset, x_offset
+    
+
+class HarmonicConvolutionFilter(AbstractDeformableConvolutional2D):
+    def __init__(self, harmonic_series, time, anchor, filters, input_filters, activation=activations.linear):
+        super(HarmonicConvolutionFilter, self).__init__(filters, (harmonic_series, 2*time),  input_filters, activation)
         self.T = T
         self.K = K
-        # First we construct the harmonic series
-        #harmonic_series = []
-        #for n in range(N):
-        k_range = np.arange(1, K+1, 1, dtype=np.float32)
-        self.series = k_range# * (1.0 / n)
+        k_range = np.arange(1, harmonic_series+1, 1, dtype=np.float32)
+        self.series = k_range * (1.0 / anchor)
         #harmonic_series.append(series)
-        self.time = np.arange(-T, T+1, 1, dtype=np.int32)
+        self.time = np.arange(-time, time+1, 1, dtype=np.int32)
         
-        #self.filters = tf.Variable()
+        self.x_offset = tf.reshape(self.time, (1, 1, 1, -1))
+        self.y_offset = tf.reshape(self.series, (1, 1, 1, -1))
         
-    def call(self, x_in):
-        print(x_in.shape)
-        # Pad edges of input so that we dont exceed the bounds
-        # Currently, we just pad the time dimention and handle
-        # the frequency dimention later.
-        x_in_pad = tf.pad(x_in, [[0, 0], [self.T, self.T], [0,0], [0,0]])
-        print(x_in_pad.shape)
-        
-        for tau in range(0, x_in.shape[1]):
-            for omega in range(0, x_in.shape[2]):
-                harmonic_series = tf.cast(self.series * omega, tf.int32)
-                # Except here we need to handle the case where we are getting a fractional location
-                print(harmonic_series)
-                print(tau+self.time)
-                print(-self.T + tau)
-                print(self.T + tau+1)
-                x_selection = x_in_pad[:, self.T + (-self.T + tau): self.T + (tau+self.T+1), :,: ]
-                print(x_selection.shape)
-                x_selection = tf.gather_nd(x_selection, tf.reshape(harmonic_series, (-1, 1, 1)))
-                print(x_selection.shape)
-                
-                sys.exit(0)
-                # Handle padding. Or prehapse we can do this before hand?
-                #if x_selection.shape[2] < len(harmonic_series):
-                #    x_selection = tf.pad(x_selection, [[0,0],[0,0],[0,len(harmonic_series) - x_selection.shape[2]],[0,0]])
-                #print(x_selection.shape)
-                
-                # Multiply by filters
-                
-                
-                # Insert into modified image
-    
-        
+    def _get_offset(self, x_in):
+        return self.x_offset, self.y_offset
