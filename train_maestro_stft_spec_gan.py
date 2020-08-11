@@ -62,6 +62,7 @@ def _get_discriminator_input_representations(stft_in):
     real = stft_in[:, :, :, 0]
     imag = stft_in[:, :, :, 1]
     magnitude = tf.sqrt(tf.square(real) + tf.square(imag))
+    magnitude = tf.math.log(magnitude + 1e-6)
 
     return (stft_in, magnitude)
 
