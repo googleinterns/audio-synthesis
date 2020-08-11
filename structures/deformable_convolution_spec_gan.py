@@ -33,7 +33,7 @@ from audio_synthesis.utils import layers as layer_utils
 class Generator(keras.Model):
     """Implementation of the SpecGAN Generator Function."""
 
-    def __init__(self, channels=1, activation=activations.linear, in_shape=(4, 4, 1024)):
+    def __init__(self, channels=1, activation=activations.linear, in_shape=(8, 16, 1024)):
         """Initilizes the SpecGAN Generator function.
 
         Paramaters:
@@ -48,39 +48,36 @@ class Generator(keras.Model):
         super(Generator, self).__init__()
 
         self.activation = activation
-
+        self.in_shape = in_shape
+        
         sequential = []
         sequential.append(layers.Dense(np.prod(in_shape)))
         sequential.append(layers.Reshape((in_shape)))
         sequential.append(layers.ReLU())
         sequential.append(layer_utils.PadZeros2D(num_zeros=(2, 2)))
-        sequential.append(layer_utils.DeformableConvLayer(
-            filters=7, kernel_size=(7, 7)
+        sequential.append(layer_utils.DeformableConvolution2D(
+            filters=64, kernel_size=(7, 7), input_filters=in_shape[-1]
         ))
         sequential.append(layers.ReLU())
         sequential.append(layer_utils.PadZeros2D(num_zeros=(2, 2)))
-        sequential.append(layer_utils.DeformableConvLayer(
-            filters=7, kernel_size=(7, 7)
+        sequential.append(layer_utils.DeformableConvolution2D(
+            filters=32, kernel_size=(7, 7), input_filters=64
         ))
         sequential.append(layers.ReLU())
         sequential.append(layer_utils.PadZeros2D(num_zeros=(2, 2)))
-        sequential.append(layer_utils.DeformableConvLayer(
-            filters=7, kernel_size=(7, 7)
+        sequential.append(layer_utils.DeformableConvolution2D(
+            filters=16, kernel_size=(7, 7), input_filters=32
         ))
         sequential.append(layers.ReLU())
         sequential.append(layer_utils.PadZeros2D(num_zeros=(2, 2)))
-        sequential.append(layer_utils.DeformableConvLayer(
-            filters=7, kernel_size=(7, 7)
-        ))
-        sequential.append(layers.ReLU())
-        sequential.append(layer_utils.PadZeros2D(num_zeros=(2, 2)))
-        sequential.append(layer_utils.DeformableConvLayer(
-            filters=channels, kernel_size=(7, 7)
+        sequential.append(layer_utils.DeformableConvolution2D(
+            filters=channels, kernel_size=(7, 7), input_filters=16
         ))
 
         self.l = keras.Sequential(sequential)
 
     def call(self, z_in):
+        print(self.in_shape)
         return self.activation(self.l(z_in))
 
 class Discriminator(keras.Model):

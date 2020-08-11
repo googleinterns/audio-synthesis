@@ -32,12 +32,12 @@ from audio_synthesis.utils import spectral
 # Setup Paramaters
 D_UPDATES_PER_G = 5
 Z_DIM = 64
-BATCH_SIZE = 32
+BATCH_SIZE = 64
 EPOCHS = 300
 SAMPLING_RATE = 16000
 FFT_FRAME_LENGTH = 512
 FFT_FRAME_STEP = 128
-Z_IN_SHAPE = [4, 8, 512]
+Z_IN_SHAPE = [4, 8, 128]
 SPECTOGRAM_IMAGE_SHAPE = [-1, 128, 256, 2]
 CHECKPOINT_DIR = '_results/harmonic_convolution/DC_STFTGAN_HR/training_checkpoints/'
 RESULT_DIR = '_results/harmonic_convolution/DC_STFTGAN_HR/audio/'

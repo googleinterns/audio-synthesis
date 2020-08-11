@@ -69,9 +69,9 @@ class Conv1DTranspose(layers.Layer): # pylint: disable=too-many-ancestors
         return x_up
     
     
-class AbstractDeformableConvolutional2D(layers.Layer):
+class AbstractDeformableConvolution2D(layers.Layer):
     def __init__(self, filters, kernel_size, input_filters, activation=activations.linear):
-        super(AbstractDeformableConvolutional2D, self).__init__()
+        super(AbstractDeformableConvolution2D, self).__init__()
         self.filters = filters
         self.kernel_size = kernel_size
         self.input_filters = input_filters
@@ -106,9 +106,6 @@ class AbstractDeformableConvolutional2D(layers.Layer):
         # the image bounds is clipped to a position with a zero.
         x_in_padded = tf.pad(x_in, [[0,0],[1,1], [1,1], [0,0]])
         x_in_padded = tf.cast(x_in_padded, tf.float32)
-        #x_relative = tf.clip_by_value(x_relative, 0, in_w)
-        #y_relative = tf.clip_by_value(y_relative, 0, in_h)
-        # Have the final (floating point) indicies. #
         
         # Get coordinates of the points around (x,y)
         x0 = tf.cast(tf.floor(x_relative), tf.int32)
@@ -124,20 +121,31 @@ class AbstractDeformableConvolutional2D(layers.Layer):
                 
         indices = [[y0, x0], [y0, x1], [y1, x0], [y1, x1]]
         p0, p1, p2, p3 = [_get_pixel_values_at_point(x_in_padded, i) for i in indices]
+        del x_in_padded
 
         x0 = tf.cast(x0, tf.float32)
         x1 = tf.cast(x1, tf.float32)
         y0 = tf.cast(y0, tf.float32)
         y1 = tf.cast(y1, tf.float32)
         
-        # weights
-        w0 = (y1 - y_relative) * (x1 - x_relative)
-        w1 = (y1 - y_relative) * (x_relative - x0)
-        w2 = (y_relative - y0) * (x1 - x_relative)
-        w3 = (y_relative - y0) * (x_relative - x0)
-        w0, w1, w2, w3 = [tf.expand_dims(i, axis=-1) for i in [w0, w1, w2, w3]]
+        pixles = p0 * tf.expand_dims((y1 - y_relative) * (x1 - x_relative), axis=-1)
+        del p0
+        pixles += p1 * tf.expand_dims((y1 - y_relative) * (x_relative - x0), axis=-1)
+        del p1
+        pixles += p2 * tf.expand_dims((y_relative - y0) * (x1 - x_relative), axis=-1)
+        del p2
+        pixles += p3 * tf.expand_dims((y_relative - y0) * (x_relative - x0), axis=-1)
+        del p3
         
-        pixles = w0 * p0 + w1 * p1 + w2 * p2 + w3 * p3
+        
+        # weights for bi-linear interpolation
+        #w0 = (y1 - y_relative) * (x1 - x_relative)
+        #w1 = (y1 - y_relative) * (x_relative - x0)
+        #w2 = (y_relative - y0) * (x1 - x_relative)
+        #w3 = (y_relative - y0) * (x_relative - x0)
+        #w0, w1, w2, w3 = [tf.expand_dims(i, axis=-1) for i in [w0, w1, w2, w3]]
+        
+        #pixles = w0 * p0 + w1 * p1 + w2 * p2 + w3 * p3
         
         pixles = tf.reshape(pixles, [batch_size, in_h, in_w, filter_h, filter_w, channel_in])
         pixles = tf.transpose(pixles, [0, 1, 3, 2, 4, 5])
@@ -164,9 +172,9 @@ def _get_pixel_values_at_point(inputs, indices):
     result = tf.gather_nd(inputs, pixel_idx)
     return result
     
-class DeformableConvolutional2D(AbstractDeformableConvolutional2D):
+class DeformableConvolution2D(AbstractDeformableConvolution2D):
     def __init__(self, filters, kernel_size, input_filters, strides=(1, 1), padding='same', activation=activations.linear):
-        super(DeformableConvolutional2D, self).__init__(filters, kernel_size, input_filters, activation)
+        super(DeformableConvolution2D, self).__init__(filters, kernel_size, input_filters, activation)
         
         self.strides = strides
         self.padding = padding
@@ -192,10 +200,14 @@ class DeformableConvolutional2D(AbstractDeformableConvolutional2D):
         y_offset = offsets[:,:,:,:,0]
         x_offset = offsets[:,:,:,:,1]
         
+        print(x_in.shape)
+        print('y_offset: ', y_offset.shape)
+        print('x_offset: ', x_offset.shape)
+        
         return y_offset, x_offset
     
 
-class HarmonicConvolutionFilter(AbstractDeformableConvolutional2D):
+class HarmonicConvolutionFilter(AbstractDeformableConvolution2D):
     def __init__(self, harmonic_series, time, anchor, filters, input_filters, activation=activations.linear):
         super(HarmonicConvolutionFilter, self).__init__(filters, (harmonic_series, 2*time),  input_filters, activation)
         self.T = T
