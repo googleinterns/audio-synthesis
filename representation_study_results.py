@@ -112,6 +112,20 @@ MODELS = {
         )[0],
         'waveform': [],
     },
+    'STFTWaveGAN_HR': {
+        'generator': spec_gan.Generator(channels=2, in_shape=[4, 8, 1024]),
+        'checkpoint_path':\
+            '_results/representation_study/STFTWaveGAN_HR/training_checkpoints/ckpt-30',
+        'preprocess': {
+            'unnormalize_magnitude': False,
+            'unnormalize_spectogram': False,
+        },
+        'fft_config': 1,
+        'generate_fn': lambda stfts: spectral.stft_2_waveform(
+            stfts, FFT_FRAME_LENGTHS[1], FFT_FRAME_STEPS[1]
+        )[0],
+        'waveform': [],
+    },
     'SpecGAN': {
         'generator': spec_gan.Generator(activation=activations.tanh),
         'checkpoint_path':\
@@ -230,7 +244,7 @@ MODELS = {
 
 def main():
     # Set allowed GPUs.
-    os.environ["CUDA_VISIBLE_DEVICES"] = '3'
+    os.environ["CUDA_VISIBLE_DEVICES"] = '0'
     print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
     # Build and load MODELS from checkpoints
