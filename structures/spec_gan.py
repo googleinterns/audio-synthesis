@@ -34,7 +34,7 @@ class Generator(keras.Model):
     def __init__(self, channels=1, activation=activations.linear, in_shape=(4, 4, 1024)):
         """Initilizes the SpecGAN Generator function.
 
-        Paramaters:
+        Args:
             channels: The number of output channels.
                 For example, for SpecGAN there is one
                 output channel, and for SpecPhaseGAN there
