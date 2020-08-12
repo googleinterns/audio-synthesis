@@ -186,7 +186,8 @@ class WGAN: # pylint: disable=too-many-instance-attributes
         with tf.GradientTape() as gen_tape:
             g_loss = 0
             
-            x_gen = self.generator(c_in, training=True)
+            z_in = tf.random.uniform((x_in.shape[0], self.z_dim), -1, 1)
+            x_gen = self.generator(c_gen_in, z_in, training=True)
             x_gen_representations = self.fn_get_discriminator_input_representations(x_gen)
             
             for i in range(len(self.discriminator)):
@@ -245,10 +246,11 @@ class WGAN: # pylint: disable=too-many-instance-attributes
 
     def _generate_and_save_examples(self, epoch):
         if self.fn_save_examples:
+            z_in = tf.random.uniform((self.batch_size, self.z_dim), -1, 1)
             x_save = self.raw_dataset[0][0:self.batch_size]
             c_save = self.raw_dataset[1][0:self.batch_size]
             
-            generations = tf.squeeze(self.generator(c_save, training=False))
+            generations = tf.squeeze(self.generator(c_save, z_in, training=False))
             self.fn_save_examples(epoch, x_save, generations)
 
 

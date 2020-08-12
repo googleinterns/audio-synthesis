@@ -40,8 +40,8 @@ SIGNAL_LENGTH = 2**14
 WAVEFORM_SHAPE = [-1, SIGNAL_LENGTH, 1]
 MAGNITUDE_IMAGE_SHAPE = [-1, 128, 256, 1]
 CRITIC_WEIGHTINGS = [1.0, 1.0/1000.0]
-CHECKPOINT_DIR = '_results/midi_conditional/ConditionalWaveSpecGAN/training_checkpoints'
-RESULT_DIR = '_results/midi_conditional/ConditionalWaveSpecGAN/audio/'
+CHECKPOINT_DIR = '_results/midi_conditional/ConditionalWaveSpecGAN_WN/training_checkpoints'
+RESULT_DIR = '_results/midi_conditional/ConditionalWaveSpecGAN_WN/audio/'
 MAESTRO_PATH = 'data/MAESTRO_6h.npz'
 MAESTRO_MIDI_PATH = 'data/MAESTRO_midi_512_6h.npz'
 
@@ -80,9 +80,6 @@ def _get_discriminator_input_representations(x_in):
 def main():
     raw_maestro = maestro_dataset.get_maestro_waveform_dataset(MAESTRO_PATH)
     raw_maestro_conditioning = maestro_dataset.get_maestro_midi_conditioning_dataset(MAESTRO_MIDI_PATH).astype(np.float32)
-    print(raw_maestro_conditioning.shape)
-    #raw_maestro_conditioning = np.prod(raw_maestro_conditioning, axis=-1)
-    #raw_maestro_conditioning = np.squeeze(raw_maestro_conditioning)
     
     generator = conditional_wave_spec_gan.Generator()
     discriminator = conditional_wave_spec_gan.WaveformDiscriminator()

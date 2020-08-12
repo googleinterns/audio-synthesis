@@ -24,11 +24,19 @@ class Generator(keras.Model):
     """The Generator function for Conditional WaveSpecGAN.
     """
 
-    def __init__(self):
+    def __init__(self, z_in_shape=[]):
         super(Generator, self).__init__()
+        noise_pre_process = []
+        noise_pre_process.append(layers.Dense(512 * 512))
+        noise_pre_process.append(layers.Reshape((512, 512)))
+        self.z_pre_process = keras.Sequential(noise_pre_process)
+        #noise_pre_process.append(layers.ReLU())
+        
+        conditioning_pre_process = []
+        conditioning_pre_process.append(layers.Conv1D(filters=512, strides=1, kernel_size=36, padding='same'))
+        self.c_pre_process = keras.Sequential(conditioning_pre_process)
+        
         sequential = [] 
-        sequential.append(layers.Conv1D(filters=1024, strides=1, kernel_size=36, padding='same'))
-        sequential.append(layers.ReLU())
         sequential.append(layer_utils.Conv1DTranspose(filters=512, strides=2, kernel_size=36))
         sequential.append(layers.ReLU())
         sequential.append(layer_utils.Conv1DTranspose(filters=256, strides=2, kernel_size=36))
@@ -41,8 +49,13 @@ class Generator(keras.Model):
 
         self.l = keras.Sequential(sequential)
 
-    def call(self, c_in):
-        output = self.l(c_in)
+    def call(self, c_in, z_in):
+        z_pre_processed = self.z_pre_process(z_in)
+        c_pre_processed = self.c_pre_process(c_in)
+        
+        zc_pre_processed = tf.concat([z_pre_processed, c_pre_processed], axis=-1)
+        
+        output = self.l(zc_pre_processed)
         return output
 
 
