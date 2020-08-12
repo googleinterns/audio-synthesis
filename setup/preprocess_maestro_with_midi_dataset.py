@@ -16,21 +16,28 @@
 
 Pre-proceses the raw MAESTRO dataset into a data set
 of music chunks with a predefined lenth and sampling rate.
-The music chunks are then saved as a .npz file
+This scripts also extracts the aligned MIDI data.
+The music chunks are then saved as a .npz file, same as
+the MIDI data.
 """
 
-import os
 import sys
+import os
 import glob
 import librosa
+import mido
 import numpy as np
+from audio_synthesis.setup import preprocessing_helpers
 
 # Overall Config #
 APPROX_TOTAL_HOURS = 6
 SAMPLE_RATE = 16000 # 16kHz
 DATA_POINT_LENGTH = 2**14
+
+BLOCK_IN_SECONDS = DATA_POINT_LENGTH / SAMPLE_RATE
+NUM_STATES_PER_CHUNK = 128
 RAW_DATA_PATH = './data/maestro/2017'
-PROCESSED_DATA_PATH = '../data/'
+PROCESSED_DATA_PATH = './data/'
 
 def main():
     audio_paths = glob.glob(RAW_DATA_PATH + '/**/*.wav', recursive=True)
@@ -38,6 +45,7 @@ def main():
     # Load audio files until we reach our desired
     # data set size.
     data = []
+    midi_data = []
     hours_loaded = 0
     for audio_file_path in audio_paths:
         print(audio_file_path)
@@ -47,15 +55,23 @@ def main():
         if hours_loaded >= APPROX_TOTAL_HOURS:
             break
 
-        # Pad the song to ensure it can be evenly divided into
-        # chunks of length 'DATA_POINT_LENGTH'
-        padded_wav_length = int(DATA_POINT_LENGTH * np.ceil(len(wav) / DATA_POINT_LENGTH))
-        wav = np.pad(wav, [[0, padded_wav_length - len(wav)]])
+        waveform_chunks, padded_wav_length = preprocessing_helpers.waveform_2_chunks(
+            wav, DATA_POINT_LENGTH
+        )
 
-        chunks = np.reshape(wav, (-1, DATA_POINT_LENGTH))
-        data.extend(chunks)
+        midi_file_path = audio_file_path[:-3] + 'midi'
+        midi = mido.MidiFile(midi_file_path, clip=True)
+
+        processed_midi = preprocessing_helpers.piano_midi_2_chunks(
+            midi, padded_wav_length, DATA_POINT_LENGTH, NUM_STATES_PER_CHUNK, SAMPLE_RATE
+        )
+
+        assert waveform_chunks.shape[0] == processed_midi.shape[0]
+        data.extend(waveform_chunks)
+        midi_data.extend(processed_midi)
 
     data = np.array(data)
+    midi_data = np.array(midi_data)
 
     print('Dataset Stats:')
     print('Total Hours: ', len(data) / 60 / 60)
@@ -66,6 +82,9 @@ def main():
     np.savez_compressed(os.path.join(PROCESSED_DATA_PATH, 'MAESTRO_{}h.npz'\
                         .format(APPROX_TOTAL_HOURS)),
                         np.array(data))
+    np.savez_compressed(os.path.join(PROCESSED_DATA_PATH, 'MAESTRO_midi_{}h.npz'\
+                        .format(APPROX_TOTAL_HOURS)),
+                        np.array(midi_data))
 
 if __name__ == '__main__':
     main()
