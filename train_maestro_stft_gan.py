@@ -48,7 +48,6 @@ def main():
     raw_maestro = maestro_dataset.get_maestro_stft_dataset(
         MAESTRO_PATH, frame_length=FFT_FRAME_LENGTH, frame_step=FFT_FRAME_STEP
     )
-    print(raw_maestro.shape)
 
     generator = spec_gan.Generator(channels=2, in_shape=Z_IN_SHAPE)
     discriminator = spec_gan.Discriminator(input_shape=SPECTOGRAM_IMAGE_SHAPE)

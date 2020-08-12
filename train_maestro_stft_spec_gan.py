@@ -50,14 +50,12 @@ def _get_discriminator_input_representations(stft_in):
     returning the input waveform and coresponding spectogram representations
 
     Args:
-        x_in: A batch of waveforms with shape (-1, SIGNAL_LENGTH).
+        x_in: A batch of stft with shape (-1, time, frequency_dims).
 
     Returns:
-        A tuple containing the stft and magnitude spectrum representaions of
+        A tuple containing the stft and log magnitude spectrum representaions of
         x_in.
     """
-
-    stft_in = tf.squeeze(stft_in)
     
     real = stft_in[:, :, :, 0]
     imag = stft_in[:, :, :, 1]
@@ -68,13 +66,12 @@ def _get_discriminator_input_representations(stft_in):
 
 
 def main():
-    os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+    os.environ['CUDA_VISIBLE_DEVICES'] = ''
     print('Num GPUs Available: ', len(tf.config.experimental.list_physical_devices('GPU')))
 
     raw_maestro = maestro_dataset.get_maestro_stft_dataset(
         MAESTRO_PATH, frame_length=FFT_FRAME_LENGTH, frame_step=FFT_FRAME_STEP
     )
-    print(raw_maestro.shape)
 
     generator = spec_gan.Generator(channels=2, in_shape=Z_IN_SHAPE)
     discriminator = spec_gan.Discriminator(input_shape=SPECTOGRAM_IMAGE_SHAPE)

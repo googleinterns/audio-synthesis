@@ -32,7 +32,8 @@ def waveform_2_stft(waveform, frame_length=512, frame_step=128):
             overlap=frame_length - frame_step.
     
     Returns:
-        The STFT representation of the input waveform(s).
+        The STFT representation of the input waveform(s). Shape
+        is [-1, time_bins, frequency]
     """
     
     if len(waveform.shape) == 1:
@@ -59,7 +60,8 @@ def stft_2_waveform(stft, frame_length=512, frame_step=128):
             overlap=frame_length - frame_step.
     
     Returns:
-        The waveform representation of the input STFT(s).
+        The waveform representation of the input STFT(s). Shape
+        is [-1, signal_length]
     """
     
     if len(stft.shape) == 3:
@@ -96,7 +98,8 @@ def waveform_2_spectogram(waveform, frame_length=512, frame_step=128,
             mel-spectogram
 
     Returns:
-        A spectogram representation of the input waveform.
+        A spectogram representation of the input waveform. Shape
+        is [-1, time_bins, frequency, 2]
     """
 
 
@@ -157,7 +160,8 @@ def waveform_2_magnitude(waveform, frame_length=512, frame_step=128, log_magnitu
             mel-spectogram
 
     Returns:
-        A magnitude spectrum representation of the input waveform.
+        A magnitude spectrum representation of the input waveform. Shape
+        is [-1, time_bins, frequency]
     """
 
     spectogram = waveform_2_spectogram(
@@ -187,7 +191,8 @@ def magnitude_2_waveform(magnitude, n_iter=16, frame_length=512,
 
     Returns:
         A waveform representation of the input magnitude spectrum
-        where the phase has been estimated using Griffin-Lim.
+        where the phase has been estimated using Griffin-Lim. Shape is
+        [-1, signal_length]
     """
 
     if len(magnitude.shape) == 2:
@@ -221,7 +226,8 @@ def spectogram_2_waveform(spectogram, frame_length=512, frame_step=128,
             instantaneous frequency and not phase.
 
     Returns:
-        A waveform representation of the input spectogram.
+        A waveform representation of the input spectogram. Shape is
+        [-1, signal_length]
     """
 
     if len(spectogram.shape) == 3:
