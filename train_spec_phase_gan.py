@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Training Script for SpecPhaseGAN on MAESTRO.
+"""Training Script for SpecPhaseGAN on a waveform dataset.
 
 This follows the origonal SpecGAN training,
 where the magnitude and phase (instantaneous frequency)
@@ -25,8 +25,8 @@ import tensorflow as tf
 from tensorflow.keras import activations, utils
 from audio_synthesis.structures import spec_gan
 from audio_synthesis.models import wgan
-from audio_synthesis.datasets import maestro_dataset
-from audio_synthesis.utils import maestro_save_helper as save_helper
+from audio_synthesis.datasets import waveform_dataset
+from audio_synthesis.utils import waveform_save_helper as save_helper
 
 # Setup Paramaters
 D_UPDATES_PER_G = 5
@@ -42,29 +42,29 @@ Z_IN_SHAPE = [4, 8, 1024]
 SPECTOGRAM_IMAGE_SHAPE = [-1, 128, 256, 2]
 CHECKPOINT_DIR = '_results/representation_study/SpecPhaseGAN_HR/training_checkpoints/'
 RESULT_DIR = '_results/representation_study/SpecPhaseGAN_HR/audio/'
-MAESTRO_PATH = 'data/MAESTRO_6h.npz'
+DATASET_PATH = 'data/MAESTRO_6h.npz'
 
 def main():
     os.environ['CUDA_VISIBLE_DEVICES'] = ''
     print('Num GPUs Available: ', len(tf.config.experimental.list_physical_devices('GPU')))
 
-    raw_maestro, magnitude_stats, phase_stats =\
-        maestro_dataset.get_maestro_magnitude_phase_dataset(
-            MAESTRO_PATH, FFT_FRAME_LENGTH, FFT_FRAME_STEP, LOG_MAGNITUDE,
+    raw_dataset, magnitude_stats, phase_stats =\
+        waveform_dataset.get_magnitude_phase_dataset(
+            DATASET_PATH, FFT_FRAME_LENGTH, FFT_FRAME_STEP, LOG_MAGNITUDE,
             INSTANTANEOUS_FREQUENCY
         )
 
-    normalized_raw_maestro = []
-    pb_i = utils.Progbar(len(raw_maestro))
-    for spectogram in raw_maestro:
-        norm_mag = maestro_dataset.normalize(spectogram[:, :, 0], *magnitude_stats)
-        norm_phase = maestro_dataset.normalize(spectogram[:, :, 1], *phase_stats)
+    normalized_raw_dataset = []
+    pb_i = utils.Progbar(len(raw_dataset))
+    for spectogram in raw_dataset:
+        norm_mag = waveform_dataset.normalize(spectogram[:, :, 0], *magnitude_stats)
+        norm_phase = waveform_dataset.normalize(spectogram[:, :, 1], *phase_stats)
 
         norm = np.concatenate([np.expand_dims(norm_mag, axis=2),
                                np.expand_dims(norm_phase, axis=2)], axis=-1)
-        normalized_raw_maestro.append(norm)
+        normalized_raw_dataset.append(norm)
         pb_i.add(1)
-    normalized_raw_maestro = np.array(normalized_raw_maestro)
+    normalized_raw_dataset = np.array(normalized_raw_dataset)
 
     generator = spec_gan.Generator(channels=2, activation=activations.tanh, in_shape=Z_IN_SHAPE)
     discriminator = spec_gan.Discriminator(input_shape=SPECTOGRAM_IMAGE_SHAPE)
@@ -84,7 +84,7 @@ def main():
         )
 
     spec_phase_gan_model = wgan.WGAN(
-        normalized_raw_maestro, generator, [discriminator], Z_DIM,
+        normalized_raw_dataset, generator, [discriminator], Z_DIM,
         generator_optimizer, discriminator_optimizer, discriminator_training_ratio=D_UPDATES_PER_G,
         batch_size=BATCH_SIZE, epochs=EPOCHS, checkpoint_dir=CHECKPOINT_DIR,
         fn_save_examples=save_examples

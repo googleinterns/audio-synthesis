@@ -19,7 +19,7 @@ waveforms.
 import os
 import soundfile as sf
 import numpy as np
-from audio_synthesis.datasets import maestro_dataset
+from audio_synthesis.datasets import waveform_dataset
 from audio_synthesis.utils import spectral
 
 def save_wav_data(epoch, real, generated, sampling_rate, result_dir, get_waveform):
