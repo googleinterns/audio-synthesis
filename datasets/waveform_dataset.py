@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""This module handles loading the MAESTRO data set.
+"""This module handles loading the a waveform data set.
 
-This module provides a collection of functions for loading and handling the
-MAESTRO data set.
+This module provides a collection of functions for loading and handling a
+waveform data set.
 """
 
 import numpy as np
@@ -28,26 +28,26 @@ from audio_synthesis.utils import spectral
 _CLIP_NUMBER_STD = 3.
 _PROCESSING_BATCH_SIZE = 100
 
-def get_maestro_waveform_dataset(path):
-    """Loads the MAESTRO dataset from a given path.
+def get_waveform_dataset(path):
+    """Loads the waveform dataset from a given path.
 
     Args:
-        path: The path to the .npz file containing the MAESTRO data set.
+        path: The path to the .npz file containing the waveform data set.
 
     Returns:
         An array of waveform chunks loaded from the given path.
     """
 
-    maestro = np.load(path)['arr_0']
-    return maestro
+    dataset = np.load(path)['arr_0']
+    return dataset
 
-def get_maestro_magnitude_phase_dataset(path, frame_length=512, frame_step=128,
+def get_magnitude_phase_dataset(path, frame_length=512, frame_step=128,
                                         log_magnitude=True, instantaneous_frequency=True):
-    """Loads the spectral representation of the MAESTRO dataset.
+    """Loads the spectral representation of a waveform dataset.
 
     Args:
         path: The path to the .npz file containing
-            the MAESTRO data set.
+            a waveform data set.
         frame_length (samples): Length of the FFT windows.
         frame_step (samples): The shift in time after each
             FFT window.
@@ -56,10 +56,10 @@ def get_maestro_magnitude_phase_dataset(path, frame_length=512, frame_step=128,
             is returned instead of the phase.
 
     Returns:
-        The MAESTRO dataset as an array of spectograms.
+        The waveform dataset as an array of spectograms.
     """
 
-    maestro = get_maestro_waveform_dataset(path)
+    dataset = get_waveform_dataset(path)
 
     process_spectogram = lambda x: spectral.waveform_2_spectogram(
         x,
@@ -69,45 +69,45 @@ def get_maestro_magnitude_phase_dataset(path, frame_length=512, frame_step=128,
         instantaneous_frequency=instantaneous_frequency
     )
 
-    processed_maestro = np.array(process_spectogram(maestro[0:_PROCESSING_BATCH_SIZE]))
-    for idx in range(_PROCESSING_BATCH_SIZE, len(maestro), _PROCESSING_BATCH_SIZE):
-        datapoints = maestro[idx:idx+_PROCESSING_BATCH_SIZE]
-        processed_maestro = np.concatenate(
-            [processed_maestro, process_spectogram(datapoints)], axis=0
+    processed_dataset = np.array(process_spectogram(dataset[0:_PROCESSING_BATCH_SIZE]))
+    for idx in range(_PROCESSING_BATCH_SIZE, len(dataset), _PROCESSING_BATCH_SIZE):
+        datapoints = dataset[idx:idx+_PROCESSING_BATCH_SIZE]
+        processed_dataset = np.concatenate(
+            [processed_dataset, process_spectogram(datapoints)], axis=0
         )
 
-    magnitude_stats, phase_stats = _get_maestro_spectogram_normalizing_constants(processed_maestro)
-    return processed_maestro, magnitude_stats, phase_stats
+    magnitude_stats, phase_stats = _get_spectogram_normalizing_constants(processed_dataset)
+    return processed_dataset, magnitude_stats, phase_stats
 
-def _get_maestro_spectogram_normalizing_constants(spectogram_data):
-    """Computes the spectral normalizing constants for MAESTRO.
+def _get_dataset_spectogram_normalizing_constants(spectogram_data):
+    """Computes the spectral normalizing constants for a waveform dataset.
 
-    An internal function, used when loadng the maestro dataset.
+    An internal function, used when loadng the dataset.
     Computes the mean and standard deviation for the spectogram
-    representation of the MAESTRO dataset.
+    representation of the dataset.
 
     Args:
-        spectogram_data: The loaded MAESTRO dataset represented as
+        spectogram_data: The loaded dataset represented as
             a list of spectograms.
 
     Returns:
-        Mean and standard deviation stastics for the MAESTRO spectogram
+        Mean and standard deviation stastics for the spectogram
         dataset:
-            [maestro_magnitude_mean,
-            maestro_magnitude_std,
-            maestro_phase_mean,
-            maestro_phase_std]
+            [magnitude_mean,
+            magnitude_std,
+            phase_mean,
+            phase_std]
     """
 
-    raw_maestro_magnitude = spectogram_data[:, :, :, 0]
-    raw_maestro_phase = spectogram_data[:, :, :, 1]
+    raw_magnitude = spectogram_data[:, :, :, 0]
+    raw_phase = spectogram_data[:, :, :, 1]
 
-    maestro_magnitude_mean = np.mean(raw_maestro_magnitude, axis=0)
-    maestro_magnitude_std = np.std(raw_maestro_magnitude, axis=0)
-    maestro_phase_mean = np.mean(raw_maestro_phase, axis=0)
-    maestro_phase_std = np.std(raw_maestro_phase, axis=0)
+    magnitude_mean = np.mean(raw_magnitude, axis=0)
+    magnitude_std = np.std(raw_magnitude, axis=0)
+    phase_mean = np.mean(raw_phase, axis=0)
+    phase_std = np.std(raw_phase, axis=0)
 
-    return [maestro_magnitude_mean, maestro_magnitude_std], [maestro_phase_mean, maestro_phase_std]
+    return [magnitude_mean, magnitude_std], [phase_mean, phase_std]
 
 def normalize(spectrum, mean, std):
     """Normalize a given magnitude or phase specturm by given stastics.
