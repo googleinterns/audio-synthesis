@@ -44,9 +44,8 @@ def main():
     learned_decomposition_model = learned_basis_decomposition.LearnedBasisDecomposition(
         encoder, decoder, optimizer, raw_maestro, BATCH_SIZE, EPOCHS, CHECKPOINT_DIR, RESULTS_DIR
     )
-    
-    learned_decomposition_model.train()
 
+    learned_decomposition_model.train()
 
 if __name__ == '__main__':
     main()

@@ -39,7 +39,7 @@ def compute_auxiliary_loss(num_steps, x_in, decomposition, x_hat,
     """Computes the auxiliary classification loss for the learned
     decomposition model. Follows the specification given in the file
     'models/learned_basis_decomposition.py'
-    
+
     Args:
         num_steps: The number of training steps past this epoch.
         x_in: The batch of training data, a tuple, (signal, midi)
@@ -85,7 +85,7 @@ def main():
     print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
     raw_maestro = maestro_dataset.get_maestro_waveform_dataset(MAESTRO_PATH)
-    raw_maestro_midi = maestro_dataset.get_maestro_midi_conditioning_dataset(MAESTRO_MIDI_PATH)
+    raw_maestro_midi = maestro_dataset.get_maestro_waveform_dataset(MAESTRO_MIDI_PATH)
 
     optimizer = tf.keras.optimizers.Adam(1e-4)
     classifier_optimizer = tf.keras.optimizers.Adam(1e-4)

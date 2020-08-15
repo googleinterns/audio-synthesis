@@ -21,7 +21,7 @@ import copy
 import tensorflow as tf
 import numpy as np
 from audio_synthesis.datasets import maestro_dataset
-from audio_synthesis.models import learned_basis_decomposition
+from audio_synthesis.models import learned_basis_decomposition, wgan
 from audio_synthesis.structures import learned_basis_function
 
 FILTER_LENGTH = 32
@@ -35,13 +35,14 @@ MAESTRO_PATH = 'data/MAESTRO_6h.npz'
 CHECKPOINT_DIR = '_results/learned_decomposition/L2_and_critic/training_checkpoints/'
 RESULTS_DIR = '_results/learned_decomposition/L2_and_critic/audio/'
 
-def compute_auxiliary_loss(num_steps, x_in, decomposition, x_hat,
+def compute_auxiliary_loss(model, num_steps, x_in, decomposition, x_hat,
                            auxiliary_models, auxiliary_optimizers):
     """Computes the auxiliary classification loss for the learned
     decomposition model. Follows the specification given in the file
     'models/learned_basis_decomposition.py'
 
     Args:
+        model: The learned basis function model
         num_steps: The number of training steps past this epoch.
         x_in: The batch of training data, a tuple, (signal, midi)
         decomposition: The encoder decomposition of the signals
@@ -66,37 +67,23 @@ def compute_auxiliary_loss(num_steps, x_in, decomposition, x_hat,
         d_real = discriminator(x_discriminator_in)
         d_fake = discriminator(x_hat)
 
-        wasserstein_distance = tf.reduce_mean(d_real) - tf.reduce_mean(d_fake)
+        interpolated = wgan.get_interpolation(x_discriminator_in, x_hat)
 
-        # Compute a linear interpolation of the real and generated
-        # data, this is used to compute the gradient penalty.
-        # https://arxiv.org/abs/1704.00028
-        alpha = tf.random.uniform((x_discriminator_in.shape[0], 1, 1), 0.0, 1.0)
-        diff = x_hat - x_discriminator_in
-        interpolated = x_discriminator_in + (alpha * diff)
-
-        with tf.GradientTape() as tape:
-            tape.watch(interpolated)
-            d_interpolated = discriminator(interpolated)
-
-        gradient = tape.gradient(d_interpolated, [interpolated])[0]
-        sum_axes = list(range(1, len(interpolated.shape)))
-        slopes = tf.sqrt(tf.reduce_sum(tf.square(gradient), axis=sum_axes))
-        gradient_penalty = tf.reduce_mean((slopes - 1.0) ** 2.0)
-
-        d_loss = wasserstein_distance + 10.0 * gradient_penalty
-
-        gradients_of_discriminator = disc_tape.gradient(
-            d_loss, discriminator.trainable_variables
-        )
-        disc_optimizer.apply_gradients(
-            zip(gradients_of_discriminator, discriminator.trainable_variables)
+        g_loss, d_loss = wgan.compute_losses(
+            discriminator, d_real, d_fake, interpolated
         )
 
-    return tf.reduce_mean(d_fake), (num_steps % D_UPDATES_RATIO == 0)
+    gradients_of_discriminator = disc_tape.gradient(
+        d_loss, discriminator.trainable_variables
+    )
+    disc_optimizer.apply_gradients(
+        zip(gradients_of_discriminator, discriminator.trainable_variables)
+    )
+
+    return g_loss, (num_steps % D_UPDATES_RATIO == 0)
 
 def main():
-    os.environ["CUDA_VISIBLE_DEVICES"] = '1'
+    os.environ["CUDA_VISIBLE_DEVICES"] = ''
     print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
     raw_maestro = maestro_dataset.get_maestro_waveform_dataset(MAESTRO_PATH)
@@ -114,7 +101,7 @@ def main():
         encoder, decoder, optimizer, (raw_maestro, shuffled_raw_maestro), BATCH_SIZE, EPOCHS,
         CHECKPOINT_DIR, RESULTS_DIR, compute_auxiliary_loss_fn=compute_auxiliary_loss,
         auxiliary_models=[discriminator], auxiliary_optimizers=[disc_optimizer],
-        contains_auxiliary_data=True, auxiliary_update_ratio=D_UPDATES_RATIO
+        auxiliary_update_ratio=D_UPDATES_RATIO
     )
 
     learned_decomposition_model.train()
