@@ -20,7 +20,7 @@ import copy
 import mido
 import numpy as np
 
-KEY_OFFSET = 21 # Piano notes start from midi node index 22.
+KEY_OFFSET = 21 # Piano notes start from midi node index 21.
 MAX_KEY_VELOCITY = 127
 N_PIANO_KEYS = 88
 N_STATE_SLOTS = N_PIANO_KEYS + 1 # An additional slot for the sustain pedal.
@@ -32,11 +32,14 @@ def waveform_2_chunks(wavform, chunk_length):
 
     Args:
         waveform: The waveform to be processed. Expected
-            shape is [time]
+            shape is [time].
+        chunk_length: The desired length (in samples) of the
+            chunks the input waveform will be split into.
 
     Returns:
         chunks: The input waveform split into chunks of the
-            desired size.
+            desired size.  Expected shape is
+            [ceil(time / chunk_length), chunk_length].
         padded_wav_length: The length of the input waveform after
             padding has been added.
     """
