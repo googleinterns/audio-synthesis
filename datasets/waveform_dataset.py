@@ -79,7 +79,7 @@ def get_magnitude_phase_dataset(path, frame_length=512, frame_step=128,
     magnitude_stats, phase_stats = _get_spectogram_normalizing_constants(processed_dataset)
     return processed_dataset, magnitude_stats, phase_stats
 
-def _get_dataset_spectogram_normalizing_constants(spectogram_data):
+def _get_spectogram_normalizing_constants(spectogram_data):
     """Computes the spectral normalizing constants for a waveform dataset.
 
     An internal function, used when loadng the dataset.
