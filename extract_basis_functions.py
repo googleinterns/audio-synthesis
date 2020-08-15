@@ -15,7 +15,6 @@
 """This module handles generating images of the learned
 encoder and decoder basis functions for various experiments.
 """
-
 import os
 import numpy as np
 import tensorflow as tf
@@ -66,21 +65,22 @@ def sort_basis_functions(basis_functions):
     min_norm_idx = np.argmin(np.linalg.norm(basis_functions, axis=-1), axis=0)
     min_norm_fn = basis_functions[min_norm_idx]
 
-    ids = list(range(512))
+    ids = list(range(len(basis_functions)))
     sorted_ids = sorted(ids, key=lambda x: np.linalg.norm(basis_functions[x] - min_norm_fn))
     sorted_basis = np.array(basis_functions)[sorted_ids]
 
     return sorted_basis, sorted_ids
 
-def plot_basis_functions(basis_functions, fn_name):
-    """Plots a give set of learned basis functions.
+def save_plot(functions, fn_name):
+    """Plots a give set of learned basis functions or decomposition.
 
     Args:
-        basis_functions: The set of basis functions to plot.
+        functions: The set of basis functions to plot or basis function
+            decomposition.
         fn_name: The file name for the figure.
     """
 
-    plt.imshow(np.transpose(basis_functions), interpolation='nearest', origin='lower', cmap='bwr')
+    plt.imshow(np.transpose(functions), interpolation='nearest', origin='lower', cmap='bwr')
     plt.colorbar(orientation='horizontal')
     plt.savefig(fn_name, bbox_inches='tight')
     plt.clf()
@@ -94,22 +94,7 @@ def plot_basis_functions_frequency_domain(basis_functions, fn_name):
     """
 
     frequency_basis_functions = np.abs(np.fft.rfft(basis_functions))
-    plot_basis_functions(frequency_basis_functions, fn_name)
-
-    
-def plot_decomposition(spectogram_like, fn_name):
-    """Plots the encoder decomposition of a signal.
-
-    Args:
-        spectogram_like: The spectogram like decomposition.
-            Expected shape is (time, num_basis_functions).
-        fn_name: The file name for the image.
-    """
-
-    plt.imshow(np.transpose(spectogram_like), interpolation='nearest', origin='lower')
-    plt.colorbar(orientation='vertical')
-    plt.savefig(fn_name, bbox_inches='tight')
-    plt.clf()
+    save_plot(frequency_basis_functions, fn_name)
 
 def main():
     os.environ["CUDA_VISIBLE_DEVICES"] = ''
@@ -132,7 +117,8 @@ def main():
 
         spectogram_like = encoder(raw_maestro[DECOMPOSITION_IDX:DECOMPOSITION_IDX+1])
         reconstructed = decoder(spectogram_like)
-        sf.write('orig.wav', raw_maestro[DECOMPOSITION_IDX], SAMPLE_RATE)
+
+        sf.write('{}_orig.wav'.format(model), raw_maestro[DECOMPOSITION_IDX], SAMPLE_RATE)
         sf.write('{}_reconstructed.wav'.format(model), tf.squeeze(reconstructed), SAMPLE_RATE)
 
         encoder_basis = tf.transpose(tf.squeeze(encoder.conv_layer.kernel))
@@ -141,15 +127,19 @@ def main():
         sorted_encoder_basis, sorted_encoder_ids = sort_basis_functions(encoder_basis)
         sorted_decoder_basis, _ = sort_basis_functions(decoder_basis)
 
-        plot_basis_functions(sorted_encoder_basis, '{}_encoder.png'.format(model))
-        plot_basis_functions(sorted_decoder_basis, '{}_decoder.png'.format(model))
-        
-        plot_basis_functions_frequency_domain(sorted_encoder_basis, '{}_encoder_frequency.png'.format(model))
-        plot_basis_functions_frequency_domain(sorted_decoder_basis, '{}_decoder_frequency.png'.format(model))
+        save_plot(sorted_encoder_basis, '{}_encoder.png'.format(model))
+        save_plot(sorted_decoder_basis, '{}_decoder.png'.format(model))
+
+        plot_basis_functions_frequency_domain(
+            sorted_encoder_basis, '{}_encoder_frequency.png'.format(model)
+        )
+        plot_basis_functions_frequency_domain(
+            sorted_decoder_basis, '{}_decoder_frequency.png'.format(model)
+        )
 
         spectogram_like = tf.squeeze(spectogram_like)
         spectogram_like = np.array(spectogram_like)[:, sorted_encoder_ids]
-        plot_decomposition(spectogram_like, '{}_decomposition.png'.format(model))
+        save_plot(spectogram_like, '{}_decomposition.png'.format(model))
 
 if __name__ == '__main__':
     main()
