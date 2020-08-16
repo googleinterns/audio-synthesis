@@ -149,7 +149,7 @@ class LearnedBasisDecomposition:
 
             x_signal_hat = tf.squeeze(x_signal_hat)
             reconstruction_loss = tf.reduce_mean(
-                tf.reduce_sum(tf.abs(x_signal_in - x_signal_hat), axis=1)
+                tf.abs(x_signal_in - x_signal_hat)
             )
 
             auxiliary_loss, train_enc_dec = self.compute_auxiliary_loss_fn(

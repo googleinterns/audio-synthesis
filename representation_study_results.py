@@ -22,7 +22,7 @@ from tensorflow.keras import utils
 import tensorflow as tf
 import soundfile as sf
 import numpy as np
-from audio_synthesis.datasets import maestro_dataset
+from audio_synthesis.datasets import waveform_dataset
 from audio_synthesis.utils import spectral
 from audio_synthesis.structures import wave_gan, spec_gan
 
@@ -31,14 +31,14 @@ Z_DIM = 64
 WAVEFORM_LENGTH = 16000
 SAMPLING_RATE = 16000
 RESULTS_PATH = '_results/representation_study/'
-MAESTRO_PATH = 'data/MAESTRO_6h.npz'
+DATASET_PATH = 'data/MAESTRO_6h.npz'
 GRIFFIN_LIM_ITERATIONS = 16
-FFT_FRAME_LENGTH = 256
-FFT_FRAME_STEP = 128
+FFT_FRAME_LENGTHS = [256, 512]
+FFT_FRAME_STEPS = [128, 128]
 LOG_MAGNITUDE = True
 INSTANTANEOUS_FREQUENCY = True
 
-def _data_waveform_griffin_lim_fn(data_waveform):
+def _data_waveform_griffin_lim_fn(data_waveform, frame_length, frame_step):
     """Converts a waveform to a magnitude spectrum and
     then back to a waveform using Griffin-Lim.
 
@@ -52,13 +52,13 @@ def _data_waveform_griffin_lim_fn(data_waveform):
 
     data_spectogram = spectral.waveform_2_spectogram(
         data_waveform,
-        frame_length=FFT_FRAME_LENGTH,
-        frame_step=FFT_FRAME_STEP
+        frame_length=frame_length,
+        frame_step=frame_step
     )
     return spectral.magnitude_2_waveform(
         data_spectogram[:, :, :, 0],
-        frame_length=FFT_FRAME_LENGTH,
-        frame_step=FFT_FRAME_STEP
+        frame_length=frame_length,
+        frame_step=frame_step
     )
 
 # An object containing the models we wish to process and extract results from.
@@ -92,9 +92,25 @@ MODELS = {
             'unnormalize_magnitude': True,
             'unnormalize_spectogram': False,
         },
+        'fft_config': 0,
         'generate_fn': lambda magnitude: spectral.magnitude_2_waveform(
-            magnitude, GRIFFIN_LIM_ITERATIONS, FFT_FRAME_LENGTH,
-            FFT_FRAME_STEP, LOG_MAGNITUDE
+            magnitude, GRIFFIN_LIM_ITERATIONS, FFT_FRAME_LENGTHS[0],
+            FFT_FRAME_STEPS[0], LOG_MAGNITUDE
+        )[0],
+        'waveform': [],
+    },
+    'SpecGAN_HR': {
+        'generator': spec_gan.Generator(activation=activations.tanh, in_shape=[4, 8, 1024]),
+        'checkpoint_path':\
+            '_results/representation_study/SpecGAN_HR/training_checkpoints/ckpt-30',
+        'preprocess': {
+            'unnormalize_magnitude': True,
+            'unnormalize_spectogram': False,
+        },
+        'fft_config': 1,
+        'generate_fn': lambda magnitude: spectral.magnitude_2_waveform(
+            magnitude, GRIFFIN_LIM_ITERATIONS, FFT_FRAME_LENGTHS[1],
+            FFT_FRAME_STEPS[1], LOG_MAGNITUDE
         )[0],
         'waveform': [],
     },
@@ -106,8 +122,26 @@ MODELS = {
             'unnormalize_magnitude': False,
             'unnormalize_spectogram': True,
         },
+        'fft_config': 0,
         'generate_fn': lambda spectogram: spectral.spectogram_2_waveform(
-            spectogram, FFT_FRAME_LENGTH, FFT_FRAME_STEP, LOG_MAGNITUDE,
+            spectogram, FFT_FRAME_LENGTHS[0], FFT_FRAME_STEPS[0], LOG_MAGNITUDE,
+            INSTANTANEOUS_FREQUENCY
+        )[0],
+        'waveform': [],
+    },
+    'SpecPhaseGAN_HR': {
+        'generator': spec_gan.Generator(
+            channels=2, activation=activations.tanh, in_shape=[4, 8, 1024]
+        ),
+        'checkpoint_path':\
+            '_results/representation_study/SpecPhaseGAN_HR/training_checkpoints/ckpt-18',
+        'preprocess': {
+            'unnormalize_magnitude': False,
+            'unnormalize_spectogram': True,
+        },
+        'fft_config': 1,
+        'generate_fn': lambda spectogram: spectral.spectogram_2_waveform(
+            spectogram, FFT_FRAME_LENGTHS[1], FFT_FRAME_STEPS[1], LOG_MAGNITUDE,
             INSTANTANEOUS_FREQUENCY
         )[0],
         'waveform': [],
@@ -152,7 +186,16 @@ MODELS = {
     },
     'Waveform_GL': {
         'data': True,
-        'generate_fn': _data_waveform_griffin_lim_fn,
+        'generate_fn': lambda waveform: _data_waveform_griffin_lim_fn(
+            waveform, FFT_FRAME_LENGTHS[0], FFT_FRAME_STEPS[0]
+        ),
+        'waveform': [],
+    },
+    'Waveform_GL_HR': {
+        'data': True,
+        'generate_fn': lambda waveform: _data_waveform_griffin_lim_fn(
+            waveform, FFT_FRAME_LENGTHS[1], FFT_FRAME_STEPS[1]
+        ),
         'waveform': [],
     },
 }
@@ -169,17 +212,24 @@ def main():
 
         checkpoint = tf.train.Checkpoint(generator=MODELS[model_name]['generator'])
         checkpoint.restore(MODELS[model_name]['checkpoint_path']).expect_partial()
+        print('Loaded ', model_name)
 
 
-    maestro = maestro_dataset.get_maestro_waveform_dataset(MAESTRO_PATH)
+    dataset = waveform_dataset.get_waveform_dataset(DATASET_PATH)
 
-    _, magnitude_stastics, phase_stastics =\
-        maestro_dataset.get_maestro_magnitude_phase_dataset(
-            MAESTRO_PATH, FFT_FRAME_LENGTH, FFT_FRAME_STEP, LOG_MAGNITUDE,
-            INSTANTANEOUS_FREQUENCY
-        )
+    magnitude_stastics = []
+    phase_stastics = []
+    for frame_length, frame_step in zip(FFT_FRAME_LENGTHS, FFT_FRAME_STEPS):
+        _, magnitude_stastic, phase_stastic =\
+            waveform_dataset.get_magnitude_phase_dataset(
+                DATASET_PATH, frame_length, frame_step, LOG_MAGNITUDE,
+                INSTANTANEOUS_FREQUENCY
+            )
+        
+        magnitude_stastics.append(magnitude_stastic)
+        phase_stastics.append(phase_stastic)
 
-    maestro = maestro[np.random.randint(low=0, high=len(maestro), size=N_GENERATIONS)]
+    dataset = dataset[np.random.randint(low=0, high=len(dataset), size=N_GENERATIONS)]
     z_gen = tf.random.uniform((N_GENERATIONS, Z_DIM), -1, 1, tf.float32)
 
     pb_i = utils.Progbar(N_GENERATIONS)
@@ -190,18 +240,20 @@ def main():
             # If the model is a generator then produce a random generation,
             # otherwise take the current data point.
             if 'data' in MODELS[model_name] and MODELS[model_name]['data']:
-                generation = maestro[i]
+                generation = dataset[i]
             else:
                 generation = MODELS[model_name]['generator'](z_in)
                 generation = np.squeeze(generation)
 
                 if MODELS[model_name]['preprocess']['unnormalize_magnitude']:
-                    generation = maestro_dataset.un_normalize(
-                        generation, *magnitude_stastics
+                    fft_config = MODELS[model_name]['fft_config']
+                    generation = waveform_dataset.un_normalize(
+                        generation, *magnitude_stastics[fft_config]
                     )
                 elif MODELS[model_name]['preprocess']['unnormalize_spectogram']:
-                    generation = maestro_dataset.un_normalize_spectogram(
-                        generation, magnitude_stastics, phase_stastics
+                    fft_config = MODELS[model_name]['fft_config']
+                    generation = waveform_dataset.un_normalize_spectogram(
+                        generation, magnitude_stastics[fft_config], phase_stastics[fft_config]
                     )
 
             # Apply pre-defined transform to waveform.
