@@ -41,6 +41,30 @@ def get_maestro_waveform_dataset(path):
     maestro = np.load(path)['arr_0']
     return maestro
 
+
+def _get_maestro_pre_processed_dataset(path, pre_process_fn):
+    """Handles efficiently pre-processing the MAESTRO dataset.
+
+    Args:
+        path: The path to the .npz file containing the MAESTRO
+            data set.
+        pre_process_fn: Implements the pre-processing functionality.
+            Expected signature is f(batch) -> processed_batch, where
+            batch has shape (batch, waveform_length).
+
+    Returns:
+        The pre-processed MAESTRO dataset.
+    """
+
+    maestro = get_maestro_waveform_dataset(path)
+
+    processed_maestro = np.array(pre_process_fn(maestro[0:_PROCESSING_BATCH_SIZE]))
+    for idx in range(_PROCESSING_BATCH_SIZE, len(maestro), _PROCESSING_BATCH_SIZE):
+        datapoints = maestro[idx:idx+_PROCESSING_BATCH_SIZE]
+        processed_maestro = np.concatenate([processed_maestro, pre_process_fn(datapoints)], axis=0)
+
+    return processed_maestro
+
 def get_maestro_magnitude_phase_dataset(path, frame_length=512, frame_step=128,
                                         log_magnitude=True, instantaneous_frequency=True):
     """Loads the spectral representation of the MAESTRO dataset.
@@ -59,8 +83,6 @@ def get_maestro_magnitude_phase_dataset(path, frame_length=512, frame_step=128,
         The MAESTRO dataset as an array of spectograms.
     """
 
-    maestro = get_maestro_waveform_dataset(path)
-
     process_spectogram = lambda x: spectral.waveform_2_spectogram(
         x,
         frame_length=frame_length,
@@ -69,15 +91,34 @@ def get_maestro_magnitude_phase_dataset(path, frame_length=512, frame_step=128,
         instantaneous_frequency=instantaneous_frequency
     )
 
-    processed_maestro = np.array(process_spectogram(maestro[0:_PROCESSING_BATCH_SIZE]))
-    for idx in range(_PROCESSING_BATCH_SIZE, len(maestro), _PROCESSING_BATCH_SIZE):
-        datapoints = maestro[idx:idx+_PROCESSING_BATCH_SIZE]
-        processed_maestro = np.concatenate(
-            [processed_maestro, process_spectogram(datapoints)], axis=0
-        )
+    processed_maestro = _get_maestro_pre_processed_dataset(path, process_spectogram)
 
     magnitude_stats, phase_stats = _get_maestro_spectogram_normalizing_constants(processed_maestro)
     return processed_maestro, magnitude_stats, phase_stats
+
+def get_maestro_stft_dataset(path, frame_length=512, frame_step=128):
+    """Loads the STFT representation of the MAESTRO dataset.
+
+    Args:
+        path: The path to the .npz file containing
+            the MAESTRO data set.
+        frame_length (samples): Length of the FFT windows.
+        frame_step (samples): The shift in time after each
+            FFT window.
+
+    Returns:
+        The MAESTRO dataset as an array of spectograms.
+    """
+
+    process_stft = lambda x: spectral.waveform_2_stft(
+        x,
+        frame_length=frame_length,
+        frame_step=frame_step
+    )
+
+    processed_maestro = _get_maestro_pre_processed_dataset(path, process_stft)
+
+    return processed_maestro
 
 def _get_maestro_spectogram_normalizing_constants(spectogram_data):
     """Computes the spectral normalizing constants for MAESTRO.
