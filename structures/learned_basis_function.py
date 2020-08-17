@@ -145,8 +145,8 @@ class NLDecoder(keras.Model):
         sequential.append(layer_util.Conv1DTranspose(filters=self.num_filters//2, strides=1, kernel_size=length))
         sequential.append(layers.LeakyReLU())
         sequential.append(layer_util.Conv1DTranspose(filters=self.num_filters//4, strides=1, kernel_size=length))
-        #sequential.append(layers.ReLU())
-        #sequential.append(layer_util.Conv1DTranspose(filters=self.num_filters//4, strides=1, kernel_size=length))
+        sequential.append(layers.ReLU())
+        sequential.append(layer_util.Conv1DTranspose(filters=self.num_filters//4, strides=1, kernel_size=length))
         sequential.append(layers.LeakyReLU())
         sequential.append(layer_util.Conv1DTranspose(filters=1, strides=1, kernel_size=length))
         

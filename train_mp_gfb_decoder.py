@@ -33,12 +33,12 @@ CHECKPOINT_DIR = '_results/learned_decomposition/GFB_decoder/training_checkpoint
 RESULTS_DIR = '_results/learned_decomposition/GFB_decoder/audio/'
 
 def main():
-    os.environ["CUDA_VISIBLE_DEVICES"] = '3'
+    os.environ["CUDA_VISIBLE_DEVICES"] = '1'
     print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
     raw_maestro = waveform_dataset.get_waveform_dataset(DATASET_PATH)
 
-    optimizer = tf.keras.optimizers.Adam(1e-3)
+    optimizer = tf.keras.optimizers.Adam(1e-4)
 
     encoder = learned_basis_function.MPGFBEncoder(FILTER_LENGTH, NUMBER_OF_FILTERS)
     decoder = learned_basis_function.NLDecoder(FILTER_LENGTH, NUMBER_OF_FILTERS)
