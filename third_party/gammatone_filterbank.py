@@ -46,7 +46,7 @@ def gammatone_impulse_response(samplerate_hz, length_in_seconds, center_freq_hz,
 def generate_mpgtf(samplerate_hz, length_in_seconds, N):
     # Set parameters
     center_freq_hz_min = 0
-    n_center_freqs = 35
+    n_center_freqs = 34
     L = int(np.floor(samplerate_hz*length_in_seconds))
 
     # Initialize variables

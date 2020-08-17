@@ -20,33 +20,28 @@ import os
 import librosa
 import numpy as np
 import tensorflow as tf
-from audio_synthesis.datasets import maestro_dataset
+from audio_synthesis.datasets import waveform_dataset
 from audio_synthesis.models import learned_basis_decomposition
 from audio_synthesis.structures import learned_basis_function
 
-FILTER_LENGTH = 64
+FILTER_LENGTH = 32
 NUMBER_OF_FILTERS = 256
 BATCH_SIZE = 64
 EPOCHS = 100
-MAESTRO_PATH = 'data/MAESTRO_6h.npz'
+DATASET_PATH = 'data/SpeechMNIST_1850.npz'
 CHECKPOINT_DIR = '_results/learned_decomposition/GFB_decoder/training_checkpoints/'
 RESULTS_DIR = '_results/learned_decomposition/GFB_decoder/audio/'
 
 def main():
-    os.environ["CUDA_VISIBLE_DEVICES"] = ''
+    os.environ["CUDA_VISIBLE_DEVICES"] = '3'
     print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
-    raw_maestro = maestro_dataset.get_maestro_waveform_dataset(MAESTRO_PATH)
-    #raw_maestro_8000 = []
-    #for d in raw_maestro:
-    #    d_8000 = librosa.resample(d, 16000, 8000)
-    #    raw_maestro_8000.append(d_8000)
-    #raw_maestro_8000 = np.array(raw_maestro_8000)
+    raw_maestro = waveform_dataset.get_waveform_dataset(DATASET_PATH)
 
-    optimizer = tf.keras.optimizers.Adam(1e-4)
+    optimizer = tf.keras.optimizers.Adam(1e-3)
 
     encoder = learned_basis_function.MPGFBEncoder(FILTER_LENGTH, NUMBER_OF_FILTERS)
-    decoder = learned_basis_function.Decoder(FILTER_LENGTH)
+    decoder = learned_basis_function.NLDecoder(FILTER_LENGTH, NUMBER_OF_FILTERS)
 
     learned_decomposition_model = learned_basis_decomposition.LearnedBasisDecomposition(
         encoder, decoder, optimizer, raw_maestro, BATCH_SIZE, EPOCHS, CHECKPOINT_DIR, RESULTS_DIR

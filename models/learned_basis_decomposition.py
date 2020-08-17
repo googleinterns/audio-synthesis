@@ -143,13 +143,14 @@ class LearnedBasisDecomposition:
             x_signal_in = x_in
             
         with tf.GradientTape() as enc_tape, tf.GradientTape() as dec_tape:
-            x_signal_noisy = x_signal_in + tf.random.normal(shape=x_signal_in.shape, stddev=0.05)
+            x_signal_noisy = x_signal_in + tf.random.normal(shape=x_signal_in.shape, stddev=0.01)
             decomposition = self.encoder(x_signal_noisy)
             x_signal_hat = self.decoder(decomposition)
 
             x_signal_hat = tf.squeeze(x_signal_hat)
+            x_signal_in = tf.squeeze(x_signal_in)
             reconstruction_loss = tf.reduce_mean(
-                tf.abs(x_signal_in - x_signal_hat)
+                tf.reduce_sum(tf.abs(x_signal_in - x_signal_hat), axis=[1])
             )
 
             auxiliary_loss, train_enc_dec = self.compute_auxiliary_loss_fn(
@@ -170,7 +171,7 @@ class LearnedBasisDecomposition:
                 zip(gradients_of_decoder, self.decoder.trainable_variables)
             )
 
-        return train_enc_dec
+        return train_enc_dec, loss
 
     def save_audio(self, x_batch, epoch):
         """Saves a batch of real and reconstructed audio
@@ -221,8 +222,9 @@ class LearnedBasisDecomposition:
             start = time.time()
 
             for step, x_batch in enumerate(self.dataset):
-                if self.train_step(step, x_batch):
-                    pb_i.add(self.batch_size)
+                trained_enc_dec, loss = self.train_step(step, x_batch)
+                if trained_enc_dec:
+                    pb_i.add(self.batch_size, [('loss', loss)])
 
             self.save_audio(x_batch, epoch)
 

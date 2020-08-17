@@ -73,7 +73,7 @@ class Encoder(keras.Model):
         return tf.nn.relu(encoded_signals)
     
 class MPGFBEncoder(keras.Model):
-    def __init__(self, length, num_filters, sr=8000.0):
+    def __init__(self, length, num_filters, sr=16000.0):
         super(MPGFBEncoder, self).__init__()
         
         self.length = length
@@ -85,7 +85,7 @@ class MPGFBEncoder(keras.Model):
     def call(self, x_in):
         x_in = tf.expand_dims(x_in, axis=2)
         encoded_signals = tf.nn.conv1d(x_in, tf.stop_gradient(self.filterbank), stride=self.length // _OVERLAP_FACTOR, padding='SAME')
-        return encoded_signals
+        return tf.nn.relu(encoded_signals)
 
 class Decoder(keras.Model):
     """The decoder model for the learned basis decomposition."""
@@ -141,13 +141,13 @@ class NLDecoder(keras.Model):
 
         sequential = []
         sequential.append(layer_util.Conv1DTranspose(filters=self.num_filters, strides=self.stride, kernel_size=length))
-        sequential.append(layers.ReLU())
+        sequential.append(layers.LeakyReLU())
         sequential.append(layer_util.Conv1DTranspose(filters=self.num_filters//2, strides=1, kernel_size=length))
-        sequential.append(layers.ReLU())
+        sequential.append(layers.LeakyReLU())
         sequential.append(layer_util.Conv1DTranspose(filters=self.num_filters//4, strides=1, kernel_size=length))
-        sequential.append(layers.ReLU())
-        sequential.append(layer_util.Conv1DTranspose(filters=self.num_filters//4, strides=1, kernel_size=length))
-        sequential.append(layers.ReLU())
+        #sequential.append(layers.ReLU())
+        #sequential.append(layer_util.Conv1DTranspose(filters=self.num_filters//4, strides=1, kernel_size=length))
+        sequential.append(layers.LeakyReLU())
         sequential.append(layer_util.Conv1DTranspose(filters=1, strides=1, kernel_size=length))
         
         self.l = keras.Sequential(sequential)
