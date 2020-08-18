@@ -41,21 +41,6 @@ def get_maestro_waveform_dataset(path):
     maestro = np.load(path)['arr_0']
     return maestro
 
-
-def get_maestro_midi_conditioning_dataset(path):
-    """Loads the MAESTRO dataset from a given path.
-
-    Args:
-        path: The path to the .npz file containing the MAESTRO data set.
-
-    Returns:
-        An array of waveform chunks loaded from the given path.
-    """
-
-    maestro_midi = np.load(path)['arr_0']
-    return maestro_midi
-
-
 def get_maestro_magnitude_phase_dataset(path, frame_length=512, frame_step=128,
                                         log_magnitude=True, instantaneous_frequency=True):
     """Loads the spectral representation of the MAESTRO dataset.
@@ -87,7 +72,9 @@ def get_maestro_magnitude_phase_dataset(path, frame_length=512, frame_step=128,
     processed_maestro = np.array(process_spectogram(maestro[0:_PROCESSING_BATCH_SIZE]))
     for idx in range(_PROCESSING_BATCH_SIZE, len(maestro), _PROCESSING_BATCH_SIZE):
         datapoints = maestro[idx:idx+_PROCESSING_BATCH_SIZE]
-        processed_maestro = np.concatenate([processed_maestro, process_spectogram(datapoints)], axis=0)
+        processed_maestro = np.concatenate(
+            [processed_maestro, process_spectogram(datapoints)], axis=0
+        )
 
     magnitude_stats, phase_stats = _get_maestro_spectogram_normalizing_constants(processed_maestro)
     return processed_maestro, magnitude_stats, phase_stats
