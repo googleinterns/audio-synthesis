@@ -37,19 +37,20 @@ RESULTS_DIR = '_results/learned_decomposition/L2_and_critic/audio/'
 
 def compute_auxiliary_loss(model, num_steps, x_in, decomposition, x_hat,
                            auxiliary_models, auxiliary_optimizers):
-    """Computes the auxiliary classification loss for the learned
+    """Computes the auxiliary critic loss for the learned
     decomposition model. Follows the specification given in the file
     'models/learned_basis_decomposition.py'
 
     Args:
         model: The learned basis function model
         num_steps: The number of training steps past this epoch.
-        x_in: The batch of training data, a tuple, (signal, midi)
+        x_in: The batch of training data, a tuple, (signal,
+            randomly_selected_signal)
         decomposition: The encoder decomposition of the signals
             computed through the encoder.
         x_hat: The reconstction of the input signals, through
             decoder(encoder(x_in[0])).
-        auxiliary_models: The list of auxiliary models, [classifier]
+        auxiliary_models: The list of auxiliary models, [critic]
         auxiliary_optimizers: The list of auxiliary model optimizers.
 
     Returns:
@@ -90,6 +91,8 @@ def main():
     shuffled_raw_maestro = copy.copy(raw_maestro)
     np.random.shuffle(shuffled_raw_maestro)
 
+    # Since this is a 'GAN-like' setup, use the Adam paramaters
+    # that are commonly selected for GAN training.
     optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
     disc_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
 
