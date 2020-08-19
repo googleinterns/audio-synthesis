@@ -38,22 +38,21 @@ SUB_FOLDERS = ['zero', 'one', 'two', 'three', 'four', 'five',
 LIMIT_PER_FOLDER = 1850
 
 def main():
-    audio_paths = []
+    waveforms = []
     for folder in SUB_FOLDERS:
         folder_path = os.path.join(RAW_DATA_PATH, folder)
         loaded_paths = glob.glob(os.path.join(folder_path, '*.wav'))
         np.random.shuffle(loaded_paths)
-        audio_paths.extend(loaded_paths[:LIMIT_PER_FOLDER])
+        loaded_paths = loaded_paths[:LIMIT_PER_FOLDER]
 
-    waveforms = []
-    for audio_file_path in tqdm.tqdm(audio_paths):
-        wav, _ = librosa.load(audio_file_path, sr=SAMPLE_RATE)
+        for audio_file_path in tqdm.tqdm(loaded_paths):
+            wav, _ = librosa.load(audio_file_path, sr=SAMPLE_RATE)
 
-        wav, _ = preprocessing_helpers.waveform_2_chunks(
-            wav, PADDED_DATA_POINT_LENGTH
-        )
+            wav, _ = preprocessing_helpers.waveform_2_chunks(
+                wav, PADDED_DATA_POINT_LENGTH
+            )
 
-        waveforms.extend(wav)
+            waveforms.extend(wav)
 
     waveforms = np.array(waveforms)
 
