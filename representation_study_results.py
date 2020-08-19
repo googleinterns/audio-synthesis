@@ -84,6 +84,48 @@ MODELS = {
         'generate_fn': lambda x: x,
         'waveform': [],
     },
+    'STFTGAN': {
+        'generator': spec_gan.Generator(channels=2, in_shape=[4, 4, 1024]),
+        'checkpoint_path':\
+            '_results/representation_study/STFTGAN/training_checkpoints/ckpt-30',
+        'preprocess': {
+            'unnormalize_magnitude': False,
+            'unnormalize_spectogram': False,
+        },
+        'fft_config': 0,
+        'generate_fn': lambda stfts: spectral.stft_2_waveform(
+            stfts, FFT_FRAME_LENGTHS[0], FFT_FRAME_STEPS[0]
+        )[0],
+        'waveform': [],
+    },
+    'STFTGAN_HR': {
+        'generator': spec_gan.Generator(channels=2, in_shape=[4, 8, 1024]),
+        'checkpoint_path':\
+            '_results/representation_study/STFTGAN_HR/training_checkpoints/ckpt-30',
+        'preprocess': {
+            'unnormalize_magnitude': False,
+            'unnormalize_spectogram': False,
+        },
+        'fft_config': 1,
+        'generate_fn': lambda stfts: spectral.stft_2_waveform(
+            stfts, FFT_FRAME_LENGTHS[1], FFT_FRAME_STEPS[1]
+        )[0],
+        'waveform': [],
+    },
+    'STFTWaveGAN_HR': {
+        'generator': spec_gan.Generator(channels=2, in_shape=[4, 8, 1024]),
+        'checkpoint_path':\
+            '_results/representation_study/STFTWaveGAN_HR/training_checkpoints/ckpt-30',
+        'preprocess': {
+            'unnormalize_magnitude': False,
+            'unnormalize_spectogram': False,
+        },
+        'fft_config': 1,
+        'generate_fn': lambda stfts: spectral.stft_2_waveform(
+            stfts, FFT_FRAME_LENGTHS[1], FFT_FRAME_STEPS[1]
+        )[0],
+        'waveform': [],
+    },
     'SpecGAN': {
         'generator': spec_gan.Generator(activation=activations.tanh),
         'checkpoint_path':\
@@ -207,13 +249,17 @@ def main():
 
     # Build and load MODELS from checkpoints
     for model_name in MODELS:
+        MODELS[model_name]['loaded'] = True
         if 'data' in MODELS[model_name] and MODELS[model_name]['data']:
             continue
 
-        checkpoint = tf.train.Checkpoint(generator=MODELS[model_name]['generator'])
-        checkpoint.restore(MODELS[model_name]['checkpoint_path']).expect_partial()
-        print('Loaded ', model_name)
-
+        try:
+            checkpoint = tf.train.Checkpoint(generator=MODELS[model_name]['generator'])
+            checkpoint.restore(MODELS[model_name]['checkpoint_path']).expect_partial()
+            print('Loaded ', model_name)
+        except:
+            print(model_name, ' not found')
+            MODELS[model_name]['loaded'] = False
 
     maestro = maestro_dataset.get_maestro_waveform_dataset(MAESTRO_PATH)
 
@@ -237,6 +283,9 @@ def main():
         z_in = tf.reshape(z_gen[i], (1, Z_DIM))
 
         for model_name in MODELS:
+            if not MODELS[model_name]['loaded']:
+                continue
+            
             # If the model is a generator then produce a random generation,
             # otherwise take the current data point.
             if 'data' in MODELS[model_name] and MODELS[model_name]['data']:
@@ -268,6 +317,9 @@ def main():
 
     # Save the waveforms for each model as one long audio clip
     for model_name in MODELS:
+        if not MODELS[model_name]['loaded']:
+            continue
+        
         wav = np.reshape(MODELS[model_name]['waveform'], (-1))
         sf.write(os.path.join(RESULTS_PATH, model_name + '.wav'), wav, SAMPLING_RATE)
 
