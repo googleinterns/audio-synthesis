@@ -41,25 +41,41 @@ def get_waveform_dataset(path):
     dataset = np.load(path)['arr_0']
     return dataset
 
-def get_magnitude_phase_dataset(path, frame_length=512, frame_step=128,
-                                        log_magnitude=True, instantaneous_frequency=True):
-    """Loads the spectral representation of a waveform dataset.
+def _get_pre_processed_dataset(path, pre_process_fn):
+    """Handles efficiently pre-processing the dataset.
+    Args:
+        path: The path to the .npz file containing the dataset.
+        pre_process_fn: Implements the pre-processing functionality.
+            Expected signature is f(batch) -> processed_batch, where
+            batch has shape (batch, waveform_length).
+    Returns:
+        The pre-processed dataset.
+    """
 
+    dataset = get_waveform_dataset(path)
+
+    processed_dataset = np.array(pre_process_fn(dataset[0:_PROCESSING_BATCH_SIZE]))
+    for idx in range(_PROCESSING_BATCH_SIZE, len(dataset), _PROCESSING_BATCH_SIZE):
+        datapoints = dataset[idx:idx + _PROCESSING_BATCH_SIZE]
+        processed_dataset = np.concatenate([processed_dataset, pre_process_fn(datapoints)], axis=0)
+
+    return processed_dataset
+
+def get_magnitude_phase_dataset(path, frame_length=512, frame_step=128,
+                                log_magnitude=True, instantaneous_frequency=True):
+    """Loads the spectral representation of the dataset.
     Args:
         path: The path to the .npz file containing
-            a waveform data set.
+            the dataset.
         frame_length (samples): Length of the FFT windows.
         frame_step (samples): The shift in time after each
             FFT window.
         log_magnitude: If true, the log of the magnitude is returned.
         instantaneous_frequency: If true, in the instantaneous frequency
             is returned instead of the phase.
-
     Returns:
-        The waveform dataset as an array of spectograms.
+        The dataset as an array of spectograms.
     """
-
-    dataset = get_waveform_dataset(path)
 
     process_spectogram = lambda x: spectral.waveform_2_spectogram(
         x,
@@ -69,15 +85,32 @@ def get_magnitude_phase_dataset(path, frame_length=512, frame_step=128,
         instantaneous_frequency=instantaneous_frequency
     )
 
-    processed_dataset = np.array(process_spectogram(dataset[0:_PROCESSING_BATCH_SIZE]))
-    for idx in range(_PROCESSING_BATCH_SIZE, len(dataset), _PROCESSING_BATCH_SIZE):
-        datapoints = dataset[idx:idx+_PROCESSING_BATCH_SIZE]
-        processed_dataset = np.concatenate(
-            [processed_dataset, process_spectogram(datapoints)], axis=0
-        )
+    processed_dataset = _get_pre_processed_dataset(path, process_spectogram)
 
     magnitude_stats, phase_stats = _get_spectogram_normalizing_constants(processed_dataset)
     return processed_dataset, magnitude_stats, phase_stats
+
+def get_stft_dataset(path, frame_length=512, frame_step=128):
+    """Loads the STFT representation of the dataset.
+    Args:
+        path: The path to the .npz file containing
+            the dataset.
+        frame_length (samples): Length of the FFT windows.
+        frame_step (samples): The shift in time after each
+            FFT window.
+    Returns:
+        The dataset as an array of spectograms.
+    """
+
+    process_stft = lambda x: spectral.waveform_2_stft(
+        x,
+        frame_length=frame_length,
+        frame_step=frame_step
+    )
+
+    processed_dataset = _get_pre_processed_dataset(path, process_stft)
+
+    return processed_dataset
 
 def _get_spectogram_normalizing_constants(spectogram_data):
     """Computes the spectral normalizing constants for a waveform dataset.
