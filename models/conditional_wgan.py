@@ -22,7 +22,7 @@ import tensorflow as tf
 from tensorflow.keras import utils as keras_utils
 import numpy as np
 
-SHUFFLE_BUFFER_SIZE = 1000
+SHUFFLE_BUFFER_SIZE = 300
 
 # A common choice for the gradient penalty weighting
 # is 10.0
