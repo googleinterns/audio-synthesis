@@ -31,7 +31,7 @@ def normalize_filters(filterbank):
 
 def gammatone_impulse_response(samplerate_hz, length_in_seconds, center_freq_hz, phase_shift):
     # Generate single parametrized gammatone filter
-    p = 2 # filter order
+    p = 5 # filter order
     erb = 24.7 + 0.108*center_freq_hz # equivalent rectangular bandwidth
     divisor = (np.pi * np.math.factorial(2*p-2) * np.power(2, float(-(2*p-2))) )/ np.square(np.math.factorial(p-1))
     b = erb/divisor # bandwidth parameter

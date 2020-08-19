@@ -24,8 +24,9 @@ from audio_synthesis.datasets import waveform_dataset
 from audio_synthesis.models import learned_basis_decomposition
 from audio_synthesis.structures import learned_basis_function
 
-FILTER_LENGTH = 32
+FILTER_LENGTH = 512
 NUMBER_OF_FILTERS = 256
+STRIDE = 128
 BATCH_SIZE = 64
 EPOCHS = 100
 DATASET_PATH = 'data/SpeechMNIST_1850.npz'
@@ -40,8 +41,8 @@ def main():
 
     optimizer = tf.keras.optimizers.Adam(1e-4)
 
-    encoder = learned_basis_function.MPGFBEncoder(FILTER_LENGTH, NUMBER_OF_FILTERS)
-    decoder = learned_basis_function.NLDecoder(FILTER_LENGTH, NUMBER_OF_FILTERS)
+    encoder = learned_basis_function.MPGFBEncoder(FILTER_LENGTH, NUMBER_OF_FILTERS, STRIDE)
+    decoder = learned_basis_function.Decoder(FILTER_LENGTH, NUMBER_OF_FILTERS, STRIDE)
 
     learned_decomposition_model = learned_basis_decomposition.LearnedBasisDecomposition(
         encoder, decoder, optimizer, raw_maestro, BATCH_SIZE, EPOCHS, CHECKPOINT_DIR, RESULTS_DIR

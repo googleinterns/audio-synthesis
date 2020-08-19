@@ -23,6 +23,7 @@ import soundfile as sf
 import tensorflow as tf
 import numpy as np
 from tensorflow.keras import utils
+import matplotlib.pyplot as plt
 
 _SAMPLE_RATE = 16000
 _SHUFFLE_BUFFER_SIZE = 1000
@@ -149,6 +150,7 @@ class LearnedBasisDecomposition:
 
             x_signal_hat = tf.squeeze(x_signal_hat)
             x_signal_in = tf.squeeze(x_signal_in)
+            
             reconstruction_loss = tf.reduce_mean(
                 tf.reduce_sum(tf.abs(x_signal_in - x_signal_hat), axis=[1])
             )
@@ -197,6 +199,18 @@ class LearnedBasisDecomposition:
             os.path.join(self.results_dir, 'recon_{}.wav'.format(epoch)),
             np.reshape(x_hat, (-1)), _SAMPLE_RATE
         )
+        
+        print("GIAJDAFKJFKJAHKJDAWHKDJ")
+        spectrum_like = tf.squeeze(decomp[0])
+        spectrum_like = tf.transpose(spectrum_like)
+        spectrum_like = np.log(spectrum_like + 1e-8)
+
+        plt.clf()
+        plt.figure()
+        plt.imshow(spectrum_like, origin='bottom')
+        plt.xlabel('Time')
+        plt.ylabel('Filter index n')
+        plt.savefig('spectoram.png', dpi=920)
 
     def restore(self, checkpoint, completed_epochs):
         """Restores the model from a checkpoint at a given
@@ -216,7 +230,8 @@ class LearnedBasisDecomposition:
 
     def train(self):
         """The main training loop for the model."""
-
+        
+        self.save_audio(self.raw_dataset[0:self.batch_size], 0)
         for epoch in range(self.completed_epochs, self.epochs):
             pb_i = utils.Progbar(self.dataset_length)
             start = time.time()

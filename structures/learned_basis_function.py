@@ -73,24 +73,26 @@ class Encoder(keras.Model):
         return tf.nn.relu(encoded_signals)
     
 class MPGFBEncoder(keras.Model):
-    def __init__(self, length, num_filters, sr=16000.0):
+    def __init__(self, length, num_filters, stride=128, sr=16000.0):
         super(MPGFBEncoder, self).__init__()
         
         self.length = length
         self.num_filters = num_filters
+        self.stride = stride
         self.sr = sr
         self.filterbank = gammatone_filterbank.generate_mpgtf(sr, length/sr, num_filters)
+        self.filterbank = np.transpose(self.filterbank)
         self.filterbank = np.expand_dims(self.filterbank, 1).astype(np.float32)
         
     def call(self, x_in):
         x_in = tf.expand_dims(x_in, axis=2)
-        encoded_signals = tf.nn.conv1d(x_in, tf.stop_gradient(self.filterbank), stride=self.length // _OVERLAP_FACTOR, padding='SAME')
+        encoded_signals = tf.nn.conv1d(x_in, tf.stop_gradient(self.filterbank), stride=self.stride, padding='SAME')
         return tf.nn.relu(encoded_signals)
 
 class Decoder(keras.Model):
     """The decoder model for the learned basis decomposition."""
 
-    def __init__(self, length):
+    def __init__(self, length, num_filters, stride, sr=16000.0):
         """The initilizer for the Decoder model.
 
         Args:
@@ -100,12 +102,19 @@ class Decoder(keras.Model):
         super(Decoder, self).__init__()
 
         self.length = length
-        self.stride = self.length // _OVERLAP_FACTOR
-
-        self.transpose_conv_layer = layer_util.Conv1DTranspose(
-            1, kernel_size=length, strides=self.stride,
-            use_bias=False, padding='SAME'
-        )
+        self.stride = stride
+        
+        filterbank = gammatone_filterbank.generate_mpgtf(sr, length/sr, num_filters).astype(np.float32)
+        filterbank_inv = tf.linalg.pinv(tf.expand_dims(filterbank, 0))[0]
+        conv_filterbank_inv = tf.expand_dims(filterbank_inv, 1)
+        
+        self.filterbank = tf.Variable(initial_value=conv_filterbank_inv, trainable=True)
+        
+    
+        #self.transpose_conv_layer = layer_util.Conv1DTranspose(
+        #    1, kernel_size=length, strides=self.stride,
+        #    use_bias=False, padding='SAME'
+        #)
 
     def call(self, x_in):
         """Applys the decoder function to the input. Reconstructing the
@@ -120,13 +129,18 @@ class Decoder(keras.Model):
             A batch of time-domain waveforms. Shape is
             (batch_size, signal_duration, 1).
         """
-
-        return self.transpose_conv_layer(x_in)
+        
+        reconstructed = tf.nn.conv1d_transpose(
+            x_in, self.filterbank, (x_in.shape[0], self.stride * x_in.shape[1], 1),
+            strides=self.stride, padding='SAME'
+        )
+        return reconstructed
+        #return self.transpose_conv_layer(x_in)
 
 class NLDecoder(keras.Model):
     """The decoder model for the learned basis decomposition."""
 
-    def __init__(self, length, num_filters):
+    def __init__(self, length, num_filters, stride=128):
         """The initilizer for the Decoder model.
 
         Args:
@@ -136,18 +150,18 @@ class NLDecoder(keras.Model):
         super(NLDecoder, self).__init__()
 
         self.length = length
-        self.stride = self.length // _OVERLAP_FACTOR
+        self.stride = stride
         self.num_filters = num_filters
 
         sequential = []
         sequential.append(layer_util.Conv1DTranspose(filters=self.num_filters, strides=self.stride, kernel_size=length))
         sequential.append(layers.LeakyReLU())
-        sequential.append(layer_util.Conv1DTranspose(filters=self.num_filters//2, strides=1, kernel_size=length))
-        sequential.append(layers.LeakyReLU())
-        sequential.append(layer_util.Conv1DTranspose(filters=self.num_filters//4, strides=1, kernel_size=length))
-        sequential.append(layers.ReLU())
-        sequential.append(layer_util.Conv1DTranspose(filters=self.num_filters//4, strides=1, kernel_size=length))
-        sequential.append(layers.LeakyReLU())
+        #sequential.append(layer_util.Conv1DTranspose(filters=self.num_filters//2, strides=1, kernel_size=length))
+        #sequential.append(layers.LeakyReLU())
+        #sequential.append(layer_util.Conv1DTranspose(filters=self.num_filters//4, strides=1, kernel_size=length))
+        #sequential.append(layers.ReLU())
+        #sequential.append(layer_util.Conv1DTranspose(filters=self.num_filters//4, strides=1, kernel_size=length))
+        #sequential.append(layers.LeakyReLU())
         sequential.append(layer_util.Conv1DTranspose(filters=1, strides=1, kernel_size=length))
         
         self.l = keras.Sequential(sequential)
@@ -165,7 +179,7 @@ class NLDecoder(keras.Model):
             A batch of time-domain waveforms. Shape is
             (batch_size, signal_duration, 1).
         """
-
+        
         return self.l(x_in)
     
 class Classifier(keras.Model):
