@@ -60,7 +60,7 @@ def _get_maestro_pre_processed_dataset(path, pre_process_fn):
 
     processed_maestro = np.array(pre_process_fn(maestro[0:_PROCESSING_BATCH_SIZE]))
     for idx in range(_PROCESSING_BATCH_SIZE, len(maestro), _PROCESSING_BATCH_SIZE):
-        datapoints = maestro[idx:idx+_PROCESSING_BATCH_SIZE]
+        datapoints = maestro[idx:idx + _PROCESSING_BATCH_SIZE]
         processed_maestro = np.concatenate([processed_maestro, pre_process_fn(datapoints)], axis=0)
 
     return processed_maestro
