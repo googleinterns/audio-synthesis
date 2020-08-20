@@ -168,7 +168,7 @@ def normalize(spectrum, mean, std):
         A normalized phase or magnitude spectrum
     """
 
-    norm = (spectrum - mean) / std
+    norm = (spectrum - mean) / (std + 1e-6)
     norm /= _CLIP_NUMBER_STD
     norm = np.clip(norm, -1., 1.)
     return norm
