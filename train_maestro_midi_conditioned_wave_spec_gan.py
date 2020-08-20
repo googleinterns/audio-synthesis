@@ -27,7 +27,7 @@ print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('
 _EPSILON = 1e-6
 D_UPDATES_PER_G = 5
 Z_DIM = 64
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 EPOCHS = 300
 SAMPLING_RATE = 16000
 FFT_FRAME_LENGTH = 512
