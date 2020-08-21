@@ -21,6 +21,29 @@ from librosa.core import griffinlim
 _EPSILON = 1e-6
 _SAMPLE_RATE = 16000
 
+
+def _linear_to_mel_scale(linear_scale_in, n_mel_bins, mel_lower_hertz_edge,
+                          mel_upper_hertz_edge):
+    linear_to_mel_weight_matrix = tf.signal.linear_to_mel_weight_matrix(
+        n_mel_bins, linear_scale_in.shape[-1], _SAMPLE_RATE, mel_lower_hertz_edge,
+        mel_upper_hertz_edge
+    )
+
+    mel_scale_out = tf.tensordot(linear_scale_in, linear_to_mel_weight_matrix, 1)
+    return mel_scale_out
+
+def _mel_to_linear_scale(mel_scale_in, n_mel_bins, mel_lower_hertz_edge,
+                          mel_upper_hertz_edge):
+    linear_to_mel_weight_matrix = tf.signal.linear_to_mel_weight_matrix(
+        n_mel_bins, mel_scale_in.shape[-1], _SAMPLE_RATE, mel_lower_hertz_edge,
+        mel_upper_hertz_edge
+    )
+    mel_to_linear_weight_matrix = tf.linalg.pinv(linear_to_mel_weight_matrix)
+
+
+    linear_scale_out = tf.tensordot(mel_scale_in, mel_to_linear_weight_matrix, 1)
+    return linear_scale_out
+
 def waveform_2_stft(waveform, frame_length=512, frame_step=128):
     """Transforms a Waveform into the STFT domain.
     
@@ -71,6 +94,7 @@ def stft_2_waveform(stft, frame_length=512, frame_step=128):
     waveform = tf.signal.inverse_stft(stft, frame_length=frame_length, frame_step=frame_step)
     return waveform
 
+
 def waveform_2_spectogram(waveform, frame_length=512, frame_step=128,
                           log_magnitude=True, instantaneous_frequency=True,
                           n_mel_bins=None, mel_lower_hertz_edge=None,
@@ -116,13 +140,12 @@ def waveform_2_spectogram(waveform, frame_length=512, frame_step=128,
     phase = tf.math.angle(stft)[:, :, 0:-1]
 
     if n_mel_bins:
-        linear_to_mel_weight_matrix = tf.signal.linear_to_mel_weight_matrix(
-            n_mel_bins, magnitude.shape[-1], _SAMPLE_RATE, mel_lower_hertz_edge,
-            mel_upper_hertz_edge
+        magnitude = _linear_to_mel_scale(
+            magnitude, n_mel_bins, mel_lower_hertz_edge, mel_upper_hertz_edge
         )
-
-        magnitude = tf.tensordot(magnitude, linear_to_mel_weight_matrix, 1)
-        phase = tf.tensordot(phase, linear_to_mel_weight_matrix, 1)
+        phase = _linear_to_mel_scale(
+            phase, n_mel_bins, mel_lower_hertz_edge, mel_upper_hertz_edge
+        )
 
     if log_magnitude:
         magnitude = tf.math.log(magnitude + _EPSILON)
@@ -212,7 +235,9 @@ def magnitude_2_waveform(magnitude, n_iter=16, frame_length=512,
     return np.array(list(map(to_waveform, magnitude)))
 
 def spectogram_2_waveform(spectogram, frame_length=512, frame_step=128,
-                          log_magnitude=True, instantaneous_frequency=True):
+                          log_magnitude=True, instantaneous_frequency=True,
+                          n_mel_bins=None, mel_lower_hertz_edge=None,
+                          mel_upper_hertz_edge=None):
     """Transforms a Spectogram to a Waveform.
 
     Args:
@@ -224,6 +249,12 @@ def spectogram_2_waveform(spectogram, frame_length=512, frame_step=128,
         log_magnitude: If true, log-magnitude will be assumed.
         instantaneous_frequency: If true, it is assumed the input is
             instantaneous frequency and not phase.
+        n_mel_bins: If specified, a magnitude spectrum in the mel scale
+            will be returned.
+        mel_lower_hertz_edge: The minimum frequency to be included in the
+            mel-spectogram
+        mel_upper_hertz_edge: The highest frequency to be included in the
+            mel-spectogram
 
     Returns:
         A waveform representation of the input spectogram. Shape is
@@ -235,6 +266,14 @@ def spectogram_2_waveform(spectogram, frame_length=512, frame_step=128,
 
     magnitude = spectogram[:, :, :, 0]
     phase = spectogram[:, :, :, 1]
+    
+    if n_mel_bins:
+        magnitude = _mel_to_linear_scale(
+            magnitude, n_mel_bins, mel_lower_hertz_edge, mel_upper_hertz_edge
+        )
+        phase = _mel_to_linear_scale(
+            phase, n_mel_bins, mel_lower_hertz_edge, mel_upper_hertz_edge
+        )
 
     if log_magnitude:
         magnitude = tf.math.exp(magnitude) - _EPSILON
