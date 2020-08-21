@@ -40,12 +40,12 @@ LOG_MAGNITUDE = True
 INSTANTANEOUS_FREQUENCY = True
 Z_IN_SHAPE = [4, 8, 1024]
 SPECTOGRAM_IMAGE_SHAPE = [-1, 128, 256, 2]
-CHECKPOINT_DIR = '_results/representation_study/SpecPhaseGAN_HR/training_checkpoints/'
-RESULT_DIR = '_results/representation_study/SpecPhaseGAN_HR/audio/'
-DATASET_PATH = 'data/MAESTRO_6h.npz'
+CHECKPOINT_DIR = '_results/representation_study/SpeechMNIST/MagIFGAN_HR/training_checkpoints/'
+RESULT_DIR = '_results/representation_study/SpeechMNIST/MagIFGAN_HR/audio/'
+DATASET_PATH = 'data/SpeechMNIST_1850.npz'
 
 def main():
-    os.environ['CUDA_VISIBLE_DEVICES'] = ''
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
     print('Num GPUs Available: ', len(tf.config.experimental.list_physical_devices('GPU')))
 
     raw_dataset, magnitude_stats, phase_stats =\
@@ -90,6 +90,7 @@ def main():
         fn_save_examples=save_examples
     )
 
+    spec_phase_gan_model.restore('ckpt-6', 60)
     spec_phase_gan_model.train()
 
 if __name__ == '__main__':
