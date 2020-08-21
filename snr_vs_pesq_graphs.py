@@ -34,6 +34,14 @@ def mkdir(dirname):
             raise
         pass
 
+def add_noise_at_snr_channel_with_average(channel_in, snr, n_avg):
+    noisy_channel_in = add_noise_at_snr_channel(channel_in, snr)
+    
+    for i in range(n_avg-1):
+        noisy_channel_in = noisy_channel_in + add_noise_at_snr_channel(channel_in, snr)
+        
+    return noisy_channel_in / n_avg
+    
 def add_noise_at_snr_channel(channel_in, snr):
     RMS = np.sqrt(np.mean(channel_in ** 2))
     RMS_noise = RMS / np.sqrt(10 ** (snr/10))
@@ -54,21 +62,25 @@ def distort_two_channel_representation(representation, snr):
     phase_only = np.concatenate([orig_channels[0], distorted_channels[1]], axis=-1)
     return magnitude_only, phase_only
     
-def distort_one_channel_representation(representation, snr):
-    return np.expand_dims(add_noise_at_snr_channel(representation, snr), 0)
+def distort_one_channel_representation(representation, snr, n_avg=1):
+    return np.expand_dims(add_noise_at_snr_channel_with_average(representation, snr, n_avg), 0)
 
 def perceptual_error(audio_hat, audio): 
     audio_hat = np.array(audio_hat)
     audio = np.array(audio)
     return pesq.pesq(SAMPLE_RATE, audio, audio_hat, 'wb')
 
-MAX_SNR = 80
+MAX_SNR = 45
 MIN_SNR = 0
 SNR_STEP = 2
 SNRS = list(range(MIN_SNR, MAX_SNR+SNR_STEP, SNR_STEP))
 SAMPLE_RATE = 16000
+N_GL_REPEATS = 20
 LOG_MAGNITUDE = False
-DATASET_PATH = './data/SpeechMNIST_1850.npz'
+N_MEL_BINS = 256
+MEL_LOWER_HERTZ_EDGE = 0.0
+MEL_UPPER_HERTZ_EDGE = 8000.0
+WAVEFORM_PATH = './data/speech.wav'
 RESULTS_PATH = './_results/snr_vs_pesq/'
 LINE_STYLES = ['--', ':']
 
@@ -84,13 +96,14 @@ REPRESENTATIONS = {
         'distort_representation': distort_two_channel_representation,
     },
     'Mag': {
+        'average': True,
         'requires_fft_params': True,
         'waveform_2_representation': lambda waveform, window_length, window_step: spectral.waveform_2_magnitude(
             waveform, window_length, window_step, log_magnitude=LOG_MAGNITUDE
         )[0],
-        'representation_2_waveform': lambda representation, window_length, window_step: spectral.magnitude_2_waveform(
+        'representation_2_waveform': lambda representation, window_length, window_step: [spectral.magnitude_2_waveform(
             representation, 32, window_length, window_step, log_magnitude=LOG_MAGNITUDE
-        )[0],
+        ) for i in range(N_GL_REPEATS)],
         'distort_representation': distort_one_channel_representation,
     },
     'Mag + Phase': {
@@ -103,6 +116,18 @@ REPRESENTATIONS = {
         )[0],
         'distort_representation': distort_two_channel_representation,
     },
+#    '(mel) Mag + Phase': {
+#        'requires_fft_params': True,
+#        'waveform_2_representation': lambda waveform, window_length, window_step: spectral.waveform_2_spectogram(
+#            waveform, window_length, window_step, log_magnitude=LOG_MAGNITUDE, instantaneous_frequency=False,
+#            n_mel_bins=N_MEL_BINS, mel_lower_hertz_edge=MEL_LOWER_HERTZ_EDGE, mel_upper_hertz_edge=MEL_UPPER_HERTZ_EDGE
+#        )[0],
+#        'representation_2_waveform': lambda representation, window_length, window_step: #spectral.spectogram_2_waveform(
+#            representation, window_length, window_step, log_magnitude=LOG_MAGNITUDE, instantaneous_frequency=False,
+#            n_mel_bins=N_MEL_BINS, mel_lower_hertz_edge=MEL_LOWER_HERTZ_EDGE, mel_upper_hertz_edge=MEL_UPPER_HERTZ_EDGE
+#        )[0],
+#        'distort_representation': distort_two_channel_representation,
+#    },
     'Mag + IF': {
         'requires_fft_params': True,
         'waveform_2_representation': lambda waveform, window_length, window_step: spectral.waveform_2_spectogram(
@@ -118,14 +143,22 @@ REPRESENTATIONS = {
         'waveform_2_representation': lambda x: x,
         'representation_2_waveform': lambda x: x,
         'distort_representation': distort_one_channel_representation,
+    },
+    '(Avg) Waveform': {
+        'requires_fft_params': False,
+        'distort_with_fft_average': True,
+        'waveform_2_representation': lambda x: x,
+        'representation_2_waveform': lambda x: x,
+        'distort_representation': distort_one_channel_representation,
     }
 }
 
 def main(fft_window_size, fft_window_step):
     os.environ['CUDA_VISIBLE_DEVICES'] = ''
+    print(fft_window_size, ' ', fft_window_step)
     
-    raw_maestro = maestro_dataset.get_maestro_waveform_dataset(DATASET_PATH)
-    origonal_audio = np.array(raw_maestro[0]).astype(np.float32)
+    origonal_audio, sr = sf.read(WAVEFORM_PATH)
+    origonal_audio = origonal_audio.astype(np.float32)
     
     for representation in REPRESENTATIONS:
         REPRESENTATIONS[representation]['perceptual_errors'] = []
@@ -133,6 +166,7 @@ def main(fft_window_size, fft_window_step):
     
     for snr in SNRS:
         for representation in REPRESENTATIONS:
+            print(representation)
             if REPRESENTATIONS[representation]['requires_fft_params']:
                 audio_representation = REPRESENTATIONS[representation]['waveform_2_representation'](
                     origonal_audio, fft_window_size, fft_window_step
@@ -140,7 +174,12 @@ def main(fft_window_size, fft_window_step):
             else:
                 audio_representation = REPRESENTATIONS[representation]['waveform_2_representation'](origonal_audio)
                 
-            noisy_representations = REPRESENTATIONS[representation]['distort_representation'](audio_representation, snr)
+            if 'distort_with_fft_average' in REPRESENTATIONS[representation]:
+                noisy_representations = REPRESENTATIONS[representation]['distort_representation'](audio_representation, snr, (fft_window_size // fft_window_step))
+            else:
+                noisy_representations = REPRESENTATIONS[representation]['distort_representation'](audio_representation, snr)
+            
+            #print('NOISY')
             
             perceptual_errors = []
             audio_hats = []
@@ -151,11 +190,19 @@ def main(fft_window_size, fft_window_step):
                     )
                 else:
                     audio_hat = REPRESENTATIONS[representation]['representation_2_waveform'](noisy_representation)
-                
-                audio_hat = audio_hat[0:len(origonal_audio)]
-                
-                audio_hats.append(audio_hat)
-                perceptual_errors.append(perceptual_error(origonal_audio, audio_hat))
+                    
+                #print('RECONSTRUCTED')
+            
+                if 'average' in REPRESENTATIONS[representation]:
+                    audio_hats.append(np.squeeze(audio_hat[0])[0:len(origonal_audio)])
+                    all_perceptual_errors = [
+                        perceptual_error(origonal_audio, np.squeeze(audio_hat_i)[0:len(origonal_audio)]) for audio_hat_i in audio_hat
+                    ]
+                    perceptual_errors.append(np.mean(all_perceptual_errors))
+                else:
+                    audio_hat = audio_hat[0:len(origonal_audio)]
+                    audio_hats.append(audio_hat)
+                    perceptual_errors.append(perceptual_error(origonal_audio, audio_hat))
                 
             
             REPRESENTATIONS[representation]['perceptual_errors'].append(perceptual_errors)
@@ -180,7 +227,7 @@ def main(fft_window_size, fft_window_step):
     plt.legend()
     
     file_name = 'pesq_vs_snr__{}ws_{}s'.format(fft_window_size, fft_window_step)
-    plt.savefig(os.path.join(RESULTS_PATH, file_name))
+    plt.savefig(os.path.join(RESULTS_PATH, file_name), bbox_inches='tight', dpi=920)
     plt.clf()
         
     # Save the audio files
