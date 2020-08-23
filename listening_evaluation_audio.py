@@ -27,8 +27,9 @@ from audio_synthesis.datasets import maestro_dataset
 from audio_synthesis.utils import spectral
 from audio_synthesis.structures import wave_gan, spec_gan
 
-N_GENERATIONS = 1
+N_GENERATIONS = 10
 GENERATION_LENGTH = 5
+SILENCE_PADDING = 2**13
 Z_DIM = 64
 WAVEFORM_LENGTH = 16000
 SAMPLING_RATE = 16000
@@ -147,7 +148,7 @@ MODELS = {
         'fft_config': 0,
         'generate_fn': lambda magnitude: spectral.magnitude_2_waveform(
             magnitude, GRIFFIN_LIM_ITERATIONS, FFT_FRAME_LENGTHS[1],
-            FFT_FRAME_STEPS[1], LOG_MAGNITUDE
+            FFT_FRAME_STEPS[1], LOG_MAGNITUDE[1]
         ),
         'waveform': [],
     },
@@ -163,8 +164,8 @@ MODELS = {
         },
         'fft_config': 1,
         'generate_fn': lambda spectogram: spectral.spectogram_2_waveform(
-            spectogram, FFT_FRAME_LENGTHS[1], FFT_FRAME_STEPS[1], LOG_MAGNITUDE[0],
-            INSTANTANEOUS_FREQUENCY[0]
+            spectogram, FFT_FRAME_LENGTHS[1], FFT_FRAME_STEPS[1], LOG_MAGNITUDE[1],
+            INSTANTANEOUS_FREQUENCY[1]
         ),
         'waveform': [],
     },
@@ -180,8 +181,8 @@ MODELS = {
         },
         'fft_config': 1,
         'generate_fn': lambda spectogram: spectral.spectogram_2_waveform(
-            spectogram, FFT_FRAME_LENGTHS[1], FFT_FRAME_STEPS[1], LOG_MAGNITUDE[1],
-            INSTANTANEOUS_FREQUENCY[1]
+            spectogram, FFT_FRAME_LENGTHS[0], FFT_FRAME_STEPS[0], LOG_MAGNITUDE[0],
+            INSTANTANEOUS_FREQUENCY[0]
         ),
         'waveform': [],
     },
@@ -243,23 +244,21 @@ def main():
         magnitude_stastics.append(magnitude_stastic)
         phase_stastics.append(phase_stastic)
 
-    maestro = maestro[np.random.randint(low=0, high=len(maestro), size=N_GENERATIONS)]
+    maestro = maestro[np.random.randint(low=0, high=len(maestro), size=GENERATION_LENGTH * N_GENERATIONS)]
     z_gen = tf.random.uniform((N_GENERATIONS, GENERATION_LENGTH, Z_DIM), -1, 1, tf.float32)
 
     pb_i = utils.Progbar(N_GENERATIONS)
     for i in range(N_GENERATIONS):
         z_in = tf.reshape(z_gen[i], (GENERATION_LENGTH, Z_DIM))
-        print(z_in.shape)
 
         for model_name in MODELS:
-            print(model_name)
             if not MODELS[model_name]['loaded']:
                 continue
             
             # If the model is a generator then produce a random generation,
             # otherwise take the current data point.
             if 'data' in MODELS[model_name] and MODELS[model_name]['data']:
-                generation = maestro[i]
+                generation = maestro[i:i+GENERATION_LENGTH]
             else:
                 generation = MODELS[model_name]['generator'](z_in)
                 generation = np.squeeze(generation)
@@ -278,7 +277,6 @@ def main():
             # Apply pre-defined transform to waveform.
             generation = np.squeeze(generation)
             waveform = MODELS[model_name]['generate_fn'](generation)
-            print(waveform.shape)
 
             # Clip waveform to desired length and save
             waveform = waveform[:, 0:WAVEFORM_LENGTH]
@@ -291,12 +289,12 @@ def main():
         if not MODELS[model_name]['loaded']:
             continue
         
-        path = os.join(RESULTS_PATH, model_name)
+        path = os.path.join(RESULTS_PATH, model_name)
         mkdir(path)
         for i, generation in enumerate(MODELS[model_name]['waveform']):
             generation = np.array(generation)
-            print(generation.shape)
-            wav = np.reshape(MODELS[model_name]['waveform'], (-1))
+            generation = np.pad(generation, [[0,0], [0, SILENCE_PADDING]])
+            wav = np.reshape(generation, (-1))
             sf.write(os.path.join(path, model_name + '_{}.wav'.format(i)), wav, SAMPLING_RATE)
 
 if __name__ == '__main__':
