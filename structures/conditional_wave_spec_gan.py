@@ -32,7 +32,7 @@ class Generator(keras.Model):
         noise_pre_process.append(layer_utils.Conv1DTranspose(filters=1024, strides=8, kernel_size=36))
         noise_pre_process.append(layers.ReLU())
         self.z_pre_process = keras.Sequential(noise_pre_process)
-        #
+        
         
         conditioning_pre_process = []
         conditioning_pre_process.append(layers.Conv1D(filters=1024, strides=1, kernel_size=36, padding='same'))
@@ -55,10 +55,6 @@ class Generator(keras.Model):
     def call(self, c_in, z_in):
         z_pre_processed = self.z_pre_process(z_in)
         c_pre_processed = self.c_pre_process(c_in)
-        #z_pre_processed = tf.expand_dims(z_pre_processed, 3)
-        #c_pre_processed = tf.expand_dims(c_pre_processed, 3)
-        #zc_pre_processed = tf.concat([z_pre_processed, c_pre_processed], axis=-1)
-        #zc = self.zc_pre_process(zc_pre_processed)
         zc = z_pre_processed + c_pre_processed
         output = self.l(zc)
         return output
@@ -68,8 +64,11 @@ class WaveformDiscriminator(keras.Model):
     """Implementation of the discriminator for Conditional WaveSpecGAN
     """
 
-    def __init__(self):
+    def __init__(self, input_shape, weighting=1.0):
         super(WaveformDiscriminator, self).__init__()
+        
+        self.in_shape = input_shape
+        self.weighting = weighting
         
         conditional_sequental = []
         conditional_sequental.append(layers.Conv1D(128, kernel_size=36, strides=4, padding='same'))
@@ -102,6 +101,8 @@ class WaveformDiscriminator(keras.Model):
         self.sequential_joint = keras.Sequential(sequential_joint)
 
     def call(self, x_in, c_in): 
+        x_in = tf.reshape(x_in, self.in_shape)
+        
         x_processed = self.sequential_waveform(x_in)
         c_processed = self.sequential_conditional(c_in)
         
@@ -114,8 +115,12 @@ class WaveformDiscriminator(keras.Model):
 class SpectogramDiscriminator(keras.Model):
     """Implementation of the SpecGAN Discriminator Function."""
 
-    def __init__(self):
+    def __init__(self, input_shape, weighting=1.0):
         super(SpectogramDiscriminator, self).__init__()
+        
+        self.in_shape = input_shape
+        self.weighting = weighting
+        
         c_pre_process = []
         c_pre_process.append(layers.Conv1D(256, kernel_size=36, strides=4, padding='same'))
         c_pre_process.append(layers.LeakyReLU(alpha=0.2))
@@ -146,6 +151,8 @@ class SpectogramDiscriminator(keras.Model):
         self.l = keras.Sequential(sequential)
 
     def call(self, x_in, c_in):
+        x_in = tf.reshape(x_in, self.in_shape)
+        
         c_in = tf.squeeze(c_in)
         c_pre_processed = self.c_pre_process(c_in)
         c_pre_processed = tf.expand_dims(c_pre_processed, 3)
