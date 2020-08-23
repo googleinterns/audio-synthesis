@@ -40,7 +40,7 @@ SIGNAL_LENGTH = 2**14
 WAVEFORM_SHAPE = [-1, SIGNAL_LENGTH, 1]
 MAGNITUDE_IMAGE_SHAPE = [-1, 128, 256, 1]
 CRITIC_WEIGHTINGS = [1.0, 1.0/1000.0]
-CHECKPOINT_DIR = '_results/midi_conditional/ConditionalWaveSpecGAN_LC/training_checkpoints'
+CHECKPOINT_DIR = '_results/midi_conditional/ConditionalWaveSpecGAN_LC/training_checkpoints/'
 RESULT_DIR = '_results/midi_conditional/ConditionalWaveSpecGAN_LC/audio/'
 MAESTRO_PATH = 'data/MAESTRO_6h.npz'
 MAESTRO_MIDI_PATH = 'data/MAESTRO_midi_6h.npz'
@@ -104,6 +104,7 @@ def main():
         fn_get_discriminator_input_representations=_get_discriminator_input_representations
     )
 
+    wave_gan_model.restore('ckpt-1', 10)
     wave_gan_model.train()
     
 if __name__ == '__main__':
