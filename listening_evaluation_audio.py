@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""This module handles generating audio from models trained
-in the representation study. The list of models is modular.
+"""This module handles generating audio for a listening test
+from models trained in the representation study.
+The list of models is modular.
 """
 
 import os
@@ -44,9 +45,7 @@ INSTANTANEOUS_FREQUENCY = [True, False]
 def mkdir(dirname):
     try:
         os.mkdir(dirname)
-    except OSError as exc:
-        if exc.errno != errno.EEXIST:
-            raise
+    except OSError:
         pass
 
 def _data_waveform_griffin_lim_fn(data_waveform, frame_length, frame_step):
@@ -240,11 +239,13 @@ def main():
                 MAESTRO_PATH, frame_length, frame_step, LOG_MAGNITUDE,
                 INSTANTANEOUS_FREQUENCY
             )
-        
+
         magnitude_stastics.append(magnitude_stastic)
         phase_stastics.append(phase_stastic)
 
-    maestro = maestro[np.random.randint(low=0, high=len(maestro), size=GENERATION_LENGTH * N_GENERATIONS)]
+    maestro = maestro[np.random.randint(
+        low=0, high=len(maestro), size=GENERATION_LENGTH * N_GENERATIONS
+    )]
     z_gen = tf.random.uniform((N_GENERATIONS, GENERATION_LENGTH, Z_DIM), -1, 1, tf.float32)
 
     pb_i = utils.Progbar(N_GENERATIONS)
@@ -254,7 +255,7 @@ def main():
         for model_name in MODELS:
             if not MODELS[model_name]['loaded']:
                 continue
-            
+
             # If the model is a generator then produce a random generation,
             # otherwise take the current data point.
             if 'data' in MODELS[model_name] and MODELS[model_name]['data']:
@@ -284,16 +285,14 @@ def main():
 
         pb_i.add(1)
 
-    # Save the waveforms for each model as one long audio clip
     for model_name in MODELS:
         if not MODELS[model_name]['loaded']:
             continue
-        
+
         path = os.path.join(RESULTS_PATH, model_name)
         mkdir(path)
         for i, generation in enumerate(MODELS[model_name]['waveform']):
-            generation = np.array(generation)
-            generation = np.pad(generation, [[0,0], [0, SILENCE_PADDING]])
+            generation = np.pad(generation, [[0, 0], [0, SILENCE_PADDING]])
             wav = np.reshape(generation, (-1))
             sf.write(os.path.join(path, model_name + '_{}.wav'.format(i)), wav, SAMPLING_RATE)
 
