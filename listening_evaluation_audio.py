@@ -18,7 +18,6 @@ The list of models is modular.
 """
 
 import os
-import errno
 from tensorflow.keras import activations
 from tensorflow.keras import utils
 import tensorflow as tf
@@ -43,6 +42,13 @@ LOG_MAGNITUDE = [True, True]
 INSTANTANEOUS_FREQUENCY = [True, False]
 
 def mkdir(dirname):
+    """Makes a directory and handles the case where the
+    directory allready exsists.
+    
+    Args:
+        dirname: The path to the directory.
+    """
+    
     try:
         os.mkdir(dirname)
     except OSError:
@@ -76,7 +82,8 @@ def _data_waveform_griffin_lim_fn(data_waveform, frame_length, frame_step):
 #   1) Either the model is a trained generator function. In this case,
 #      a 'generator' model must be specified, along with a 'checkpoint_path'
 #      to load from. In addition, a 'preprocess' object must be specified,
-#      that contains 'unnormalize_magnitude' and 'unnormalize_spectogram' (mutually exclusive)
+#      that contains 'unnormalize_magnitude' and 'unnormalize_spectogram' (mutually exclusive).
+#      'clip_beginning' can also be set to remove the initial samples from the generations.
 #   2) Or it is a processed form of the origonal data. In this case, 'data': True
 #      must be set.
 # All models must have 'generate_fn' set to a function that takes a generation from
