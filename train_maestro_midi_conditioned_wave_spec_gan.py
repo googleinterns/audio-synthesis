@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-"""
+"""Training script for the MIDI conditioned WaveSpecGAN Model."""
 
 import os
 import tensorflow as tf
@@ -93,8 +92,7 @@ def main():
         fn_get_discriminator_input_representations=_get_discriminator_input_representations
     )
 
-    #wave_gan_model.restore('ckpt-1', 10)
     wave_gan_model.train()
-    
+
 if __name__ == '__main__':
     main()

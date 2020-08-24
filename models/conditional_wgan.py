@@ -121,7 +121,9 @@ class ConditionalWGAN(wgan.WGAN): # pylint: disable=too-many-instance-attributes
         """Executes one training step of the WGAN model.
 
         Paramaters:
-            x_in: One batch of training data.
+            data_in: One batch of training data. Has the form ((x_in, c_in), c_gen_in).
+                Where (x_in, c_in) is jointly sampled and c_gen_in is sampled from the
+                conditional margional.
             train_generator: If true, the generator weights will be updated.
             train_discriminator: If true, the discriminator weights will be updated.
         """
@@ -135,7 +137,7 @@ class ConditionalWGAN(wgan.WGAN): # pylint: disable=too-many-instance-attributes
             g_loss = 0
 
             z_in = tf.random.uniform((x_in.shape[0], self.z_dim), -1, 1)
-            x_gen = self.generator(c_gen_in, z_in, training=True)
+            x_gen = self.generator(z_in, c_gen_in, training=True)
             x_gen_representations = self.fn_get_discriminator_input_representations(x_gen)
 
             for i in range(len(self.discriminator)):
@@ -186,6 +188,14 @@ class ConditionalWGAN(wgan.WGAN): # pylint: disable=too-many-instance-attributes
         return zip(self.conditioned_dataset, self.dataset)
 
     def _generate_and_save_examples(self, epoch):
+        """Generates a batch of fake samples and saves them, along with
+        a batch of real data for comparason. Calls the given fn_save_examples.
+        
+        Args:
+            epoch: The current epoch, added as a post-fix of the file
+                name.
+        """
+
         if self.fn_save_examples:
             z_in = tf.random.uniform((self.batch_size, self.z_dim), -1, 1)
             x_save = self.raw_x_dataset[0:self.batch_size]

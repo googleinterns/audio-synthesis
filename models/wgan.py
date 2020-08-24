@@ -259,6 +259,14 @@ class WGAN: # pylint: disable=too-many-instance-attributes
 
 
     def _generate_and_save_examples(self, epoch):
+        """Generates a batch of fake samples and saves them, along with
+        a batch of real data for comparason. Calls the given fn_save_examples.
+        
+        Args:
+            epoch: The current epoch, added as a post-fix of the file
+                name.
+        """
+
         if self.fn_save_examples:
             x_save = self.raw_dataset[np.random.randint(
                 low=0, high=len(self.raw_dataset), size=self.batch_size
