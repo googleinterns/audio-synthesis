@@ -32,7 +32,7 @@ N_GENERATIONS = 10
 GENERATION_LENGTH = 5
 SILENCE_PADDING = 2**13
 Z_DIM = 64
-WAVEFORM_LENGTH = 16000
+WAVEFORM_LENGTH = 2**14#16000
 SAMPLING_RATE = 16000
 RESULTS_PATH = '_results/representation_study/listening_test/MAESTRO/'
 MAESTRO_PATH = 'data/MAESTRO_6h.npz'
@@ -144,6 +144,7 @@ MODELS = {
             'unnormalize_magnitude': True,
             'unnormalize_spectogram': False,
         },
+        'clip_beginning': 240,
         'fft_config': 0,
         'generate_fn': lambda magnitude: spectral.magnitude_2_waveform(
             magnitude, GRIFFIN_LIM_ITERATIONS, FFT_FRAME_LENGTHS[1],
@@ -203,6 +204,7 @@ MODELS = {
     },
     'Waveform_GL_HR': {
         'data': True,
+        'clip_beginning': 240,
         'generate_fn': lambda waveform: _data_waveform_griffin_lim_fn(
             waveform, FFT_FRAME_LENGTHS[1], FFT_FRAME_STEPS[1]
         ),
@@ -212,7 +214,7 @@ MODELS = {
 
 def main():
     # Set allowed GPUs.
-    os.environ["CUDA_VISIBLE_DEVICES"] = '3'
+    os.environ["CUDA_VISIBLE_DEVICES"] = '0'
     print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
     # Build and load MODELS from checkpoints
@@ -293,6 +295,9 @@ def main():
         mkdir(path)
         for i, generation in enumerate(MODELS[model_name]['waveform']):
             generation = np.pad(generation, [[0, 0], [0, SILENCE_PADDING]])
+            if 'clip_beginning' in MODELS[model_name]:
+                generation = generation[:, MODELS[model_name]['clip_beginning']:]
+                
             wav = np.reshape(generation, (-1))
             sf.write(os.path.join(path, model_name + '_{}.wav'.format(i)), wav, SAMPLING_RATE)
 
