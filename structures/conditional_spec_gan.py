@@ -98,19 +98,12 @@ class Generator(keras.Model):
             batch elements.
         """
         
-        print(c_in.shape)
-        print(z_in.shape)
         z_pre_processed = self.z_preprocess(z_in)
         c_pre_processed = self.c_preprocess(c_in)
-
-        print(c_pre_processed.shape)
-        print(z_pre_processed.shape)
         
         zc = tf.concat([c_pre_processed, z_pre_processed], axis=-1)
-        print(zc.shape)
         
         output = self.activation(self.l(zc))
-        print(output.shape)
         return output
 
 class Discriminator(keras.Model):
@@ -165,18 +158,9 @@ class Discriminator(keras.Model):
             A batch of real valued scores. This is inlign with
             the WGAN setup.
         """
-
-        print("DDDDD")
-        print(x_in.shape)
-        print(c_in.shape)
         
-        #c_pre_processed = self.c_pre_process(c_in)
-        #print(c_pre_processed.shape)
         x_in = tf.reshape(x_in, self.in_shape)
         
-        print(x_in.shape)
-        
         xc_in = tf.concat([c_in, x_in], axis=1)
-        print(xc_in.shape)
         
         return self.l(xc_in)
