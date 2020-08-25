@@ -38,14 +38,14 @@ NUM_MEL_BINS = 96
 SIGNAL_LENGTH = 2**14
 WAVEFORM_SHAPE = [-1, SIGNAL_LENGTH, 1]
 CRITIC_WEIGHTINGS = [1.0, 1.0/1000.0]
-CHECKPOINT_DIR = '_results/representation_study/WaveSpecGAN/training_checkpoints/'
-RESULT_DIR = '_results/representation_study/WaveSpecGAN/audio/'
-DATASET_PATH = 'data/MAESTRO_6h.npz'
+CHECKPOINT_DIR = '_results/representation_study/SpeechMNIST/WaveMagGAN_HR/training_checkpoints/'
+RESULT_DIR = '_results/representation_study/SpeechMNIST/WaveMagGAN_HR/audio/'
+DATASET_PATH = 'data/SpeechMNIST_1850.npz'
 
 if MEL_SPECTROGRAM:
     MAGNITUDE_IMAGE_SHAPE = [-1, 128, NUM_MEL_BINS, 1]
 else:
-    MAGNITUDE_IMAGE_SHAPE = [-1, 128, FFT_FRAME_LENGTH // 2, 1]
+    MAGNITUDE_IMAGE_SHAPE = [-1, 128, 256, 1]
 
 def _get_discriminator_input_representations(x_in):
     """Computes the input representations for the WaveSpecGAN discriminator models,
@@ -74,7 +74,7 @@ def _get_discriminator_input_representations(x_in):
     return (x_in, magnitude)
 
 def main():
-    os.environ["CUDA_VISIBLE_DEVICES"] = ''
+    os.environ["CUDA_VISIBLE_DEVICES"] = '0'
     print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
     raw_dataset = waveform_dataset.get_waveform_dataset(DATASET_PATH)
@@ -105,6 +105,7 @@ def main():
         fn_get_discriminator_input_representations=_get_discriminator_input_representations
     )
 
+    wave_gan_model.restore('ckpt-14', 140)
     wave_gan_model.train()
 
 if __name__ == '__main__':
