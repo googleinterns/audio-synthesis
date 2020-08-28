@@ -31,7 +31,7 @@ N_GENERATIONS = 10
 GENERATION_LENGTH = 5
 SILENCE_PADDING = 2**13
 Z_DIM = 64
-WAVEFORM_LENGTH = 2**14#16000
+WAVEFORM_LENGTH = 2**14
 SAMPLING_RATE = 16000
 RESULTS_PATH = '_results/representation_study/listening_test/MAESTRO/'
 MAESTRO_PATH = 'data/MAESTRO_6h.npz'
@@ -109,7 +109,7 @@ MODELS = {
             'unnormalize_magnitude': False,
             'unnormalize_spectogram': False,
         },
-        'fft_config': 0,
+        'fft_config': 1,
         'generate_fn': lambda stfts: spectral.stft_2_waveform(
             stfts, FFT_FRAME_LENGTHS[1], FFT_FRAME_STEPS[1]
         ),
@@ -123,7 +123,7 @@ MODELS = {
             'unnormalize_magnitude': False,
             'unnormalize_spectogram': False,
         },
-        'fft_config': 0,
+        'fft_config': 1,
         'generate_fn': lambda stfts: spectral.stft_2_waveform(
             stfts, FFT_FRAME_LENGTHS[1], FFT_FRAME_STEPS[1]
         ),
@@ -137,7 +137,7 @@ MODELS = {
             'unnormalize_magnitude': False,
             'unnormalize_spectogram': False,
         },
-        'fft_config': 0,
+        'fft_config': 1,
         'generate_fn': lambda stfts: spectral.stft_2_waveform(
             stfts, FFT_FRAME_LENGTHS[1], FFT_FRAME_STEPS[1]
         ),
@@ -152,7 +152,7 @@ MODELS = {
             'unnormalize_spectogram': False,
         },
         'clip_beginning': 240,
-        'fft_config': 0,
+        'fft_config': 1,
         'generate_fn': lambda magnitude: spectral.magnitude_2_waveform(
             magnitude, GRIFFIN_LIM_ITERATIONS, FFT_FRAME_LENGTHS[1],
             FFT_FRAME_STEPS[1], LOG_MAGNITUDE[1]
@@ -186,7 +186,7 @@ MODELS = {
             'unnormalize_magnitude': False,
             'unnormalize_spectogram': True,
         },
-        'fft_config': 1,
+        'fft_config': 0,
         'generate_fn': lambda spectogram: spectral.spectogram_2_waveform(
             spectogram, FFT_FRAME_LENGTHS[0], FFT_FRAME_STEPS[0], LOG_MAGNITUDE[0],
             INSTANTANEOUS_FREQUENCY[0]
