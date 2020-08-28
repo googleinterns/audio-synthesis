@@ -19,7 +19,7 @@ waveforms.
 import os
 import soundfile as sf
 import numpy as np
-from audio_synthesis.datasets import maestro_dataset
+from audio_synthesis.datasets import waveform_dataset
 from audio_synthesis.utils import spectral
 
 def save_wav_data(epoch, real, generated, sampling_rate, result_dir, get_waveform):
@@ -68,7 +68,7 @@ def get_waveform_from_normalized_magnitude(magnitude, statistics, griffin_lim_it
         spectrum. The phase is estimated using griffin-lim.
     """
 
-    magnitude = maestro_dataset.un_normalize(magnitude, *statistics)
+    magnitude = waveform_dataset.un_normalize(magnitude, *statistics)
 
     return spectral.magnitude_2_waveform(
         magnitude, griffin_lim_iterations, frame_length, frame_step,
@@ -103,10 +103,10 @@ def get_waveform_from_normalized_spectogram(spectogram, statistics, frame_length
     magnitude_stats, phase_stats = statistics
 
     magnitude = spectogram[:, :, 0]
-    magnitude = maestro_dataset.un_normalize(magnitude, *magnitude_stats)
+    magnitude = waveform_dataset.un_normalize(magnitude, *magnitude_stats)
 
     phase = spectogram[:, :, 1]
-    phase = maestro_dataset.un_normalize(phase, *phase_stats)
+    phase = waveform_dataset.un_normalize(phase, *phase_stats)
 
     un_normalized_spectogram = np.concatenate([
         np.expand_dims(magnitude, axis=2),
