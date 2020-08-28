@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Training Script for WaveGAN on MAESTRO.
+"""Training Script for WaveGAN on a waveform dataset.
 """
 
 import os
 import tensorflow as tf
 from audio_synthesis.structures import wave_gan
-from audio_synthesis.datasets import maestro_dataset
+from audio_synthesis.datasets import waveform_dataset
 from audio_synthesis.models import wgan
-from audio_synthesis.utils import maestro_save_helper as save_helper
+from audio_synthesis.utils import waveform_save_helper as save_helper
 
 # Setup Paramaters
 D_UPDATES_PER_G = 5
@@ -31,13 +31,13 @@ SAMPLING_RATE = 16000
 WAVEFORM_SHAPE = [-1, 2**14, 1]
 CHECKPOINT_DIR = '_results/representation_study/WaveGAN/training_checkpoints/'
 RESULT_DIR = '_results/representation_study/WaveGAN/audio/'
-MAESTRO_PATH = 'data/MAESTRO_6h.npz'
+DATASET_PATH = 'data/MAESTRO_6h.npz'
 
 def main():
     os.environ['CUDA_VISIBLE_DEVICES'] = ''
     print('Num GPUs Available: ', len(tf.config.experimental.list_physical_devices('GPU')))
 
-    raw_maestro = maestro_dataset.get_maestro_waveform_dataset(MAESTRO_PATH)
+    raw_dataset = waveform_dataset.get_waveform_dataset(DATASET_PATH)
 
     generator = wave_gan.Generator()
     discriminator = wave_gan.Discriminator(input_shape=WAVEFORM_SHAPE)
@@ -53,7 +53,7 @@ def main():
         )
 
     wave_gan_model = wgan.WGAN(
-        raw_maestro, generator, [discriminator], Z_DIM, generator_optimizer,
+        raw_dataset, generator, [discriminator], Z_DIM, generator_optimizer,
         discriminator_optimizer, discriminator_training_ratio=D_UPDATES_PER_G,
         batch_size=BATCH_SIZE, epochs=EPOCHS, checkpoint_dir=CHECKPOINT_DIR,
         fn_save_examples=save_examples
