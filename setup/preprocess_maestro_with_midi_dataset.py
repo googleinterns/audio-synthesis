@@ -37,7 +37,7 @@ DATA_POINT_LENGTH = 2**14
 BLOCK_IN_SECONDS = DATA_POINT_LENGTH / SAMPLE_RATE
 NUM_STATES_PER_CHUNK = 512
 HISTORICAL_CONDITIONING_BLOCKS = 1
-TOTAL_CONDITIONING = (HISTORICAL_CONDITIONING_BLOCKS+1) * NUM_STATES_PER_CHUNK
+TOTAL_CONDITIONING = (HISTORICAL_CONDITIONING_BLOCKS + 1) * NUM_STATES_PER_CHUNK
 RAW_DATA_PATH = './data/maestro/2017'
 PROCESSED_DATA_PATH = './data/'
 
@@ -71,9 +71,9 @@ def main():
         midi_conditioning = []
         for chunk_idx in range(processed_midi.shape[0]):
             conditioning = processed_midi[
-                max(chunk_idx - HISTORICAL_CONDITIONING_BLOCKS, 0) :chunk_idx+1, :, :
+                max(chunk_idx - HISTORICAL_CONDITIONING_BLOCKS, 0) :chunk_idx + 1, :, :
             ]
-            conditioning = np.reshape(conditioning, (-1, 89))
+            conditioning = np.reshape(conditioning, (-1, conditioning.shape[-1]))
             conditioning = np.pad(
                 conditioning,
                 [[TOTAL_CONDITIONING - conditioning.shape[0], 0], [0, 0]]

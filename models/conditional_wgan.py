@@ -29,8 +29,10 @@ def _compute_losses(discriminator, d_real, d_fake, interpolated_x, interpolated_
         discriminator: The discriminator function.
         d_real: The discriminator score for the real data points.
         d_fake: The discriminator score for the fake data points.
-        interpolated: The interpolation between the real and fake
+        interpolated_x: The interpolation between the real and fake
             data points.
+        interpolated_c: The interpolation between the real and fake
+            conditioning.
 
     Returns:
         g_loss: The loss for the generator function.
@@ -49,8 +51,10 @@ def _compute_losses(discriminator, d_real, d_fake, interpolated_x, interpolated_
     )
 
     g_loss = tf.reduce_mean(d_fake)
-    d_loss = wasserstein_distance + wgan.GRADIENT_PENALTY_LAMBDA * gradient_penalty_x +\
-                wgan.GRADIENT_PENALTY_LAMBDA * gradient_penalty_c
+    d_loss = wasserstein_distance + (
+        wgan.GRADIENT_PENALTY_LAMBDA * gradient_penalty_x +
+        wgan.GRADIENT_PENALTY_LAMBDA * gradient_penalty_c
+    )
 
     return g_loss, d_loss
 
@@ -185,7 +189,7 @@ class ConditionalWGAN(wgan.WGAN): # pylint: disable=too-many-instance-attributes
             A tf.Data dataset object for model training.
         """
 
-        return zip(self.conditioned_dataset, self.dataset)
+        return tf.data.Dataset.zip((self.conditioned_dataset, self.dataset))
 
     def _generate_and_save_examples(self, epoch):
         """Generates a batch of fake samples and saves them, along with
