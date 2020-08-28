@@ -35,7 +35,9 @@ SAMPLE_RATE = 16000 # 16kHz
 DATA_POINT_LENGTH = 2**14
 
 BLOCK_IN_SECONDS = DATA_POINT_LENGTH / SAMPLE_RATE
-NUM_STATES_PER_CHUNK = 128
+NUM_STATES_PER_CHUNK = 512
+HISTORICAL_CONDITIONING_BLOCKS = 1
+TOTAL_CONDITIONING = (HISTORICAL_CONDITIONING_BLOCKS + 1) * NUM_STATES_PER_CHUNK
 RAW_DATA_PATH = './data/maestro/2017'
 PROCESSED_DATA_PATH = './data/'
 
@@ -64,11 +66,27 @@ def main():
 
         processed_midi = preprocessing_helpers.piano_midi_2_chunks(
             midi, padded_wav_length, DATA_POINT_LENGTH, NUM_STATES_PER_CHUNK, SAMPLE_RATE
-        )
+        ).astype(np.float32)
+
+        midi_conditioning = []
+        for chunk_idx in range(processed_midi.shape[0]):
+            conditioning = processed_midi[
+                max(chunk_idx - HISTORICAL_CONDITIONING_BLOCKS, 0) :chunk_idx + 1, :, :
+            ]
+            conditioning = np.reshape(conditioning, (-1, conditioning.shape[-1]))
+            conditioning = np.pad(
+                conditioning,
+                [[TOTAL_CONDITIONING - conditioning.shape[0], 0], [0, 0]]
+            )
+
+            conditioning = np.expand_dims(conditioning, 0)
+            midi_conditioning.extend(conditioning.astype(np.float32))
+
+        midi_conditioning = np.array(midi_conditioning)
 
         assert waveform_chunks.shape[0] == processed_midi.shape[0]
         data.extend(waveform_chunks)
-        midi_data.extend(processed_midi)
+        midi_data.extend(midi_conditioning)
 
     data = np.array(data)
     midi_data = np.array(midi_data)
