@@ -58,6 +58,7 @@ def distort_two_channel_representation(representation, snr):
         distorted_channel = add_noise_at_snr_channel(input_channel, snr)
         distorted_channels.append(np.expand_dims(distorted_channel, 2))
 
+    #return np.expand_dims(np.concatenate([distorted_channels[0], distorted_channels[1]], axis=-1), 0)
     magnitude_only = np.concatenate([distorted_channels[0], orig_channels[1]], axis=-1)
     phase_only = np.concatenate([orig_channels[0], distorted_channels[1]], axis=-1)
     return magnitude_only, phase_only
@@ -77,7 +78,6 @@ SNRS = list(range(MIN_SNR, MAX_SNR+SNR_STEP, SNR_STEP))
 SAMPLE_RATE = 16000
 N_GL_REPEATS = 20
 LOG_MAGNITUDE = False
-N_MEL_BINS = 256
 MEL_LOWER_HERTZ_EDGE = 0.0
 MEL_UPPER_HERTZ_EDGE = 8000.0
 WAVEFORM_PATH = './data/speech.wav'
@@ -87,53 +87,74 @@ LINE_STYLES = ['--', ':']
 REPRESENTATIONS = {
     'STFT': {
         'requires_fft_params': True,
-        'waveform_2_representation': lambda waveform, window_length, window_step: spectral.waveform_2_stft(
+        'waveform_2_representation': lambda waveform, window_length, window_step, n_mel_bins: spectral.waveform_2_stft(
             waveform, window_length, window_step
         )[0],
-        'representation_2_waveform': lambda representation, window_length, window_step: spectral.stft_2_waveform(
+        'representation_2_waveform': lambda representation, window_length, window_step, n_mel_bins: spectral.stft_2_waveform(
             representation, window_length, window_step
+        )[0],
+        'distort_representation': distort_two_channel_representation,
+    },
+    '(mel) STFT': {
+        'requires_fft_params': True,
+        'waveform_2_representation': lambda waveform, window_length, window_step, n_mel_bins: spectral.waveform_2_stft(
+            waveform, window_length, window_step, n_mel_bins=n_mel_bins*2
+        )[0],
+        'representation_2_waveform': lambda representation, window_length, window_step, n_mel_bins: spectral.stft_2_waveform(
+            representation, window_length, window_step, n_mel_bins=n_mel_bins*2
         )[0],
         'distort_representation': distort_two_channel_representation,
     },
     'Mag': {
         'average': True,
         'requires_fft_params': True,
-        'waveform_2_representation': lambda waveform, window_length, window_step: spectral.waveform_2_magnitude(
+        'waveform_2_representation': lambda waveform, window_length, window_step, n_mel_bins: spectral.waveform_2_magnitude(
             waveform, window_length, window_step, log_magnitude=LOG_MAGNITUDE
         )[0],
-        'representation_2_waveform': lambda representation, window_length, window_step: [spectral.magnitude_2_waveform(
+        'representation_2_waveform': lambda representation, window_length, window_step, n_mel_bins: [spectral.magnitude_2_waveform(
             representation, 32, window_length, window_step, log_magnitude=LOG_MAGNITUDE
+        ) for i in range(N_GL_REPEATS)],
+        'distort_representation': distort_one_channel_representation,
+    },
+    '(mel) Mag': {
+        'average': True,
+        'requires_fft_params': True,
+        'waveform_2_representation': lambda waveform, window_length, window_step, n_mel_bins: spectral.waveform_2_magnitude(
+            waveform, window_length, window_step, log_magnitude=LOG_MAGNITUDE, n_mel_bins=n_mel_bins*2
+        )[0],
+        'representation_2_waveform': lambda representation, window_length, window_step, n_mel_bins: [spectral.magnitude_2_waveform(
+            representation, 32, window_length, window_step, log_magnitude=LOG_MAGNITUDE, n_mel_bins=n_mel_bins*2
         ) for i in range(N_GL_REPEATS)],
         'distort_representation': distort_one_channel_representation,
     },
     'Mag + Phase': {
         'requires_fft_params': True,
-        'waveform_2_representation': lambda waveform, window_length, window_step: spectral.waveform_2_spectogram(
+        'waveform_2_representation': lambda waveform, window_length, window_step, n_mel_bins: spectral.waveform_2_spectogram(
             waveform, window_length, window_step, log_magnitude=LOG_MAGNITUDE, instantaneous_frequency=False
         )[0],
-        'representation_2_waveform': lambda representation, window_length, window_step: spectral.spectogram_2_waveform(
+        'representation_2_waveform': lambda representation, window_length, window_step, n_mel_bins: spectral.spectogram_2_waveform(
             representation, window_length, window_step, log_magnitude=LOG_MAGNITUDE, instantaneous_frequency=False
         )[0],
         'distort_representation': distort_two_channel_representation,
     },
-#    '(mel) Mag + Phase': {
-#        'requires_fft_params': True,
-#        'waveform_2_representation': lambda waveform, window_length, window_step: spectral.waveform_2_spectogram(
-#            waveform, window_length, window_step, log_magnitude=LOG_MAGNITUDE, instantaneous_frequency=False,
-#            n_mel_bins=N_MEL_BINS, mel_lower_hertz_edge=MEL_LOWER_HERTZ_EDGE, mel_upper_hertz_edge=MEL_UPPER_HERTZ_EDGE
-#        )[0],
-#        'representation_2_waveform': lambda representation, window_length, window_step: #spectral.spectogram_2_waveform(
-#            representation, window_length, window_step, log_magnitude=LOG_MAGNITUDE, instantaneous_frequency=False,
-#            n_mel_bins=N_MEL_BINS, mel_lower_hertz_edge=MEL_LOWER_HERTZ_EDGE, mel_upper_hertz_edge=MEL_UPPER_HERTZ_EDGE
-#        )[0],
-#        'distort_representation': distort_two_channel_representation,
-#    },
+    #'(mel) Mag + Phase': {
+    #    'requires_fft_params': True,
+    #    'waveform_2_representation': lambda waveform, window_length, window_step, n_mel_bins: spectral.waveform_2_spectogram(
+    #        waveform, window_length, window_step, log_magnitude=LOG_MAGNITUDE, instantaneous_frequency=False,
+    #        n_mel_bins=n_mel_bins
+    #    )[0],
+    #    'representation_2_waveform': lambda representation, window_length, window_step, n_mel_bins: spectral.spectogram_2_waveform(
+    #        representation, window_length, window_step, log_magnitude=LOG_MAGNITUDE, instantaneous_frequency=False,
+    #        n_mel_bins=n_mel_bins
+    #    )[0],
+    #    'distort_representation': distort_two_channel_representation,
+    #},
     'Mag + IF': {
         'requires_fft_params': True,
-        'waveform_2_representation': lambda waveform, window_length, window_step: spectral.waveform_2_spectogram(
+        'waveform_2_representation': lambda waveform, window_length, window_step, n_mel_bins: spectral.waveform_2_spectogram(
             waveform, window_length, window_step, log_magnitude=LOG_MAGNITUDE, instantaneous_frequency=True
         )[0],
-        'representation_2_waveform': lambda representation, window_length, window_step: spectral.spectogram_2_waveform(
+        'representation_2_waveform': lambda representation, window_length, window_step, n_mel_bins: spectral.spectogram_2_waveform(
             representation, window_length, window_step, log_magnitude=LOG_MAGNITUDE, instantaneous_frequency=True
         )[0],
         'distort_representation': distort_two_channel_representation,
@@ -154,8 +175,8 @@ REPRESENTATIONS = {
 }
 
 def main(fft_window_size, fft_window_step):
-    os.environ['CUDA_VISIBLE_DEVICES'] = ''
-    print(fft_window_size, ' ', fft_window_step)
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+    print(fft_window_size, ' ', fft_window_step, ' ', (fft_window_size//2))
     
     origonal_audio, sr = sf.read(WAVEFORM_PATH)
     origonal_audio = origonal_audio.astype(np.float32)
@@ -169,7 +190,7 @@ def main(fft_window_size, fft_window_step):
             print(representation)
             if REPRESENTATIONS[representation]['requires_fft_params']:
                 audio_representation = REPRESENTATIONS[representation]['waveform_2_representation'](
-                    origonal_audio, fft_window_size, fft_window_step
+                    origonal_audio, fft_window_size, fft_window_step, fft_window_size//2
                 )
             else:
                 audio_representation = REPRESENTATIONS[representation]['waveform_2_representation'](origonal_audio)
@@ -186,7 +207,7 @@ def main(fft_window_size, fft_window_step):
             for noisy_representation in noisy_representations:
                 if REPRESENTATIONS[representation]['requires_fft_params']:
                     audio_hat = REPRESENTATIONS[representation]['representation_2_waveform'](
-                        noisy_representation, fft_window_size, fft_window_step
+                        noisy_representation, fft_window_size, fft_window_step, fft_window_size//2
                     )
                 else:
                     audio_hat = REPRESENTATIONS[representation]['representation_2_waveform'](noisy_representation)

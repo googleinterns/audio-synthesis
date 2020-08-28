@@ -22,20 +22,20 @@ _EPSILON = 1e-6
 _SAMPLE_RATE = 16000
 
 
-def _linear_to_mel_scale(linear_scale_in, n_mel_bins, mel_lower_hertz_edge,
+def _linear_to_mel_scale(linear_scale_in, n_mel_bins, stft_bins, mel_lower_hertz_edge,
                           mel_upper_hertz_edge):
     linear_to_mel_weight_matrix = tf.signal.linear_to_mel_weight_matrix(
-        n_mel_bins, linear_scale_in.shape[-1], _SAMPLE_RATE, mel_lower_hertz_edge,
+        n_mel_bins, stft_bins, _SAMPLE_RATE, mel_lower_hertz_edge,
         mel_upper_hertz_edge
     )
 
     mel_scale_out = tf.tensordot(linear_scale_in, linear_to_mel_weight_matrix, 1)
     return mel_scale_out
 
-def _mel_to_linear_scale(mel_scale_in, n_mel_bins, mel_lower_hertz_edge,
+def _mel_to_linear_scale(mel_scale_in, n_mel_bins, stft_bins, mel_lower_hertz_edge,
                           mel_upper_hertz_edge):
     linear_to_mel_weight_matrix = tf.signal.linear_to_mel_weight_matrix(
-        n_mel_bins, mel_scale_in.shape[-1], _SAMPLE_RATE, mel_lower_hertz_edge,
+        n_mel_bins, stft_bins, _SAMPLE_RATE, mel_lower_hertz_edge,
         mel_upper_hertz_edge
     )
     mel_to_linear_weight_matrix = tf.linalg.pinv(linear_to_mel_weight_matrix)
@@ -44,7 +44,8 @@ def _mel_to_linear_scale(mel_scale_in, n_mel_bins, mel_lower_hertz_edge,
     linear_scale_out = tf.tensordot(mel_scale_in, mel_to_linear_weight_matrix, 1)
     return linear_scale_out
 
-def waveform_2_stft(waveform, frame_length=512, frame_step=128):
+def waveform_2_stft(waveform, frame_length=512, frame_step=128, n_mel_bins=None, mel_lower_hertz_edge=0.0,
+                         mel_upper_hertz_edge=8000.0):
     """Transforms a Waveform into the STFT domain.
     
     Args:
@@ -69,10 +70,19 @@ def waveform_2_stft(waveform, frame_length=512, frame_step=128):
     real = tf.math.real(stft)[:, :, 0:-1]
     img = tf.math.imag(stft)[:, :, 0:-1]
     
+    if n_mel_bins:
+        real = _linear_to_mel_scale(
+            real, n_mel_bins, frame_length//2, mel_lower_hertz_edge, mel_upper_hertz_edge
+        )
+        img = _linear_to_mel_scale(
+            img, n_mel_bins, frame_length//2, mel_lower_hertz_edge, mel_upper_hertz_edge
+        )
+    
     return tf.concat([tf.expand_dims(real, 3),
                       tf.expand_dims(img, 3)], axis=-1)
 
-def stft_2_waveform(stft, frame_length=512, frame_step=128):
+def stft_2_waveform(stft, frame_length=512, frame_step=128, n_mel_bins=None, mel_lower_hertz_edge=0.0,
+                         mel_upper_hertz_edge=8000.0):
     """Transforms a STFT domain signal into a Waveform.
     
     Args:
@@ -89,16 +99,31 @@ def stft_2_waveform(stft, frame_length=512, frame_step=128):
     
     if len(stft.shape) == 3:
         stft = tf.expand_dims(stft, 0)
-        
-    stft = tf.complex(stft[:, :, :, 0], stft[:, :, :, 1])
+    
+    real = stft[:, :, :, 0]
+    img = stft[:, :, :, 1]
+    
+    if n_mel_bins:
+        real = _mel_to_linear_scale(
+            real, n_mel_bins, frame_length//2, mel_lower_hertz_edge, mel_upper_hertz_edge
+        )
+        img = _mel_to_linear_scale(
+            img, n_mel_bins, frame_length//2, mel_lower_hertz_edge, mel_upper_hertz_edge
+        )
+    
+    
+    real = tf.pad(real, [[0, 0], [0, 0], [0,1]], constant_values=0)
+    img = tf.pad(img, [[0, 0], [0, 0], [0,1]], constant_values=0)
+    
+    stft = tf.complex(real, img)
     waveform = tf.signal.inverse_stft(stft, frame_length=frame_length, frame_step=frame_step)
     return waveform
 
 
 def waveform_2_spectogram(waveform, frame_length=512, frame_step=128,
                           log_magnitude=True, instantaneous_frequency=True,
-                          n_mel_bins=None, mel_lower_hertz_edge=None,
-                          mel_upper_hertz_edge=None):
+                          n_mel_bins=None, mel_lower_hertz_edge=0.0,
+                         mel_upper_hertz_edge=8000.0):
     """Transforms a Waveform to a Spectogram.
 
     Returns the spectrogram for the given input. Note, this function
@@ -141,10 +166,10 @@ def waveform_2_spectogram(waveform, frame_length=512, frame_step=128,
 
     if n_mel_bins:
         magnitude = _linear_to_mel_scale(
-            magnitude, n_mel_bins, mel_lower_hertz_edge, mel_upper_hertz_edge
+            magnitude, n_mel_bins, frame_length//2, mel_lower_hertz_edge, mel_upper_hertz_edge
         )
         phase = _linear_to_mel_scale(
-            phase, n_mel_bins, mel_lower_hertz_edge, mel_upper_hertz_edge
+            phase, n_mel_bins, frame_length//2, mel_lower_hertz_edge, mel_upper_hertz_edge
         )
 
     if log_magnitude:
@@ -161,8 +186,8 @@ def waveform_2_spectogram(waveform, frame_length=512, frame_step=128,
     return spectogram
 
 def waveform_2_magnitude(waveform, frame_length=512, frame_step=128, log_magnitude=True,
-                         n_mel_bins=None, mel_lower_hertz_edge=None,
-                         mel_upper_hertz_edge=None):
+                         n_mel_bins=None, mel_lower_hertz_edge=0.0,
+                         mel_upper_hertz_edge=8000.0):
     """Transform a Waveform to a Magnitude Spectrum.
 
     This function is a wrapper for waveform_2_spectogram and removes
@@ -198,7 +223,9 @@ def waveform_2_magnitude(waveform, frame_length=512, frame_step=128, log_magnitu
     return magnitude
 
 def magnitude_2_waveform(magnitude, n_iter=16, frame_length=512,
-                         frame_step=128, log_magnitude=True):
+                         frame_step=128, log_magnitude=True,
+                         n_mel_bins=None, mel_lower_hertz_edge=0.0,
+                         mel_upper_hertz_edge=8000.0):
     """Transform a Magnitude Spectrum to a Waveform.
 
     Uses the Griffin-Lim algorythm, via the librosa implementation.
@@ -223,6 +250,12 @@ def magnitude_2_waveform(magnitude, n_iter=16, frame_length=512,
 
     if log_magnitude:
         magnitude = np.exp(magnitude) - _EPSILON
+        
+    if n_mel_bins:
+        magnitude = _mel_to_linear_scale(
+            magnitude, n_mel_bins, frame_length//2, mel_lower_hertz_edge, mel_upper_hertz_edge
+        )
+        #magnitude = np.maximum(magnitude, 0)
 
     # Add the removed band back in as zeros
     magnitude = np.pad(magnitude, [[0, 0], [0, 0], [0, 1]])
@@ -236,8 +269,8 @@ def magnitude_2_waveform(magnitude, n_iter=16, frame_length=512,
 
 def spectogram_2_waveform(spectogram, frame_length=512, frame_step=128,
                           log_magnitude=True, instantaneous_frequency=True,
-                          n_mel_bins=None, mel_lower_hertz_edge=None,
-                          mel_upper_hertz_edge=None):
+                          n_mel_bins=None, mel_lower_hertz_edge=0.0,
+                         mel_upper_hertz_edge=8000.0):
     """Transforms a Spectogram to a Waveform.
 
     Args:
@@ -269,10 +302,10 @@ def spectogram_2_waveform(spectogram, frame_length=512, frame_step=128,
     
     if n_mel_bins:
         magnitude = _mel_to_linear_scale(
-            magnitude, n_mel_bins, mel_lower_hertz_edge, mel_upper_hertz_edge
+            magnitude, n_mel_bins, frame_length//2, mel_lower_hertz_edge, mel_upper_hertz_edge
         )
         phase = _mel_to_linear_scale(
-            phase, n_mel_bins, mel_lower_hertz_edge, mel_upper_hertz_edge
+            phase, n_mel_bins, frame_length//2, mel_lower_hertz_edge, mel_upper_hertz_edge
         )
 
     if log_magnitude:
