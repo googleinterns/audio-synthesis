@@ -28,7 +28,7 @@ SHUFFLE_BUFFER_SIZE = 1000
 # is 10.0
 GRADIENT_PENALTY_LAMBDA = 10.0
 
-def _compute_losses(discriminator, d_real, d_fake, interpolated):
+def compute_losses(discriminator, d_real, d_fake, interpolated):
     """Base implementation of the function that computes the WGAN
     generator and disciminator losses.
 
@@ -59,7 +59,7 @@ def _compute_losses(discriminator, d_real, d_fake, interpolated):
 
     return g_loss, d_loss
 
-def _get_representations(x_in):
+def get_representations(x_in):
     """The default function to get discriminator representations.
     Just an identity function that returns the singleton array
     containing the input.
@@ -75,7 +75,7 @@ def _get_representations(x_in):
 
     return [x_in]
 
-def _get_interpolation(x_real, x_fake):
+def get_interpolation(x_real, x_fake):
     """Compute a linear interpolation of the real and generated
     data, this is used to compute the gradient penalty
     [https://arxiv.org/abs/1704.00028].
@@ -112,8 +112,8 @@ class WGAN: # pylint: disable=too-many-instance-attributes
     def __init__(self, raw_dataset, generator, # pylint: disable=too-many-arguments, too-many-locals
                  discriminator, z_dim, generator_optimizer, discriminator_optimizer,
                  discriminator_training_ratio=5, batch_size=64, epochs=1,
-                 checkpoint_dir=None, epochs_per_save=10, fn_compute_loss=_compute_losses,
-                 fn_get_discriminator_input_representations=_get_representations,
+                 checkpoint_dir=None, epochs_per_save=10, fn_compute_loss=compute_losses,
+                 fn_get_discriminator_input_representations=get_representations,
                  fn_save_examples=None):
         """Initilizes the WGAN class.
 
@@ -213,7 +213,7 @@ class WGAN: # pylint: disable=too-many-instance-attributes
                     d_real = self.discriminator[i](x_in_representations[i], training=True)
                     d_fake = self.discriminator[i](x_gen_representations[i], training=True)
 
-                    interpolation = _get_interpolation(
+                    interpolation = get_interpolation(
                         x_in_representations[i], x_gen_representations[i]
                     )
 
