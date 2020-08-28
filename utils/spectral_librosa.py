@@ -14,35 +14,32 @@
 
 """Provides functionality for converting audio representations."""
 
-import tensorflow as tf
 import numpy as np
 from librosa.core import griffinlim
+import librosa
 
 _EPSILON = 1e-6
 _SAMPLE_RATE = 16000
-WINDOW_FN = tf.signal.hamming_window
 
 
-def _linear_to_mel_scale(linear_scale_in, n_mel_bins, stft_bins, mel_lower_hertz_edge,
+def _linear_to_mel_scale(linear_scale_in, n_mel_bins, frame_length, mel_lower_hertz_edge,
                           mel_upper_hertz_edge):
-    linear_to_mel_weight_matrix = tf.signal.linear_to_mel_weight_matrix(
-        n_mel_bins, stft_bins, _SAMPLE_RATE, mel_lower_hertz_edge,
-        mel_upper_hertz_edge
+    linear_to_mel_weight_matrix = librosa.filters.mel(
+        sr=_SAMPLE_RATE, n_fft=frame_length, n_mels=linear_scale_in.shape[-1]
     )
 
-    mel_scale_out = tf.tensordot(linear_scale_in, linear_to_mel_weight_matrix, 1)
+    mel_scale_out = np.tensordot(linear_scale_in, np.transpose(linear_to_mel_weight_matrix), 1)
     return mel_scale_out
 
-def _mel_to_linear_scale(mel_scale_in, n_mel_bins, stft_bins, mel_lower_hertz_edge,
+def _mel_to_linear_scale(mel_scale_in, n_mel_bins, frame_length, mel_lower_hertz_edge,
                           mel_upper_hertz_edge):
-    linear_to_mel_weight_matrix = tf.signal.linear_to_mel_weight_matrix(
-        n_mel_bins, stft_bins, _SAMPLE_RATE, mel_lower_hertz_edge,
-        mel_upper_hertz_edge
+    linear_to_mel_weight_matrix = librosa.filters.mel(
+        sr=_SAMPLE_RATE, n_fft=frame_length, n_mels=mel_scale_in.shape[-1]
     )
-    mel_to_linear_weight_matrix = tf.linalg.pinv(linear_to_mel_weight_matrix)
+    mel_to_linear_weight_matrix = np.linalg.pinv(linear_to_mel_weight_matrix)
 
 
-    linear_scale_out = tf.tensordot(mel_scale_in, mel_to_linear_weight_matrix, 1)
+    linear_scale_out = np.tensordot(mel_scale_in, np.transpose(mel_to_linear_weight_matrix), 1)
     return linear_scale_out
 
 def waveform_2_stft(waveform, frame_length=512, frame_step=128, n_mel_bins=None, mel_lower_hertz_edge=0.0,
@@ -62,28 +59,29 @@ def waveform_2_stft(waveform, frame_length=512, frame_step=128, n_mel_bins=None,
     """
     
     if len(waveform.shape) == 1:
-        waveform = tf.expand_dims(waveform, 0)
+        waveform = np.expand_dims(waveform, 0)
 
-    stft = tf.signal.stft(
-        waveform, frame_length=frame_length, frame_step=frame_step, pad_end=True
+    stft = librosa.stft(
+      waveform, n_fft=frame_length, hop_length=frame_step, center=True, pad_mode='constant'
     )
+    stft = np.transpose(stft, axis=[0, 2, 1])
     
-    real = tf.math.real(stft)[:, :, 0:-1]
-    img = tf.math.imag(stft)[:, :, 0:-1]
+    real = np.real(stft)[:, :, 0:-1]
+    img = np.imag(stft)[:, :, 0:-1]
     
     if n_mel_bins:
         real = _linear_to_mel_scale(
-            real, n_mel_bins, frame_length//2, mel_lower_hertz_edge, mel_upper_hertz_edge
+            real, n_mel_bins, frame_length, mel_lower_hertz_edge, mel_upper_hertz_edge
         )
         img = _linear_to_mel_scale(
-            img, n_mel_bins, frame_length//2, mel_lower_hertz_edge, mel_upper_hertz_edge
+            img, n_mel_bins, frame_length, mel_lower_hertz_edge, mel_upper_hertz_edge
         )
     
-    return tf.concat([tf.expand_dims(real, 3),
-                      tf.expand_dims(img, 3)], axis=-1)
+    return np.concatenate([np.expand_dims(real, 3),
+                      np.expand_dims(img, 3)], axis=-1)
 
 def stft_2_waveform(stft, frame_length=512, frame_step=128, n_mel_bins=None, mel_lower_hertz_edge=0.0,
-                         mel_upper_hertz_edge=8000.0):
+                         mel_upper_hertz_edge=8000.0, length=None):
     """Transforms a STFT domain signal into a Waveform.
     
     Args:
@@ -99,26 +97,27 @@ def stft_2_waveform(stft, frame_length=512, frame_step=128, n_mel_bins=None, mel
     """
     
     if len(stft.shape) == 3:
-        stft = tf.expand_dims(stft, 0)
+        stft = np.expand_dims(stft, 0)
     
     real = stft[:, :, :, 0]
     img = stft[:, :, :, 1]
     
     if n_mel_bins:
         real = _mel_to_linear_scale(
-            real, n_mel_bins, frame_length//2, mel_lower_hertz_edge, mel_upper_hertz_edge
+            real, n_mel_bins, frame_length, mel_lower_hertz_edge, mel_upper_hertz_edge
         )
         img = _mel_to_linear_scale(
-            img, n_mel_bins, frame_length//2, mel_lower_hertz_edge, mel_upper_hertz_edge
+            img, n_mel_bins, frame_length, mel_lower_hertz_edge, mel_upper_hertz_edge
         )
     
     
-    real = tf.pad(real, [[0, 0], [0, 0], [0,1]], constant_values=0)
-    img = tf.pad(img, [[0, 0], [0, 0], [0,1]], constant_values=0)
+    real = np.pad(real, [[0, 0], [0, 0], [0,1]], constant_values=0)
+    img = np.pad(img, [[0, 0], [0, 0], [0,1]], constant_values=0)
     
-    stft = tf.complex(real, img)
-    inv_window_fn = tf.signal.inverse_stft_window_fn(frame_step)
-    waveform = tf.signal.inverse_stft(stft, frame_length=frame_length, frame_step=frame_step, window_fn=inv_window_fn)
+    stft = real + 1j * img
+    stft = np.transpose(stft, axis=[0, 2, 1])
+    
+    waveform = librosa.istft(stft, win_length=frame_length, hop_length=frame_step, center=True, length=length)
     return waveform
 
 
@@ -155,35 +154,36 @@ def waveform_2_spectogram(waveform, frame_length=512, frame_step=128,
 
 
     if len(waveform.shape) == 1:
-        waveform = tf.expand_dims(waveform, 0)
+        waveform = np.expand_dims(waveform, 0)
 
-    stft = tf.signal.stft(
-        waveform, frame_length=frame_length, frame_step=frame_step, pad_end=True
+    stft = librosa.stft(
+      waveform, n_fft=frame_length, hop_length=frame_step, center=True, pad_mode='constant'
     )
+    stft = np.transpose(stft, axis=[0, 2, 1])
     
     # Cut off extra band. This makes it a power of 2, this is
     # also done in the papers
-    magnitude = tf.abs(stft)[:, :, 0:-1]
-    phase = tf.math.angle(stft)[:, :, 0:-1]
+    magnitude = np.abs(stft)[:, :, 0:-1]
+    phase = np.angle(stft)[:, :, 0:-1]
 
     if n_mel_bins:
         magnitude = _linear_to_mel_scale(
-            magnitude, n_mel_bins, frame_length//2, mel_lower_hertz_edge, mel_upper_hertz_edge
+            magnitude, n_mel_bins, frame_length, mel_lower_hertz_edge, mel_upper_hertz_edge
         )
         phase = _linear_to_mel_scale(
-            phase, n_mel_bins, frame_length//2, mel_lower_hertz_edge, mel_upper_hertz_edge
+            phase, n_mel_bins, frame_length, mel_lower_hertz_edge, mel_upper_hertz_edge
         )
 
     if log_magnitude:
-        magnitude = tf.math.log(magnitude + _EPSILON)
+        magnitude = np.math.log(magnitude + _EPSILON)
 
     if instantaneous_frequency:
         phase = np.unwrap(phase)
         phase = np.concatenate([np.expand_dims(phase[:, 0, :], axis=-2),
                                 np.diff(phase, axis=-2)], axis=-2).astype(np.float32)
 
-    spectogram = tf.concat([tf.expand_dims(magnitude, 3),
-                            tf.expand_dims(phase, 3)], axis=-1)
+    spectogram = np.concat([np.expand_dims(magnitude, 3),
+                            np.expand_dims(phase, 3)], axis=-1)
 
     return spectogram
 
@@ -227,7 +227,7 @@ def waveform_2_magnitude(waveform, frame_length=512, frame_step=128, log_magnitu
 def magnitude_2_waveform(magnitude, n_iter=16, frame_length=512,
                          frame_step=128, log_magnitude=True,
                          n_mel_bins=None, mel_lower_hertz_edge=0.0,
-                         mel_upper_hertz_edge=8000.0):
+                         mel_upper_hertz_edge=8000.0, length=None):
     """Transform a Magnitude Spectrum to a Waveform.
 
     Uses the Griffin-Lim algorythm, via the librosa implementation.
@@ -248,14 +248,14 @@ def magnitude_2_waveform(magnitude, n_iter=16, frame_length=512,
     """
 
     if len(magnitude.shape) == 2:
-        magnitude = tf.expand_dims(magnitude, 0)
+        magnitude = np.expand_dims(magnitude, 0)
 
     if log_magnitude:
         magnitude = np.exp(magnitude) - _EPSILON
         
     if n_mel_bins:
         magnitude = _mel_to_linear_scale(
-            magnitude, n_mel_bins, frame_length//2, mel_lower_hertz_edge, mel_upper_hertz_edge
+            magnitude, n_mel_bins, mel_lower_hertz_edge, mel_upper_hertz_edge
         )
         #magnitude = np.maximum(magnitude, 0)
 
@@ -264,7 +264,8 @@ def magnitude_2_waveform(magnitude, n_iter=16, frame_length=512,
 
     to_waveform = lambda m: griffinlim(
         np.transpose(m), n_iter=n_iter, win_length=frame_length,
-        hop_length=frame_step, pad_mode='constant', center=False
+        hop_length=frame_step, pad_mode='constant', center=True,
+        length=length
     )
     
     return np.array(list(map(to_waveform, magnitude)))
@@ -272,7 +273,7 @@ def magnitude_2_waveform(magnitude, n_iter=16, frame_length=512,
 def spectogram_2_waveform(spectogram, frame_length=512, frame_step=128,
                           log_magnitude=True, instantaneous_frequency=True,
                           n_mel_bins=None, mel_lower_hertz_edge=0.0,
-                         mel_upper_hertz_edge=8000.0):
+                         mel_upper_hertz_edge=8000.0, length=None):
     """Transforms a Spectogram to a Waveform.
 
     Args:
@@ -297,34 +298,35 @@ def spectogram_2_waveform(spectogram, frame_length=512, frame_step=128,
     """
 
     if len(spectogram.shape) == 3:
-        spectogram = tf.expand_dims(spectogram, 0)
+        spectogram = np.expand_dims(spectogram, 0)
 
     magnitude = spectogram[:, :, :, 0]
     phase = spectogram[:, :, :, 1]
     
     if n_mel_bins:
         magnitude = _mel_to_linear_scale(
-            magnitude, n_mel_bins, frame_length//2, mel_lower_hertz_edge, mel_upper_hertz_edge
+            magnitude, n_mel_bins, frame_length, mel_lower_hertz_edge, mel_upper_hertz_edge
         )
         phase = _mel_to_linear_scale(
-            phase, n_mel_bins, frame_length//2, mel_lower_hertz_edge, mel_upper_hertz_edge
+            phase, n_mel_bins, frame_length, mel_lower_hertz_edge, mel_upper_hertz_edge
         )
 
     if log_magnitude:
-        magnitude = tf.math.exp(magnitude) - _EPSILON
+        magnitude = np.math.exp(magnitude) - _EPSILON
 
     if instantaneous_frequency:
-        phase = tf.cumsum(phase, axis=-2)
+        phase = np.cumsum(phase, axis=-2)
         phase = (phase + np.pi) % (2 * np.pi) - np.pi
 
     # Add the removed band back in as zeros
-    magnitude = tf.pad(magnitude, [[0, 0], [0, 0], [0, 1]], constant_values=0)
-    phase = tf.pad(phase, [[0, 0], [0, 0], [0, 1]], constant_values=0)
+    magnitude = np.pad(magnitude, [[0, 0], [0, 0], [0, 1]], constant_values=0)
+    phase = np.pad(phase, [[0, 0], [0, 0], [0, 1]], constant_values=0)
 
-    real = magnitude * tf.math.cos(phase)
-    img = magnitude * tf.math.sin(phase)
+    real = magnitude * np.math.cos(phase)
+    img = magnitude * np.math.sin(phase)
 
-    stft = tf.complex(real, img)
-    inv_window_fn = tf.signal.inverse_stft_window_fn(frame_step)
-    waveform = tf.signal.inverse_stft(stft, frame_length=frame_length, frame_step=frame_step, window_fn=inv_window_fn)
+    stft = real + 1j * img
+    stft = np.transpose(stft, axis=[0, 2, 1])
+    
+    waveform = librosa.istft(stft, win_length=frame_length, hop_length=frame_step, center=True, length=length)
     return waveform

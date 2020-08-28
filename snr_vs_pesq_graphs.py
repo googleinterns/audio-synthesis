@@ -98,35 +98,35 @@ REPRESENTATIONS = {
     '(mel) STFT': {
         'requires_fft_params': True,
         'waveform_2_representation': lambda waveform, window_length, window_step, n_mel_bins: spectral.waveform_2_stft(
-            waveform, window_length, window_step, n_mel_bins=n_mel_bins*2
+            waveform, window_length, window_step, n_mel_bins=80#n_mel_bins*1
         )[0],
         'representation_2_waveform': lambda representation, window_length, window_step, n_mel_bins: spectral.stft_2_waveform(
-            representation, window_length, window_step, n_mel_bins=n_mel_bins*2
+            representation, window_length, window_step, 80#n_mel_bins=n_mel_bins*1
         )[0],
         'distort_representation': distort_two_channel_representation,
     },
-    'Mag': {
-        'average': True,
-        'requires_fft_params': True,
-        'waveform_2_representation': lambda waveform, window_length, window_step, n_mel_bins: spectral.waveform_2_magnitude(
-            waveform, window_length, window_step, log_magnitude=LOG_MAGNITUDE
-        )[0],
-        'representation_2_waveform': lambda representation, window_length, window_step, n_mel_bins: [spectral.magnitude_2_waveform(
-            representation, 32, window_length, window_step, log_magnitude=LOG_MAGNITUDE
-        ) for i in range(N_GL_REPEATS)],
-        'distort_representation': distort_one_channel_representation,
-    },
-    '(mel) Mag': {
-        'average': True,
-        'requires_fft_params': True,
-        'waveform_2_representation': lambda waveform, window_length, window_step, n_mel_bins: spectral.waveform_2_magnitude(
-            waveform, window_length, window_step, log_magnitude=LOG_MAGNITUDE, n_mel_bins=n_mel_bins*2
-        )[0],
-        'representation_2_waveform': lambda representation, window_length, window_step, n_mel_bins: [spectral.magnitude_2_waveform(
-            representation, 32, window_length, window_step, log_magnitude=LOG_MAGNITUDE, n_mel_bins=n_mel_bins*2
-        ) for i in range(N_GL_REPEATS)],
-        'distort_representation': distort_one_channel_representation,
-    },
+    #'Mag': {
+    #    'average': True,
+    #    'requires_fft_params': True,
+    #    'waveform_2_representation': lambda waveform, window_length, window_step, n_mel_bins: spectral.waveform_2_magnitude(
+    #        waveform, window_length, window_step, log_magnitude=LOG_MAGNITUDE
+    #    )[0],
+    #    'representation_2_waveform': lambda representation, window_length, window_step, n_mel_bins: [spectral.magnitude_2_waveform(
+    #        representation, 32, window_length, window_step, log_magnitude=LOG_MAGNITUDE
+    #    ) for i in range(N_GL_REPEATS)],
+    #    'distort_representation': distort_one_channel_representation,
+    #},
+    #'(mel) Mag': {
+    #    'average': True,
+    #    'requires_fft_params': True,
+    #    'waveform_2_representation': lambda waveform, window_length, window_step, n_mel_bins: spectral.waveform_2_magnitude(
+    #        waveform, window_length, window_step, log_magnitude=LOG_MAGNITUDE, n_mel_bins=n_mel_bins*2
+    #    )[0],
+    #    'representation_2_waveform': lambda representation, window_length, window_step, n_mel_bins: [spectral.magnitude_2_waveform(
+    #        representation, 32, window_length, window_step, log_magnitude=LOG_MAGNITUDE, n_mel_bins=n_mel_bins*2
+    #    ) for i in range(N_GL_REPEATS)],
+    #    'distort_representation': distort_one_channel_representation,
+    #},
     'Mag + Phase': {
         'requires_fft_params': True,
         'waveform_2_representation': lambda waveform, window_length, window_step, n_mel_bins: spectral.waveform_2_spectogram(
@@ -195,6 +195,7 @@ def main(fft_window_size, fft_window_step):
             else:
                 audio_representation = REPRESENTATIONS[representation]['waveform_2_representation'](origonal_audio)
                 
+            print(audio_representation.shape)
             if 'distort_with_fft_average' in REPRESENTATIONS[representation]:
                 noisy_representations = REPRESENTATIONS[representation]['distort_representation'](audio_representation, snr, (fft_window_size // fft_window_step))
             else:
