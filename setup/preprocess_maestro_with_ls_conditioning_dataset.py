@@ -24,11 +24,13 @@ import sys
 import glob
 import librosa
 import numpy as np
+from audio_synthesis.setup import preprocessing_helpers
 
 # Overall Config #
 APPROX_TOTAL_HOURS = 6
 SAMPLE_RATE = 16000 # 16kHz
 DATA_POINT_LENGTH = 2**14
+CONDITIONING_START_INDEX = 2**14 // 2
 RAW_DATA_PATH = './data/maestro/2017'
 PROCESSED_DATA_PATH = './data/'
 
@@ -48,28 +50,20 @@ def main():
         if hours_loaded >= APPROX_TOTAL_HOURS:
             break
 
-        # Pad the song to ensure it can be evenly divided into
-        # chunks of length 'DATA_POINT_LENGTH'
-        padded_wav_length = int(DATA_POINT_LENGTH * np.ceil(len(wav) / DATA_POINT_LENGTH))
-        wav = np.pad(wav, [[0, padded_wav_length - len(wav)]])
+        waveform_chunks, _ = preprocessing_helpers.waveform_2_chunks(
+            wav, DATA_POINT_LENGTH
+        )
 
-        chunks = np.reshape(wav, (-1, DATA_POINT_LENGTH))
-        print(chunks.shape)
-        
-        conditioning_chunks = chunks[0:-1]
-        conditioning_chunks = conditioning_chunks[:, (2**14//2):]
-        chunks = chunks[1:]
-        
-        print(conditioning_chunks.shape)
-        print(chunks.shape)
-        
-        data.extend(chunks)
+        conditioning_chunks = waveform_chunks[0:-1]
+        conditioning_chunks = conditioning_chunks[:, CONDITIONING_START_INDEX:]
+        waveform_chunks = waveform_chunks[1:]
+
+        data.extend(waveform_chunks)
         data_conditioning.extend(conditioning_chunks)
-
 
     data = np.array(data)
     data_conditioning = np.array(data_conditioning)
-    
+
     print('Dataset Stats:')
     print('Total Hours: ', len(data) / 60 / 60)
     print('Dataset Size: ', sys.getsizeof(data) / 1e9, 'GB')

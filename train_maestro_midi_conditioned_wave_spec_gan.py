@@ -17,7 +17,7 @@
 import os
 import tensorflow as tf
 import numpy as np
-from audio_synthesis.structures import conditional_wave_spec_gan
+from audio_synthesis.structures import ls_conditional_wave_spec_gan
 from audio_synthesis.datasets import maestro_dataset
 from audio_synthesis.models import conditional_wgan
 from audio_synthesis.utils import maestro_save_helper as save_helper
@@ -66,11 +66,11 @@ def main():
     raw_maestro_conditioning = maestro_dataset.get_maestro_waveform_dataset(
         MAESTRO_MIDI_PATH).astype(np.float32)
 
-    generator = conditional_wave_spec_gan.Generator()
-    discriminator = conditional_wave_spec_gan.WaveformDiscriminator(
+    generator = ls_conditional_wave_spec_gan.Generator()
+    discriminator = ls_conditional_wave_spec_gan.WaveformDiscriminator(
         input_shape=WAVEFORM_SHAPE, weighting=CRITIC_WEIGHTINGS[0]
     )
-    spec_discriminator = conditional_wave_spec_gan.SpectogramDiscriminator(
+    spec_discriminator = ls_conditional_wave_spec_gan.SpectogramDiscriminator(
         input_shape=MAGNITUDE_IMAGE_SHAPE, weighting=CRITIC_WEIGHTINGS[1]
     )
 

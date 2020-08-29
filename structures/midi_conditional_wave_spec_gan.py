@@ -80,14 +80,14 @@ class Generator(keras.Model):
         random noise.
 
         Args:
-            c_in: The conditioning information. Expected shape is
-                [batch_size, 1024, 89]
             z_in: The random noise. Expected shape is
                 [batch_size, z_dim]
+            c_in: The conditioning information. Expected shape is
+                [batch_size, 1024, 89]
 
         Returns:
             The generated audio. The shape is
-            [batch_size, signal_length]
+            [batch_size, signal_length, 1]
         """
 
         z_pre_processed = self.z_pre_process(z_in)
