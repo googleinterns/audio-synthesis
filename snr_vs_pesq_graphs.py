@@ -84,7 +84,7 @@ SAMPLE_RATE = 16000
 N_REPEATS = 20
 LOG_MAGNITUDE = False
 MEL_LOWER_HERTZ_EDGE = 0.0
-MEL_UPPER_HERTZ_EDGE = 8000.0
+MEL_UPPER_HERTZ_EDGE = 4000.0
 WAVEFORM_PATH = './data/speech_8.wav'
 RESULTS_PATH = './_results/snr_vs_pesq/'
 LINE_STYLES = ['--', ':']
@@ -103,10 +103,10 @@ REPRESENTATIONS = {
     '(mel) STFT': {
         'requires_fft_params': True,
         'waveform_2_representation': lambda waveform, window_length, window_step, n_mel_bins: spectral.waveform_2_stft(
-            waveform, window_length, window_step, n_mel_bins*2, MEL_LOWER_HERTZ_EDGE, MEL_UPPER_HERTZ_EDGE
+            waveform, window_length, window_step, n_mel_bins*1, MEL_LOWER_HERTZ_EDGE, MEL_UPPER_HERTZ_EDGE
         )[0],
         'representation_2_waveform': lambda representation, window_length, window_step, n_mel_bins: spectral.stft_2_waveform(
-            representation, window_length, window_step, n_mel_bins*2, MEL_LOWER_HERTZ_EDGE, MEL_UPPER_HERTZ_EDGE
+            representation, window_length, window_step, n_mel_bins*1, MEL_LOWER_HERTZ_EDGE, MEL_UPPER_HERTZ_EDGE
         )[0],
         'distort_representation': distort_two_channel_representation,
     },
@@ -123,10 +123,10 @@ REPRESENTATIONS = {
     '(mel) Mag': {
         'requires_fft_params': True,
         'waveform_2_representation': lambda waveform, window_length, window_step, n_mel_bins: spectral.waveform_2_magnitude(
-            waveform, window_length, window_step, LOG_MAGNITUDE, n_mel_bins*2, MEL_LOWER_HERTZ_EDGE, MEL_UPPER_HERTZ_EDGE
+            waveform, window_length, window_step, LOG_MAGNITUDE, n_mel_bins*1, MEL_LOWER_HERTZ_EDGE, MEL_UPPER_HERTZ_EDGE
         )[0],
         'representation_2_waveform': lambda representation, window_length, window_step, n_mel_bins: spectral.magnitude_2_waveform(
-            representation, 32, window_length, window_step, LOG_MAGNITUDE, n_mel_bins*2, MEL_LOWER_HERTZ_EDGE, MEL_UPPER_HERTZ_EDGE
+            representation, 32, window_length, window_step, LOG_MAGNITUDE, n_mel_bins*1, MEL_LOWER_HERTZ_EDGE, MEL_UPPER_HERTZ_EDGE
         )[0],
         'distort_representation': distort_one_channel_representation,
     },
