@@ -289,11 +289,11 @@ def main(fft_window_size, fft_window_step):
         os_utils.mkdir(audio_dir)
 
         for i, audio in enumerate(REPRESENTATIONS[representation]['waveforms']):
-            for j, _ in enumerate(audio):
+            for j, wav in enumerate(audio):
                 file_path = os.path.join(
                     audio_dir, '{}_{}db_{}.wav'.format(representation, SNRS[i], j)
                 )
-                sf.write(file_path, audio[j], SAMPLE_RATE)
+                sf.write(file_path, wav, SAMPLE_RATE)
 
 if __name__ == '__main__':
     main(512, 64)
