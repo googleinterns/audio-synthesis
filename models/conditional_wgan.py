@@ -205,5 +205,5 @@ class ConditionalWGAN(wgan.WGAN): # pylint: disable=too-many-instance-attributes
             x_save = self.raw_x_dataset[0:self.batch_size]
             c_save = self.raw_dataset[0:self.batch_size]
 
-            generations = tf.squeeze(self.generator(c_save, z_in, training=False))
+            generations = tf.squeeze(self.generator(z_in, c_save, training=False))
             self.fn_save_examples(epoch, x_save, generations)
