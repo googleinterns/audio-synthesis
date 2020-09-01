@@ -22,7 +22,7 @@ from tensorflow.keras import utils
 import tensorflow as tf
 import soundfile as sf
 import numpy as np
-from audio_synthesis.datasets import maestro_dataset
+from audio_synthesis.datasets import waveform_dataset
 from audio_synthesis.utils import spectral
 from audio_synthesis.structures import wave_gan, spec_gan
 
@@ -31,7 +31,7 @@ Z_DIM = 64
 WAVEFORM_LENGTH = 16000
 SAMPLING_RATE = 16000
 RESULTS_PATH = '_results/representation_study/'
-MAESTRO_PATH = 'data/MAESTRO_6h.npz'
+DATASET_PATH = 'data/MAESTRO_6h.npz'
 GRIFFIN_LIM_ITERATIONS = 16
 FFT_FRAME_LENGTHS = [256, 512]
 FFT_FRAME_STEPS = [128, 128]
@@ -261,21 +261,21 @@ def main():
             print(model_name, ' not found')
             MODELS[model_name]['loaded'] = False
 
-    maestro = maestro_dataset.get_maestro_waveform_dataset(MAESTRO_PATH)
+    dataset = waveform_dataset.get_waveform_dataset(DATASET_PATH)
 
     magnitude_stastics = []
     phase_stastics = []
     for frame_length, frame_step in zip(FFT_FRAME_LENGTHS, FFT_FRAME_STEPS):
         _, magnitude_stastic, phase_stastic =\
-            maestro_dataset.get_maestro_magnitude_phase_dataset(
-                MAESTRO_PATH, frame_length, frame_step, LOG_MAGNITUDE,
+            waveform_dataset.get_magnitude_phase_dataset(
+                DATASET_PATH, frame_length, frame_step, LOG_MAGNITUDE,
                 INSTANTANEOUS_FREQUENCY
             )
         
         magnitude_stastics.append(magnitude_stastic)
         phase_stastics.append(phase_stastic)
 
-    maestro = maestro[np.random.randint(low=0, high=len(maestro), size=N_GENERATIONS)]
+    dataset = dataset[np.random.randint(low=0, high=len(dataset), size=N_GENERATIONS)]
     z_gen = tf.random.uniform((N_GENERATIONS, Z_DIM), -1, 1, tf.float32)
 
     pb_i = utils.Progbar(N_GENERATIONS)
@@ -289,19 +289,19 @@ def main():
             # If the model is a generator then produce a random generation,
             # otherwise take the current data point.
             if 'data' in MODELS[model_name] and MODELS[model_name]['data']:
-                generation = maestro[i]
+                generation = dataset[i]
             else:
                 generation = MODELS[model_name]['generator'](z_in)
                 generation = np.squeeze(generation)
 
                 if MODELS[model_name]['preprocess']['unnormalize_magnitude']:
                     fft_config = MODELS[model_name]['fft_config']
-                    generation = maestro_dataset.un_normalize(
+                    generation = waveform_dataset.un_normalize(
                         generation, *magnitude_stastics[fft_config]
                     )
                 elif MODELS[model_name]['preprocess']['unnormalize_spectogram']:
                     fft_config = MODELS[model_name]['fft_config']
-                    generation = maestro_dataset.un_normalize_spectogram(
+                    generation = waveform_dataset.un_normalize_spectogram(
                         generation, magnitude_stastics[fft_config], phase_stastics[fft_config]
                     )
 
