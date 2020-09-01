@@ -24,9 +24,9 @@ import distortion_helper
 
 class SpectralTest(tf.test.TestCase):
 
-    def test_add_noise_at_snr_channel_shape(self):
+    def test_add_noise_at_snr_shape(self):
         representation = np.random.normal(size=(128, 256, 1)).astype(np.float32)
-        distorted = distortion_helper.add_noise_at_snr_channel(representation, 0)
+        distorted = distortion_helper.add_noise_at_snr(representation, 0)
         
         self.assertEqual(representation.shape, distorted.shape)
         
@@ -36,7 +36,7 @@ class SpectralTest(tf.test.TestCase):
             representation, 0, 2
         )
         
-        self.assertEqual(representation.shape, distorted.shape)
+        self.assertEqual((1,) + representation.shape, distorted.shape)
         
     def test_distort_multiple_channel_representation_shape(self):
         representation = np.random.normal(size=(128, 256, 3)).astype(np.float32)

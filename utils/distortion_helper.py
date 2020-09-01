@@ -18,10 +18,30 @@ numpy arrays with additive white Gaussian noise.
 
 import numpy as np
 
-def distort_one_channel_representation(channel_in, snr, n_avg=1):
-    """Function for distorting a single channel representation.
-    Allows averaging over multiple distortions, raising the
-    effective SNR. No averaging by default.
+def distort_one_channel_representation(channel_in, snr, n_avg):
+    """Handles distorting a single channel representation.
+    
+    Args:
+        channel_in: The channel to be distorted.
+        snr: The desired snr of noise to be added
+        n_avg: Number of times to average.
+
+    Returns:
+        Sum of channel and noise. If n_avg > 1 then the result
+        is a sum of n_avg indepdent distorted channels divided
+        by n_avg. Shape is [1, channel_in.shape*]
+    """
+    
+    distorted_channel = distort_channel(
+        channel_in, snr, n_avg
+    )
+    
+    return np.expand_dims(distorted_channel, 0)
+
+def distort_channel(channel_in, snr, n_avg=1):
+    """Function for distorting a channel. Allows averaging
+    over multiple distortions, raising the effective SNR. 
+    No averaging by default.
 
     Args:
         channel_in: The channel to be distorted.
@@ -31,17 +51,18 @@ def distort_one_channel_representation(channel_in, snr, n_avg=1):
     Returns:
         Sum of channel and noise. If n_avg > 1 then the result
         is a sum of n_avg indepdent distorted channels divided
-        by n_avg. Shape is channel_in.shape
+        by n_avg. Shape is [channel_in.shape]
     """
 
-    noisy_channel = add_noise_at_snr_channel(channel_in, snr)
+    noisy_channel = add_noise_at_snr(channel_in, snr)
 
     for _ in range(n_avg-1):
-        noisy_channel = noisy_channel + add_noise_at_snr_channel(channel_in, snr)
+        noisy_channel = noisy_channel + add_noise_at_snr(channel_in, snr)
 
-    return noisy_channel / float(n_avg)
+    avg_noisy_channel = noisy_channel / float(n_avg)
+    return avg_noisy_channel
 
-def add_noise_at_snr_channel(channel_in, snr):
+def add_noise_at_snr(channel_in, snr):
     """Distortes the given input by adding noise to achieve a given SNR
 
     Args:
@@ -77,7 +98,7 @@ def distort_multiple_channel_representation(representation, snr, n_avg=1):
     distorted_representations = []
     for channel in range(representation.shape[-1]):
         input_channel = representation[:, :, channel:channel+1]
-        distorted_channel = distort_one_channel_representation(
+        distorted_channel = distort_channel(
             input_channel, snr, n_avg=n_avg
         )
         distorted_representation = np.concatenate([
