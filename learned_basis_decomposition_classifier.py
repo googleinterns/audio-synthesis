@@ -14,7 +14,9 @@
 
 """Exports the learned basis function decomposition experiemnt
 that uses an auxiliary classification loss to encourage something
-meaningful.
+meaningful. This classification loss looks at predicting the MIDI
+representation (piano keys pressed and the velocity + the sustain
+pedal) from the decomposed signal.
 """
 
 import os
@@ -61,7 +63,8 @@ def compute_auxiliary_loss(num_steps, x_in, decomposition, x_hat,
     classifier = auxiliary_models[0]
     classifier_optimizer = auxiliary_optimizers[0]
 
-    # Windows overlap by 50%. Hence we the midi data for every second window
+    # Windows overlap by 50%. Hence we only have the MIDI data for
+    # every second signal decomposition.
     classifier_input = decomposition[:, ::2, :]
     classifier_input = tf.reshape(classifier_input, (-1, NUMBER_OF_FILTERS))
 
