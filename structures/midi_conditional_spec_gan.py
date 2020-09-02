@@ -32,7 +32,7 @@ import audio_synthesis.utils.layers as layer_utils
 class Generator(keras.Model):
     """Implementation of the SpecGAN Generator Function."""
 
-    def __init__(self, channels=1, activation=activations.linear, z_in_shape=(4, 8, 512)):
+    def __init__(self, channels=1, activation=activations.linear, z_in_shape=(1024, 512)):
         """Initilizes the SpecGAN Generator function.
 
         Args:
@@ -52,20 +52,20 @@ class Generator(keras.Model):
 
         # Pre-process the random noise input. Input shape is
         # [-1, batch_size] and the output shape is [-1, 1024, 1024]
-        #z_pre_process = []
-        #z_pre_process.append(layers.Dense(np.prod(z_in_shape)))
-        #z_pre_process.append(layers.Reshape(z_in_shape))
+        z_pre_process = []
+        z_pre_process.append(layers.Dense(np.prod(z_in_shape)))
+        z_pre_process.append(layers.Reshape(z_in_shape))
         #z_pre_process.append(layer_utils.Conv1DTranspose(
         #    filters=1024, strides=4, kernel_size=8
         #))
         #z_pre_process.append(layers.ReLU())
-        #self.z_pre_process = keras.Sequential(z_pre_process)
+        self.z_pre_process = keras.Sequential(z_pre_process)
 
         # Pre-processing stack for the conditioning information, input is shape
         # [-1, 1024, 89] output is [-1, 1024, 1024].
         c_pre_process_1x1 = []
         c_pre_process_1x1.append(layers.Conv1D(
-            filters=1024, strides=1, kernel_size=1, padding='same'
+            filters=512, strides=1, kernel_size=1, padding='same'
         ))
         self.c_pre_process_1x1 = keras.Sequential(c_pre_process_1x1)
         
@@ -76,7 +76,7 @@ class Generator(keras.Model):
         ))
         c_pre_process.append(layers.ReLU())
         c_pre_process.append(layers.Conv2D(
-            filters=256, strides=(8, 8), kernel_size=(6,6), padding='same'
+            filters=256, strides=(8, 4), kernel_size=(6,6), padding='same'
         ))
         c_pre_process.append(layers.ReLU())
         c_pre_process.append(layers.Conv2D(
@@ -118,21 +118,14 @@ class Generator(keras.Model):
             batch elements.
         """
         
-        #z_pre_processed = self.z_pre_process(z_in)
+        z_pre_processed = self.z_pre_process(z_in)
         c_pre_processed = self.c_pre_process_1x1(c_in)
-        print(c_pre_processed.shape)
+        z_pre_processed = tf.expand_dims(z_pre_processed, axis=-1)
         c_pre_processed = tf.expand_dims(c_pre_processed, axis=-1)
-        c_pre_processed = self.c_pre_process(c_pre_processed)
-        print(c_pre_processed.shape)
-        
-        
-        #z_pre_processed = tf.expand_dims(z_pre_processed, axis=-1)
-        
-        
-        zc = c_pre_processed#tf.concat([c_pre_processed, z_pre_processed], axis=-1)
-        print(zc.shape)
-        
-        output = self.activation(self.l(zc))
+        zc = tf.concat([z_pre_processed, c_pre_processed], axis=-1)
+        zc_pre_processed = self.c_pre_process(zc)
+
+        output = self.activation(self.l(zc_pre_processed))
         return output
 
 class Discriminator(keras.Model):
@@ -156,7 +149,9 @@ class Discriminator(keras.Model):
         # Pre-processing stack for the conditioning information, input is shape
         # [-1, 1024, 89] output is [-1, 128, 256].
         c_pre_process = []
-        c_pre_process.append(layers.Conv1D(256, kernel_size=36, strides=4, padding='same'))
+        c_pre_process.append(layers.Conv1D(128, kernel_size=36, strides=2, padding='same'))
+        c_pre_process.append(layers.LeakyReLU(alpha=0.2))
+        c_pre_process.append(layers.Conv1D(256, kernel_size=36, strides=2, padding='same'))
         c_pre_process.append(layers.LeakyReLU(alpha=0.2))
         c_pre_process.append(layers.Conv1D(256, kernel_size=36, strides=2, padding='same'))
         c_pre_process.append(layers.LeakyReLU(alpha=0.2))
@@ -199,6 +194,6 @@ class Discriminator(keras.Model):
         c_pre_processed = tf.expand_dims(c_pre_processed, axis=-1)
         x_in = tf.reshape(x_in, self.in_shape)
 
-        xc_in = tf.concat([c_in, x_in], axis=1)
+        xc_in = tf.concat([c_pre_processed, x_in], axis=-1)
 
         return self.l(xc_in)
