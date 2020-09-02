@@ -17,10 +17,10 @@
 import os
 import tensorflow as tf
 import numpy as np
-from audio_synthesis.structures import ls_conditional_wave_spec_gan
-from audio_synthesis.datasets import maestro_dataset
+from audio_synthesis.structures import conditional_wave_spec_gan
+from audio_synthesis.datasets import waveform_dataset
 from audio_synthesis.models import conditional_wgan
-from audio_synthesis.utils import maestro_save_helper as save_helper
+from audio_synthesis.utils import waveform_save_helper as save_helper
 from audio_synthesis.utils import spectral
 
 D_UPDATES_PER_G = 5
@@ -59,18 +59,18 @@ def _get_discriminator_input_representations(x_in):
     return (x_in, magnitude)
 
 def main():
-    os.environ["CUDA_VISIBLE_DEVICES"] = '3'
+    os.environ["CUDA_VISIBLE_DEVICES"] = '2'
     print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
-    raw_maestro = maestro_dataset.get_maestro_waveform_dataset(MAESTRO_PATH)
-    raw_maestro_conditioning = maestro_dataset.get_maestro_waveform_dataset(
+    raw_maestro = waveform_dataset.get_waveform_dataset(MAESTRO_PATH)
+    raw_maestro_conditioning = waveform_dataset.get_waveform_dataset(
         MAESTRO_MIDI_PATH).astype(np.float32)
 
-    generator = ls_conditional_wave_spec_gan.Generator()
-    discriminator = ls_conditional_wave_spec_gan.WaveformDiscriminator(
+    generator = conditional_wave_spec_gan.Generator()
+    discriminator = conditional_wave_spec_gan.WaveformDiscriminator(
         input_shape=WAVEFORM_SHAPE, weighting=CRITIC_WEIGHTINGS[0]
     )
-    spec_discriminator = ls_conditional_wave_spec_gan.SpectogramDiscriminator(
+    spec_discriminator = conditional_wave_spec_gan.SpectogramDiscriminator(
         input_shape=MAGNITUDE_IMAGE_SHAPE, weighting=CRITIC_WEIGHTINGS[1]
     )
 
