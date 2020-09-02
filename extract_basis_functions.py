@@ -26,7 +26,6 @@ from audio_synthesis.structures import learned_basis_function
 MAESTRO_PATH = 'data/MAESTRO_6h.npz'
 SAMPLE_RATE = 16000
 DECOMPOSITION_IDX = 100
-RANDOM_SIGNAL = np.random.normal(size=(1, 2**14)).astype(np.float32)
 
 MODELS = {
     'Perceptual': {
@@ -51,10 +50,11 @@ MODELS = {
 
 def sort_basis_functions(basis_functions):
     """Sorts a set of basis functions by their distance to the
-    function with the smallest two-norm
+    function with the smallest two-norm.
 
     Args:
-        basis_functions: The set of basis functions to sort
+        basis_functions: The set of basis functions to sort.
+            Expected shape is (-1, basis_function_length).
 
     Returns:
         sorted_basis: The sorted basis functions
@@ -85,7 +85,7 @@ def save_plot(functions, fn_name):
     plt.savefig(fn_name, bbox_inches='tight')
     plt.clf()
 
-def plot_basis_functions_frequency_domain(basis_functions, fn_name):
+def plot_basis_functions_frequency_domain(basis_functions, file_name):
     """Plots a give set of learned basis functions in the frequency domain.
 
     Args:
@@ -94,7 +94,7 @@ def plot_basis_functions_frequency_domain(basis_functions, fn_name):
     """
 
     frequency_basis_functions = np.abs(np.fft.rfft(basis_functions))
-    save_plot(frequency_basis_functions, fn_name)
+    save_plot(frequency_basis_functions, file_name)
 
 def main():
     os.environ["CUDA_VISIBLE_DEVICES"] = ''
