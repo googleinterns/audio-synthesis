@@ -23,7 +23,7 @@ def distort_one_channel_representation(channel_in, snr, n_avg):
     
     Args:
         channel_in: The channel to be distorted.
-        snr: The desired snr of noise to be added
+        snr: The desired snr (dB) of noise to be added
         n_avg: Number of times to average.
 
     Returns:
@@ -45,7 +45,7 @@ def distort_channel(channel_in, snr, n_avg=1):
 
     Args:
         channel_in: The channel to be distorted.
-        snr: The desired snr of noise to be added
+        snr: The desired snr (dB) of noise to be added
         n_avg: Number of times to average.
 
     Returns:
@@ -56,7 +56,7 @@ def distort_channel(channel_in, snr, n_avg=1):
 
     noisy_channel = add_noise_at_snr(channel_in, snr)
 
-    for _ in range(n_avg-1):
+    for _ in range(n_avg - 1):
         noisy_channel = noisy_channel + add_noise_at_snr(channel_in, snr)
 
     avg_noisy_channel = noisy_channel / float(n_avg)
@@ -75,19 +75,18 @@ def add_noise_at_snr(channel_in, snr):
     """
 
     rms_channel = np.sqrt(np.mean(channel_in ** 2.0))
-    rms_noise = rms_channel / np.sqrt(10.0 ** (snr/10.0))
-    noise_std = rms_noise
+    noise_std = rms_channel / np.sqrt(10.0 ** (snr/10.0))
 
     return channel_in + np.random.normal(size=channel_in.shape, scale=noise_std)
 
 def distort_multiple_channel_representation(representation, snr, n_avg=1):
-    """Independtly distort each channel of the representation.
+    """Independently distort each channel of the representation.
 
     Args:
         representation: The representation to be distorted. The last
             dimention is taken as the channel. Expected shape is
             [-1, -1, channels].
-        snr: The desired SNR.
+        snr: The desired SNR (dB).
         n_avg: The number of times to average. Default is 1, i.e., no averaging.
 
     Returns:
@@ -97,14 +96,14 @@ def distort_multiple_channel_representation(representation, snr, n_avg=1):
 
     distorted_representations = []
     for channel in range(representation.shape[-1]):
-        input_channel = representation[:, :, channel:channel+1]
+        input_channel = representation[:, :, channel:channel + 1]
         distorted_channel = distort_channel(
             input_channel, snr, n_avg=n_avg
         )
         distorted_representation = np.concatenate([
             representation[:, :, 0:channel],
             distorted_channel,
-            representation[:, :, channel+1:]
+            representation[:, :, channel + 1:]
         ], axis=-1)
         distorted_representations.append(distorted_representation)
 

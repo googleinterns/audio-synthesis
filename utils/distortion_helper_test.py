@@ -25,6 +25,20 @@ import distortion_helper
 class SpectralTest(tf.test.TestCase):
 
     def test_add_noise_at_snr_shape(self):
+        desired_snr = 0.0
+        representation = np.random.uniform(size=(128, 256, 1)).astype(np.float32)
+        
+        distorted = distortion_helper.add_noise_at_snr(representation, desired_snr)
+        noise = distorted - representation
+        
+        power_channel = np.mean(representation ** 2.0)
+        power_noise = np.mean(noise ** 2.0)
+        
+        snr_actual = np.log10(power_channel / power_noise)
+        
+        self.assertEqual(desired_snr, np.round(snr_actual, 1))
+                
+    def test_add_noise_at_snr_db(self):
         representation = np.random.normal(size=(128, 256, 1)).astype(np.float32)
         distorted = distortion_helper.add_noise_at_snr(representation, 0)
         
