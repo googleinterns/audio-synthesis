@@ -14,20 +14,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for distortion helpers."""
+"""Tests for perceptual helpers."""
 
+import os
 import soundfile as sf
 import tensorflow as tf
 import numpy as np
-import os
+
+import perceptual_helper
 
 TEST_AUDIO_PATH = './data/speech.wav'
 NOISY_TEST_AUDIO_PATH = './data/speech_bab_0dB.wav'
 # Magic numbers, see https://github.com/ludlows/python-pesq
 EXPECTED_PESQ = 1.08
 MAXIMUM_PESQ = 4.64
-
-import perceptual_helper
 
 class PerceptualHelperTest(tf.test.TestCase):
 

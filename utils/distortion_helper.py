@@ -20,7 +20,7 @@ import numpy as np
 
 def distort_one_channel_representation(channel_in, snr, n_avg):
     """Handles distorting a single channel representation.
-    
+
     Args:
         channel_in: The channel to be distorted.
         snr: The desired snr (dB) of noise to be added
@@ -31,11 +31,11 @@ def distort_one_channel_representation(channel_in, snr, n_avg):
         is a sum of n_avg indepdent distorted channels divided
         by n_avg. Shape is [1, channel_in.shape*]
     """
-    
+
     distorted_channel = distort_channel(
         channel_in, snr, n_avg
     )
-    
+
     return np.expand_dims(distorted_channel, 0)
 
 def distort_channel(channel_in, snr, n_avg=1):

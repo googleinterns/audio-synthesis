@@ -268,7 +268,7 @@ def main(fft_window_size, fft_window_step):
 
     for representation in REPRESENTATIONS:
         audio_dir = os.path.join(base_audio_dir, representation)
-        os.makedirs(audio_dir, exist_ok = True)
+        os.makedirs(audio_dir, exist_ok=True)
 
         for i, audio in enumerate(REPRESENTATIONS[representation]['waveforms']):
             for j, wav in enumerate(audio):
