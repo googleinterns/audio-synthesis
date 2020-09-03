@@ -29,7 +29,7 @@ def _linear_to_mel_scale(linear_scale_in, n_mel_bins, mel_lower_hertz_edge,
 
     Args:
         linear_scale_in: The linear scale spectogram. Expected shape is
-            [-1, time, frequency, 1] or [-1, time, frequency, 2].
+            [-1, time, frequency, 1].
         n_mel_bins: The number of mel bins.
         mel_lower_hertz_edge: The lowest frequency in hertz to include in the
             mel spectrum
