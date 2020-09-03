@@ -20,15 +20,16 @@ import os
 import soundfile as sf
 import numpy as np
 import matplotlib.pyplot as plt
-import pesq
+
 from tensorflow.keras import utils
-from audio_synthesis.utils import spectral, os_utils
+from audio_synthesis.utils import spectral
 from audio_synthesis.utils import distortion_helper
+from audio_synthesis.utils import perceptual_helper
 
 MAX_SNR = 45
 MIN_SNR = 0
 SNR_STEP = 2
-SNRS = list(range(MIN_SNR, MAX_SNR+SNR_STEP, SNR_STEP))
+SNRS = list(range(MIN_SNR, MAX_SNR + SNR_STEP, SNR_STEP))
 SAMPLE_RATE = 16000
 N_REPEATS = 20
 N_GL_ITERATIONS = 32
@@ -43,99 +44,99 @@ LINE_STYLES = ['--', ':']
 REPRESENTATIONS = {
     'STFT': {
         'requires_fft_params': True,
-        'waveform_2_representation':\
-        lambda waveform, window_length, window_step, n_mel_bins:\
-        spectral.waveform_2_stft(
-            waveform, window_length, window_step
-        )[0],
-        'representation_2_waveform':\
-        lambda representation, window_length, window_step, n_mel_bins:\
-        spectral.stft_2_waveform(
-            representation, window_length, window_step
-        )[0],
+        'waveform_2_representation':
+        lambda waveform, window_length, window_step, n_mel_bins:
+            spectral.waveform_2_stft(
+                waveform, window_length, window_step
+            )[0],
+        'representation_2_waveform':
+        lambda representation, window_length, window_step, n_mel_bins:
+            spectral.stft_2_waveform(
+                representation, window_length, window_step
+            )[0],
         'distort_representation': distortion_helper.distort_multiple_channel_representation,
     },
     '(mel) STFT': {
         'requires_fft_params': True,
-        'waveform_2_representation':\
-        lambda waveform, window_length, window_step, n_mel_bins:\
-        spectral.waveform_2_stft(
-            waveform, window_length, window_step,
-            n_mel_bins * MEL_BIN_MULTIPLIER, MEL_LOWER_HERTZ_EDGE,
-            MEL_UPPER_HERTZ_EDGE
-        )[0],
-        'representation_2_waveform':\
-        lambda representation, window_length, window_step, n_mel_bins:\
-        spectral.stft_2_waveform(
-            representation, window_length, window_step,
-            n_mel_bins * MEL_BIN_MULTIPLIER, MEL_LOWER_HERTZ_EDGE,
-            MEL_UPPER_HERTZ_EDGE
-        )[0],
+        'waveform_2_representation':
+        lambda waveform, window_length, window_step, n_mel_bins:
+            spectral.waveform_2_stft(
+                waveform, window_length, window_step,
+                n_mel_bins * MEL_BIN_MULTIPLIER, MEL_LOWER_HERTZ_EDGE,
+                MEL_UPPER_HERTZ_EDGE
+            )[0],
+        'representation_2_waveform':
+        lambda representation, window_length, window_step, n_mel_bins:
+            spectral.stft_2_waveform(
+                representation, window_length, window_step,
+                n_mel_bins * MEL_BIN_MULTIPLIER, MEL_LOWER_HERTZ_EDGE,
+                MEL_UPPER_HERTZ_EDGE
+            )[0],
         'distort_representation': distortion_helper.distort_multiple_channel_representation,
     },
     'Mag': {
         'requires_fft_params': True,
-        'waveform_2_representation':\
+        'waveform_2_representation':
         lambda waveform, window_length, window_step, n_mel_bins:
-        spectral.waveform_2_magnitude(
-            waveform, window_length, window_step, log_magnitude=LOG_MAGNITUDE
-        )[0],
-        'representation_2_waveform':\
-        lambda representation, window_length, window_step, n_mel_bins:\
-        spectral.magnitude_2_waveform(
-            representation, N_GL_ITERATIONS, window_length,
-            window_step, log_magnitude=LOG_MAGNITUDE
-        )[0],
+            spectral.waveform_2_magnitude(
+                waveform, window_length, window_step, log_magnitude=LOG_MAGNITUDE
+            )[0],
+        'representation_2_waveform':
+        lambda representation, window_length, window_step, n_mel_bins:
+            spectral.magnitude_2_waveform(
+                representation, N_GL_ITERATIONS, window_length,
+                window_step, log_magnitude=LOG_MAGNITUDE
+            )[0],
         'distort_representation': distortion_helper.distort_one_channel_representation,
     },
     '(mel) Mag': {
         'requires_fft_params': True,
-        'waveform_2_representation':\
-        lambda waveform, window_length, window_step, n_mel_bins:\
-        spectral.waveform_2_magnitude(
-            waveform, window_length, window_step, LOG_MAGNITUDE,
-            n_mel_bins * MEL_BIN_MULTIPLIER, MEL_LOWER_HERTZ_EDGE,
-            MEL_UPPER_HERTZ_EDGE
-        )[0],
-        'representation_2_waveform':\
-        lambda representation, window_length, window_step, n_mel_bins:\
-        spectral.magnitude_2_waveform(
-            representation, N_GL_ITERATIONS, window_length,
-            window_step, LOG_MAGNITUDE, n_mel_bins * MEL_BIN_MULTIPLIER,
-            MEL_LOWER_HERTZ_EDGE, MEL_UPPER_HERTZ_EDGE
-        )[0],
+        'waveform_2_representation':
+        lambda waveform, window_length, window_step, n_mel_bins:
+            spectral.waveform_2_magnitude(
+                waveform, window_length, window_step, LOG_MAGNITUDE,
+                n_mel_bins * MEL_BIN_MULTIPLIER, MEL_LOWER_HERTZ_EDGE,
+                MEL_UPPER_HERTZ_EDGE
+            )[0],
+        'representation_2_waveform':
+        lambda representation, window_length, window_step, n_mel_bins:
+            spectral.magnitude_2_waveform(
+                representation, N_GL_ITERATIONS, window_length,
+                window_step, LOG_MAGNITUDE, n_mel_bins * MEL_BIN_MULTIPLIER,
+                MEL_LOWER_HERTZ_EDGE, MEL_UPPER_HERTZ_EDGE
+            )[0],
         'distort_representation': distortion_helper.distort_one_channel_representation,
     },
     'Mag + Phase': {
         'requires_fft_params': True,
-        'waveform_2_representation':\
-        lambda waveform, window_length, window_step, n_mel_bins:\
-        spectral.waveform_2_spectogram(
-            waveform, window_length, window_step,
-            log_magnitude=LOG_MAGNITUDE, instantaneous_frequency=False
-        )[0],
-        'representation_2_waveform':\
-        lambda representation, window_length, window_step, n_mel_bins:\
-        spectral.spectogram_2_waveform(
-            representation, window_length, window_step,
-            log_magnitude=LOG_MAGNITUDE, instantaneous_frequency=False
-        )[0],
+        'waveform_2_representation':
+        lambda waveform, window_length, window_step, n_mel_bins:
+            spectral.waveform_2_spectogram(
+                waveform, window_length, window_step,
+                log_magnitude=LOG_MAGNITUDE, instantaneous_frequency=False
+            )[0],
+        'representation_2_waveform':
+        lambda representation, window_length, window_step, n_mel_bins:
+            spectral.spectogram_2_waveform(
+                representation, window_length, window_step,
+                log_magnitude=LOG_MAGNITUDE, instantaneous_frequency=False
+            )[0],
         'distort_representation': distortion_helper.distort_multiple_channel_representation,
     },
     'Mag + IF': {
         'requires_fft_params': True,
-        'waveform_2_representation':\
-        lambda waveform, window_length, window_step, n_mel_bins:\
-        spectral.waveform_2_spectogram(
-            waveform, window_length, window_step,
-            log_magnitude=LOG_MAGNITUDE, instantaneous_frequency=True
-        )[0],
-        'representation_2_waveform':\
-        lambda representation, window_length, window_step, n_mel_bins:\
-        spectral.spectogram_2_waveform(
-            representation, window_length, window_step,
-            log_magnitude=LOG_MAGNITUDE, instantaneous_frequency=True
-        )[0],
+        'waveform_2_representation':
+        lambda waveform, window_length, window_step, n_mel_bins:
+            spectral.waveform_2_spectogram(
+                waveform, window_length, window_step,
+                log_magnitude=LOG_MAGNITUDE, instantaneous_frequency=True
+            )[0],
+        'representation_2_waveform':
+        lambda representation, window_length, window_step, n_mel_bins:
+            spectral.spectogram_2_waveform(
+                representation, window_length, window_step,
+                log_magnitude=LOG_MAGNITUDE, instantaneous_frequency=True
+            )[0],
         'distort_representation': distortion_helper.distort_multiple_channel_representation,
     },
     'Waveform': {
@@ -152,23 +153,6 @@ REPRESENTATIONS = {
         'distort_representation': distortion_helper.distort_one_channel_representation,
     }
 }
-
-def perceptual_error(reference, degraded):
-    """Wrapper function for the perceptual error metric
-
-    Args:
-        reference: The clean reference file
-        degraded: The distorted version of the reference file.
-
-    Returns:
-        The perceptual error as computed by the wrapped function.
-    """
-
-    reference = np.array(reference)
-    degraded = np.array(degraded)
-
-    degraded = degraded[0:len(reference)]
-    return pesq.pesq(SAMPLE_RATE, reference, degraded, 'wb')
 
 def process_representation_at_snr(representation, origonal_audio,
                                   snr, fft_window_size, fft_window_step):
@@ -218,7 +202,7 @@ def process_representation_at_snr(representation, origonal_audio,
             )[0:len(origonal_audio)]
 
         audio_hats.append(audio_hat)
-        perceptual_errors.append(perceptual_error(origonal_audio, audio_hat))
+        perceptual_errors.append(perceptual_helper.pesq_metric(origonal_audio, audio_hat))
     return perceptual_errors, audio_hats
 
 def main(fft_window_size, fft_window_step):
@@ -235,7 +219,6 @@ def main(fft_window_size, fft_window_step):
 
     origonal_audio, _ = sf.read(WAVEFORM_PATH)
     origonal_audio = origonal_audio.astype(np.float32)
-    print("Sanity Check PESQ: ", perceptual_error(origonal_audio, origonal_audio))
 
     for representation in REPRESENTATIONS:
         REPRESENTATIONS[representation]['perceptual_errors'] = []
@@ -243,7 +226,7 @@ def main(fft_window_size, fft_window_step):
 
     for snr in SNRS:
         pb_i = utils.Progbar(len(REPRESENTATIONS) * N_REPEATS)
-        print("SNR: ", snr)
+        print('SNR: ', snr)
         for representation in REPRESENTATIONS:
             all_perceptual_errors = []
             for _ in range(N_REPEATS):
@@ -282,11 +265,10 @@ def main(fft_window_size, fft_window_step):
     # Save the audio files
     setup = 'audio_{}ws_{}s'.format(fft_window_size, fft_window_step)
     base_audio_dir = os.path.join(RESULTS_PATH, setup)
-    os_utils.mkdir(base_audio_dir)
 
     for representation in REPRESENTATIONS:
         audio_dir = os.path.join(base_audio_dir, representation)
-        os_utils.mkdir(audio_dir)
+        os.makedirs(audio_dir, exist_ok = True)
 
         for i, audio in enumerate(REPRESENTATIONS[representation]['waveforms']):
             for j, wav in enumerate(audio):
