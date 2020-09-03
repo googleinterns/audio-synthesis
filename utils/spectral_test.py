@@ -62,7 +62,7 @@ class SpectralTest(tf.test.TestCase):
         
         self.assertAllClose(waveform, waveform_hat)
         
-    def test_waveform_to_spectogram_return(self):
+    def test_waveform_to_mel_spectogram_return(self):
         waveform = np.sin(np.linspace(0, 4 * np.pi, 2**14)).astype(np.float32)
         spectogram = spectral.waveform_2_spectogram(waveform, frame_length=512, frame_step=128, n_mel_bins=80)
         waveform_hat = spectral.spectogram_2_waveform(spectogram, frame_length=512, frame_step=128, n_mel_bins=80)[0]

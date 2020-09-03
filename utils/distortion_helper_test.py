@@ -24,7 +24,7 @@ import distortion_helper
 
 class DistortionHelperTest(tf.test.TestCase):
 
-    def test_add_noise_at_snr_shape(self):
+    def test_add_noise_at_snr_db(self):
         desired_snr = 0.0
         representation = np.random.uniform(size=(128, 256, 1)).astype(np.float32)
 
@@ -38,7 +38,7 @@ class DistortionHelperTest(tf.test.TestCase):
 
         self.assertEqual(desired_snr, np.round(snr_actual, 1))
                 
-    def test_add_noise_at_snr_db(self):
+    def test_add_noise_at_snr_shape(self):
         representation = np.random.normal(size=(128, 256, 1)).astype(np.float32)
         distorted = distortion_helper.add_noise_at_snr(representation, 0)
 

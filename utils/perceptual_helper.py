@@ -25,8 +25,8 @@ def pesq_metric(reference, degraded):
     """Wrapper function for the pesq perceptual error metric.
 
     Args:
-        reference: The clean reference file
-        degraded: The distorted version of the reference file.
+        reference: The clean reference array of samples
+        degraded: The distorted version of the reference array.
 
     Returns:
         The perceptual error as computed by the wrapped function.
