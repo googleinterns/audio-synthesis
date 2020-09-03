@@ -96,9 +96,9 @@ def distort_multiple_channel_representation(representation, snr, n_avg=1):
 
     distorted_representations = []
     for channel in range(representation.shape[-1]):
-        input_channel = representation[:, :, channel:channel + 1]
         distorted_channel = distort_channel(
-            input_channel, snr, n_avg=n_avg
+            representation[:, :, channel:channel + 1],
+            snr, n_avg=n_avg
         )
         distorted_representation = np.concatenate([
             representation[:, :, 0:channel],
