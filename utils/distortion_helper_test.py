@@ -22,7 +22,7 @@ import os
 
 import distortion_helper
 
-class SpectralTest(tf.test.TestCase):
+class DistortionHelperTest(tf.test.TestCase):
 
     def test_add_noise_at_snr_shape(self):
         desired_snr = 0.0
