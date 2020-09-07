@@ -33,19 +33,15 @@ EPOCHS = 300
 SAMPLING_RATE = 16000
 FFT_FRAME_LENGTH = 512
 FFT_FRAME_STEP = 128
-MEL_SPECTOGRAM = False
-MEL_LOWER_HERTZ_EDGE = 80.
-MEL_UPPER_HERTZ_EDGE = 7600.
-NUM_MEL_BINS = 96
 SIGNAL_LENGTH = 2**14
 WAVEFORM_SHAPE = [-1, SIGNAL_LENGTH, 1]
 SPECTOGRAM_IMAGE_SHAPE = [-1, 128, 256, 2]
 MAGNITUDE_IMAGE_SHAPE = [-1, 128, 256, 1]
 CRITIC_WEIGHTINGS=[1.0, 1.0]
-CHECKPOINT_DIR = '_results/conditioning/LSC_STFTMagGAN_HR_8192/training_checkpoints/'
-RESULT_DIR = '_results/conditioning/LSC_STFTMagGAN_HR_8192/audio/'
+CHECKPOINT_DIR = '_results/conditioning/LSC_STFTMagGAN_HR/training_checkpoints/'
+RESULT_DIR = '_results/conditioning/LSC_STFTMagGAN_HR/audio/'
 MAESTRO_PATH = 'data/MAESTRO_ls_6h.npz'
-MAESTRO_CONDITIONING_PATH = 'data/MAESTRO_ls_hlf_cond_6h.npz'
+MAESTRO_CONDITIONING_PATH = 'data/MAESTRO_ls_cond_6h.npz'
 
 def _get_discriminator_input_representations(stft_in):
     """Computes the input representations for the STFTSpecGAN discriminator models,

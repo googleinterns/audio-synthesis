@@ -63,7 +63,7 @@ class Generator(keras.Model):
                                         strides=(4, 4), padding='same'))
         c_preprocess.append(layers.ReLU())
         c_preprocess.append(layers.Conv2D(filters=512, kernel_size=(6, 6),
-                                        strides=(1, 2), padding='same'))
+                                        strides=(2, 2), padding='same'))
         c_preprocess.append(layers.ReLU())
         self.c_preprocess = keras.Sequential(c_preprocess)
 
@@ -124,7 +124,7 @@ class Discriminator(keras.Model):
         self.in_shape = input_shape
         self.weighting = weighting
         
-        #self.c_pre_process = layers.Conv2DTranspose(1, kernel_size=(6,6), strides=(2,1), padding='same')
+        self.c_pre_process = layers.Conv2DTranspose(1, kernel_size=(6,6), strides=(2,1), padding='same')
         
         sequential = []
         sequential.append(layers.Conv2D(filters=64, kernel_size=(6, 6),
@@ -160,7 +160,8 @@ class Discriminator(keras.Model):
         """
         
         x_in = tf.reshape(x_in, self.in_shape)
+        c_pre_processed = self.c_pre_process(c_in)
         
-        xc_in = tf.concat([c_in, x_in], axis=1)
+        xc_in = tf.concat([c_pre_processed, x_in], axis=1)
         
         return self.l(xc_in)
