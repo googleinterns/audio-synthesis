@@ -34,7 +34,7 @@ Z_DIM = 64
 def main():
     os.environ["CUDA_VISIBLE_DEVICES"] = ''
     print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
-    
+
     raw_maestro = waveform_dataset.get_waveform_dataset(MAESTRO_PATH)
 
     generator = ls_conditional_wave_spec_gan.Generator()
@@ -43,19 +43,20 @@ def main():
 
     checkpoint = tf.train.Checkpoint(generator=generator)
     checkpoint.restore(checkpoint_path).expect_partial()
-    
+
     seed = raw_maestro[SEED_INDEX]
-    
+
     sequence = [np.reshape(seed, (GENERATION_LENGTH))]
     for i in range(N_GENERATIONS):
         z_in = tf.random.uniform((1, Z_DIM), -1, 1)
         seed_in = sequence[i][CONDITIONING_START_INDEX:]
         seed_in = np.expand_dims(seed_in, 0)
+        
         gen = generator(seed_in, z_in)
         sequence.append(np.squeeze(gen))
-     
+
     audio = np.reshape(sequence, (-1))
     sf.write('babble.wav', audio, SAMPLE_RATE)
-    
+
 if __name__ == '__main__':
     main()

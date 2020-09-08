@@ -97,7 +97,7 @@ class WaveformDiscriminator(keras.Model):
         of the conditional WaveSpecGAN.
 
         Args:
-            input_shape: The required shape for the data input 
+            input_shape: The required shape for the data input
                 to the discriminator.
             weighting: Relative weighting of the discriminator in the 
                 loss. Default 1.0.
