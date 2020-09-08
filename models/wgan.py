@@ -28,7 +28,7 @@ SHUFFLE_BUFFER_SIZE = 1000
 # is 10.0
 GRADIENT_PENALTY_LAMBDA = 10.0
 
-def compute_losses(discriminator, d_real, d_fake, interpolated):
+def _compute_losses(discriminator, d_real, d_fake, interpolated):
     """Base implementation of the function that computes the WGAN
     generator and disciminator losses.
 
@@ -45,29 +45,47 @@ def compute_losses(discriminator, d_real, d_fake, interpolated):
     """
     wasserstein_distance = tf.reduce_mean(d_real) - tf.reduce_mean(d_fake)
 
-    with tf.GradientTape() as tape:
-        tape.watch(interpolated)
-        d_interpolated = discriminator(interpolated, training=True)
-
-    gradient = tape.gradient(d_interpolated, [interpolated])[0]
-    sum_axes = list(range(1, len(interpolated.shape)))
-    slopes = tf.sqrt(tf.reduce_sum(tf.square(gradient), axis=sum_axes))
-    gradient_penalty = tf.reduce_mean((slopes - 1.0) ** 2.0)
+    gradient_penalty = compute_gradient_penalty(discriminator, interpolated)
 
     g_loss = tf.reduce_mean(d_fake)
     d_loss = wasserstein_distance + GRADIENT_PENALTY_LAMBDA * gradient_penalty
 
     return g_loss, d_loss
 
+def compute_gradient_penalty(discriminator, interpolated):
+    """Computes the gradient penalty for a discriminator.
+    According to [https://arxiv.org/abs/1704.00028]
+
+    Args:
+        discriminator: The discriminator to compute the gradient
+            penalty for.
+        interpolated: The interpolation between real and fake data.
+
+    Returns:
+        The two norm of the difference between the discriminator gradients
+        and one.
+    """
+
+    with tf.GradientTape() as tape:
+        tape.watch(interpolated)
+        d_interpolated = discriminator(interpolated)
+
+    gradient = tape.gradient(d_interpolated, [interpolated])[0]
+    sum_axes = list(range(1, len(interpolated.shape)))
+    slopes = tf.sqrt(tf.reduce_sum(tf.square(gradient), axis=sum_axes))
+    gradient_penalty = tf.reduce_mean((slopes - 1.0) ** 2.0)
+
+    return gradient_penalty
+
 def get_representations(x_in):
     """The default function to get discriminator representations.
     Just an identity function that returns the singleton array
     containing the input.
-    
+
     Args:
         x_in: Real or fake data in the format produced at the output
             from the generator.
-    
+
     Returns:
         A list of representations, one for each discriminator in the
             model.
@@ -79,11 +97,11 @@ def get_interpolation(x_real, x_fake):
     """Compute a linear interpolation of the real and generated
     data, this is used to compute the gradient penalty
     [https://arxiv.org/abs/1704.00028].
-    
+
     Args:
         x_real: A batch of real data
         x_fake: A batch of generated data
-        
+
     Returns:
         A (random) linear interpolation between x_real
         and x_fake.
@@ -94,7 +112,7 @@ def get_interpolation(x_real, x_fake):
     alpha = tf.random.uniform(alpha_shape.astype(np.int32), 0.0, 1.0)
     diff = x_fake - x_real
     interpolation = x_real + (alpha * diff)
-    
+
     return interpolation
     
 
@@ -112,7 +130,7 @@ class WGAN: # pylint: disable=too-many-instance-attributes
     def __init__(self, raw_dataset, generator, # pylint: disable=too-many-arguments, too-many-locals
                  discriminator, z_dim, generator_optimizer, discriminator_optimizer,
                  discriminator_training_ratio=5, batch_size=64, epochs=1,
-                 checkpoint_dir=None, epochs_per_save=10, fn_compute_loss=compute_losses,
+                 checkpoint_dir=None, epochs_per_save=10, fn_compute_loss=_compute_losses,
                  fn_get_discriminator_input_representations=get_representations,
                  fn_save_examples=None):
         """Initilizes the WGAN class.
@@ -241,6 +259,14 @@ class WGAN: # pylint: disable=too-many-instance-attributes
 
 
     def _generate_and_save_examples(self, epoch):
+        """Generates a batch of fake samples and saves them, along with
+        a batch of real data for comparason. Calls the given fn_save_examples.
+        
+        Args:
+            epoch: The current epoch, added as a post-fix of the file
+                name.
+        """
+
         if self.fn_save_examples:
             x_save = self.raw_dataset[np.random.randint(
                 low=0, high=len(self.raw_dataset), size=self.batch_size
@@ -249,7 +275,16 @@ class WGAN: # pylint: disable=too-many-instance-attributes
             generations = tf.squeeze(self.generator(z_in, training=False))
             self.fn_save_examples(epoch, x_save, generations)
 
-
+    def _get_training_dataset(self):
+        """Function gives the dataset to use during training.
+        In this case, simply returns the given training dataset.
+        
+        Returns:
+            A tf.Data dataset object for model training.
+        """
+        
+        return self.dataset
+            
     def train(self):
         """Executes the training for the WGAN model."""
 
@@ -258,7 +293,7 @@ class WGAN: # pylint: disable=too-many-instance-attributes
             pb_i = keras_utils.Progbar(len(self.raw_dataset))
             start = time.time()
 
-            for i, x_batch in enumerate(self.dataset):
+            for i, x_batch in enumerate(self._get_training_dataset()):
                 self._train_step(x_batch, train_generator=False,
                                  train_discriminator=True)
                 if (i + 1) % self.discriminator_training_ratio == 0:
