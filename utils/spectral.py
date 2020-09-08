@@ -108,6 +108,8 @@ def waveform_2_stft(waveform, frame_length=512, frame_step=128, n_mel_bins=None,
         pad_end=True, window_fn=WINDOW_FN
     )
 
+    # Truncate the nyquist frequency, commonly done in other papers,
+    # also makes computation easier.
     real = tf.math.real(stft)[:, :, 0:-1]
     img = tf.math.imag(stft)[:, :, 0:-1]
 
@@ -146,6 +148,8 @@ def stft_2_waveform(stft, frame_length=512, frame_step=128, n_mel_bins=None,
     if len(stft.shape) == 3:
         stft = tf.expand_dims(stft, 0)
 
+    # Set the nyquist frequency to zero (the band we earlier removed).
+    # This is also commonly done in these other papers.
     real = stft[:, :, :, 0]
     img = stft[:, :, :, 1]
 
@@ -206,8 +210,8 @@ def waveform_2_spectogram(waveform, frame_length=512, frame_step=128,
         pad_end=True, window_fn=WINDOW_FN
     )
 
-    # Cut off extra band. This makes it a power of 2, this is
-    # also done in the papers
+    # Truncate the nyquist frequency, commonly done in other papers,
+    # also makes computation easier.
     magnitude = tf.abs(stft)[:, :, 0:-1]
     phase = tf.math.angle(stft)[:, :, 0:-1]
 
@@ -309,7 +313,8 @@ def magnitude_2_waveform(magnitude, n_iter=16, frame_length=512,
             magnitude, frame_length//2, mel_lower_hertz_edge, mel_upper_hertz_edge
         )
 
-    # Add the removed band back in as zeros
+    # Set the nyquist frequency to zero (the band we earlier removed).
+    # This is also commonly done in these other papers.
     magnitude = np.pad(magnitude, [[0, 0], [0, 0], [0, 1]])
 
     to_waveform = lambda m: griffinlim(
@@ -367,7 +372,8 @@ def spectogram_2_waveform(spectogram, frame_length=512, frame_step=128,
         phase = tf.cumsum(phase, axis=-2)
         phase = (phase + np.pi) % (2 * np.pi) - np.pi
 
-    # Add the removed band back in as zeros
+    # Set the nyquist frequency to zero (the band we earlier removed).
+    # This is also commonly done in these other papers.
     magnitude = tf.pad(magnitude, [[0, 0], [0, 0], [0, 1]], constant_values=0)
     phase = tf.pad(phase, [[0, 0], [0, 0], [0, 1]], constant_values=0)
 
