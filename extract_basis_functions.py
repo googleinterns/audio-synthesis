@@ -115,7 +115,7 @@ def main():
         )
         checkpoint.restore(MODELS[model]['checkpoint_path']).expect_partial()
 
-        spectogram_like = encoder(raw_maestro[DECOMPOSITION_IDX:DECOMPOSITION_IDX+1])
+        spectogram_like = encoder(raw_maestro[DECOMPOSITION_IDX:DECOMPOSITION_IDX + 1])
         reconstructed = decoder(spectogram_like)
 
         sf.write('{}_orig.wav'.format(model), raw_maestro[DECOMPOSITION_IDX], SAMPLE_RATE)
