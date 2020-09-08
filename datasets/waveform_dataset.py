@@ -150,13 +150,14 @@ def normalize(spectrum, mean, std):
 
     Args:
         spectrum: The magnitude spectrum to be un-normalized.
-            It is expected to be a single spectrum with no channel
-            dimention (i.e., only two dimentions) [time, frequency].
+            It is expected to be a spectrum with no channel
+            dimention, [time, frequency] or [-1, time, frequency].
         mean: The mean of the data.
         std: The standard deviation of the data.
 
     Returns:
-        A normalized phase or magnitude spectrum
+        A normalized phase or magnitude spectrum. Shape is
+        [-1, time, frequency]
     """
 
     norm = (spectrum - mean) / std
@@ -170,16 +171,20 @@ def un_normalize(spectrum, mean, std):
     Args:
         spectrum: The magnitude spectrum to be un-normalized.
             It is expected to be a single spectrum with no channel
-            dimention (i.e., only two dimentions) [time, frequency].
+            dimention [time, frequency] or [batch_size, time, frequency].
         mean: The mean stastic that was used for normalizing
         std: The standard deviation stastic that was used for
             normalizing.
 
     Returns:
-        An un-normalized magnitude or phase spectrum.
+        An un-normalized magnitude or phase spectrum. Shape is
+        [-1, time, frequency]
     """
 
-    assert len(spectrum.shape) == 2
+    if len(spectrum.shape) == 2:
+        spectrum = tf.expand_dims(spectrum, 0)
+        
+    assert len(spectrum.shape) == 3
     spectrum = spectrum * _CLIP_NUMBER_STD
     spectrum = (spectrum * std) + mean
     return spectrum
@@ -189,18 +194,24 @@ def un_normalize_spectogram(spectogram, magnitude_stats, phase_stats):
     """Un-normalize a given spectogram acording to the given stastics
 
     Args:
-        spectogram: The spectogram to be un-normalized
+        spectogram: The spectogram (can be batched) to be un-normalized.
+            Expected shape is [time, frequency, 2] 
+            or [-1, time, frequency, 2]
         magnitude_stats: The mean and standard deviation used to
             normalize the magnitude
         phase_stats: The mean and standard deviation used to
             normalize the phase
 
     Returns:
-        An un-normalized spectogram of the same shape as the input.
+        An un-normalized spectogram. Shape is
+        [-1, time, frequency, 2].
     """
 
-    magnitude = un_normalize(spectogram[:, :, 0], *magnitude_stats)
-    phase = un_normalize(spectogram[:, :, 1], *phase_stats)
+    if len(spectogram.shape) == 3:
+        spectogram = tf.expand_dims(spectogram, 0)
+    
+    magnitude = un_normalize(spectogram[:, :, :, 0], *magnitude_stats)
+    phase = un_normalize(spectogram[:, :, :, 1], *phase_stats)
 
-    return np.concatenate([np.expand_dims(magnitude, axis=2),
-                           np.expand_dims(phase, axis=2)], axis=-1)
+    return np.concatenate([np.expand_dims(magnitude, axis=3),
+                           np.expand_dims(phase, axis=3)], axis=-1)
