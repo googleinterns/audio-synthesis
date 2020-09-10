@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Training Script for STFTSpecGAN on MAESTRO.
+"""Training Script for STFTSpecGAN on a dataset.
 
 Follows the same setup as SpecPhaseGAN, but
 generates STFTs instead of Magnitude and Instantaneous
@@ -23,8 +23,8 @@ import os
 import tensorflow as tf
 from audio_synthesis.structures import spec_gan
 from audio_synthesis.models import wgan
-from audio_synthesis.datasets import maestro_dataset
-from audio_synthesis.utils import maestro_save_helper as save_helper
+from audio_synthesis.datasets import waveform_dataset
+from audio_synthesis.utils import waveform_save_helper as save_helper
 from audio_synthesis.utils import spectral
 
 # Setup Paramaters
@@ -40,10 +40,9 @@ SPECTOGRAM_IMAGE_SHAPE = [-1, 128, 256, 2]
 MAGNITUDE_IMAGE_SHAPE = [-1, 128, 256, 1]
 SIGNAL_LENGTH = 2**14
 WAVEFORM_SHAPE = [-1, SIGNAL_LENGTH, 1]
-CRITIC_WEIGHTINGS = [1.0, 1.0/1000.0]
 CHECKPOINT_DIR = '_results/representation_study/STFTSpecGAN_HR/training_checkpoints/'
 RESULT_DIR = '_results/representation_study/STFTSpecGAN_HR/audio/'
-MAESTRO_PATH = 'data/MAESTRO_6h.npz'
+DATASET_PATH = 'data/MAESTRO_6h.npz'
 
 def _get_discriminator_input_representations(stft_in):
     """Computes the input representations for the STFTSpecGAN discriminator models,
@@ -56,7 +55,7 @@ def _get_discriminator_input_representations(stft_in):
         A tuple containing the stft and log magnitude spectrum representaions of
         x_in.
     """
-    
+
     real = stft_in[:, :, :, 0]
     imag = stft_in[:, :, :, 1]
     magnitude = tf.sqrt(tf.square(real) + tf.square(imag))
@@ -69,8 +68,8 @@ def main():
     os.environ['CUDA_VISIBLE_DEVICES'] = ''
     print('Num GPUs Available: ', len(tf.config.experimental.list_physical_devices('GPU')))
 
-    raw_maestro = maestro_dataset.get_maestro_stft_dataset(
-        MAESTRO_PATH, frame_length=FFT_FRAME_LENGTH, frame_step=FFT_FRAME_STEP
+    raw_dataset = waveform_dataset.get_stft_dataset(
+        DATASET_PATH, frame_length=FFT_FRAME_LENGTH, frame_step=FFT_FRAME_STEP
     )
 
     generator = spec_gan.Generator(channels=2, in_shape=Z_IN_SHAPE)
@@ -91,9 +90,10 @@ def main():
         )
 
     stft_spec_gan_model = wgan.WGAN(
-        raw_maestro, generator, [discriminator, magnitude_discriminator], Z_DIM,
+        raw_dataset, generator, [discriminator, magnitude_discriminator], Z_DIM,
         generator_optimizer, discriminator_optimizer, discriminator_training_ratio=D_UPDATES_PER_G,
-        batch_size=BATCH_SIZE, epochs=EPOCHS, checkpoint_dir=CHECKPOINT_DIR, fn_save_examples=save_examples,
+        batch_size=BATCH_SIZE, epochs=EPOCHS, checkpoint_dir=CHECKPOINT_DIR,
+        fn_save_examples=save_examples,
         fn_get_discriminator_input_representations=_get_discriminator_input_representations
     )
 

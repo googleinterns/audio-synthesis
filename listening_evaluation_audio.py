@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""This module handles generating audio from models trained
-in the representation study. The list of models is modular.
+"""This module handles generating audio for a listening test
+from models trained in the representation study.
+The list of models is modular.
 """
 
 import os
@@ -26,17 +27,32 @@ from audio_synthesis.datasets import maestro_dataset
 from audio_synthesis.utils import spectral
 from audio_synthesis.structures import wave_gan, spec_gan
 
-N_GENERATIONS = 60
+N_GENERATIONS = 10
+GENERATION_LENGTH = 5
+SILENCE_PADDING = 2**13
 Z_DIM = 64
-WAVEFORM_LENGTH = 16000
+WAVEFORM_LENGTH = 2**14
 SAMPLING_RATE = 16000
-RESULTS_PATH = '_results/representation_study/'
+RESULTS_PATH = '_results/representation_study/listening_test/MAESTRO/'
 MAESTRO_PATH = 'data/MAESTRO_6h.npz'
-GRIFFIN_LIM_ITERATIONS = 16
-FFT_FRAME_LENGTHS = [256, 512]
+GRIFFIN_LIM_ITERATIONS = 32
+FFT_FRAME_LENGTHS = [512, 512]
 FFT_FRAME_STEPS = [128, 128]
-LOG_MAGNITUDE = True
-INSTANTANEOUS_FREQUENCY = True
+LOG_MAGNITUDE = [True, True]
+INSTANTANEOUS_FREQUENCY = [True, False]
+
+def mkdir(dirname):
+    """Makes a directory and handles the case where the
+    directory allready exsists.
+    
+    Args:
+        dirname: The path to the directory.
+    """
+    
+    try:
+        os.mkdir(dirname)
+    except OSError:
+        pass
 
 def _data_waveform_griffin_lim_fn(data_waveform, frame_length, frame_step):
     """Converts a waveform to a magnitude spectrum and
@@ -66,7 +82,8 @@ def _data_waveform_griffin_lim_fn(data_waveform, frame_length, frame_step):
 #   1) Either the model is a trained generator function. In this case,
 #      a 'generator' model must be specified, along with a 'checkpoint_path'
 #      to load from. In addition, a 'preprocess' object must be specified,
-#      that contains 'unnormalize_magnitude' and 'unnormalize_spectogram' (mutually exclusive)
+#      that contains 'unnormalize_magnitude' and 'unnormalize_spectogram' (mutually exclusive).
+#      'clip_beginning' can also be set to remove the initial samples from the generations.
 #   2) Or it is a processed form of the origonal data. In this case, 'data': True
 #      must be set.
 # All models must have 'generate_fn' set to a function that takes a generation from
@@ -84,20 +101,6 @@ MODELS = {
         'generate_fn': lambda x: x,
         'waveform': [],
     },
-    'STFTGAN': {
-        'generator': spec_gan.Generator(channels=2, in_shape=[4, 4, 1024]),
-        'checkpoint_path':\
-            '_results/representation_study/STFTGAN/training_checkpoints/ckpt-30',
-        'preprocess': {
-            'unnormalize_magnitude': False,
-            'unnormalize_spectogram': False,
-        },
-        'fft_config': 0,
-        'generate_fn': lambda stfts: spectral.stft_2_waveform(
-            stfts, FFT_FRAME_LENGTHS[0], FFT_FRAME_STEPS[0]
-        )[0],
-        'waveform': [],
-    },
     'STFTGAN_HR': {
         'generator': spec_gan.Generator(channels=2, in_shape=[4, 8, 1024]),
         'checkpoint_path':\
@@ -109,7 +112,7 @@ MODELS = {
         'fft_config': 1,
         'generate_fn': lambda stfts: spectral.stft_2_waveform(
             stfts, FFT_FRAME_LENGTHS[1], FFT_FRAME_STEPS[1]
-        )[0],
+        ),
         'waveform': [],
     },
     'STFTWaveGAN_HR': {
@@ -123,25 +126,24 @@ MODELS = {
         'fft_config': 1,
         'generate_fn': lambda stfts: spectral.stft_2_waveform(
             stfts, FFT_FRAME_LENGTHS[1], FFT_FRAME_STEPS[1]
-        )[0],
+        ),
         'waveform': [],
     },
-    'SpecGAN': {
-        'generator': spec_gan.Generator(activation=activations.tanh),
+    'STFTMagGAN_HR': {
+        'generator': spec_gan.Generator(channels=2, in_shape=[4, 8, 1024]),
         'checkpoint_path':\
-            '_results/representation_study/SpecGAN/training_checkpoints/ckpt-30',
+            '_results/representation_study/STFTSpecGAN_HR/training_checkpoints/ckpt-30',
         'preprocess': {
-            'unnormalize_magnitude': True,
+            'unnormalize_magnitude': False,
             'unnormalize_spectogram': False,
         },
-        'fft_config': 0,
-        'generate_fn': lambda magnitude: spectral.magnitude_2_waveform(
-            magnitude, GRIFFIN_LIM_ITERATIONS, FFT_FRAME_LENGTHS[0],
-            FFT_FRAME_STEPS[0], LOG_MAGNITUDE
-        )[0],
+        'fft_config': 1,
+        'generate_fn': lambda stfts: spectral.stft_2_waveform(
+            stfts, FFT_FRAME_LENGTHS[1], FFT_FRAME_STEPS[1]
+        ),
         'waveform': [],
     },
-    'SpecGAN_HR': {
+    'MagGAN_HR': {
         'generator': spec_gan.Generator(activation=activations.tanh, in_shape=[4, 8, 1024]),
         'checkpoint_path':\
             '_results/representation_study/SpecGAN_HR/training_checkpoints/ckpt-30',
@@ -149,71 +151,52 @@ MODELS = {
             'unnormalize_magnitude': True,
             'unnormalize_spectogram': False,
         },
+        'clip_beginning': 240,
         'fft_config': 1,
         'generate_fn': lambda magnitude: spectral.magnitude_2_waveform(
             magnitude, GRIFFIN_LIM_ITERATIONS, FFT_FRAME_LENGTHS[1],
-            FFT_FRAME_STEPS[1], LOG_MAGNITUDE
-        )[0],
+            FFT_FRAME_STEPS[1], LOG_MAGNITUDE[1]
+        ),
         'waveform': [],
     },
-    'SpecPhaseGAN': {
-        'generator': spec_gan.Generator(channels=2, activation=activations.tanh),
+    'MagPhaseGAN_HR': {
+        'generator': spec_gan.Generator(
+            channels=2, activation=activations.tanh, in_shape=[4, 8, 1024]
+        ),
         'checkpoint_path':\
-            '_results/representation_study/SpecPhaseGAN/training_checkpoints/ckpt-30',
+            '_results/representation_study/MagPhaseGAN_HR/training_checkpoints/ckpt-30',
+        'preprocess': {
+            'unnormalize_magnitude': False,
+            'unnormalize_spectogram': True,
+        },
+        'fft_config': 1,
+        'generate_fn': lambda spectogram: spectral.spectogram_2_waveform(
+            spectogram, FFT_FRAME_LENGTHS[1], FFT_FRAME_STEPS[1], LOG_MAGNITUDE[1],
+            INSTANTANEOUS_FREQUENCY[1]
+        ),
+        'waveform': [],
+    },
+    'MagIFGAN_HR': {
+        'generator': spec_gan.Generator(
+            channels=2, activation=activations.tanh, in_shape=[4, 8, 1024]
+        ),
+        'checkpoint_path':\
+            '_results/representation_study/SpecPhaseGAN_HR/training_checkpoints/ckpt-30',
         'preprocess': {
             'unnormalize_magnitude': False,
             'unnormalize_spectogram': True,
         },
         'fft_config': 0,
         'generate_fn': lambda spectogram: spectral.spectogram_2_waveform(
-            spectogram, FFT_FRAME_LENGTHS[0], FFT_FRAME_STEPS[0], LOG_MAGNITUDE,
-            INSTANTANEOUS_FREQUENCY
-        )[0],
-        'waveform': [],
-    },
-    'SpecPhaseGAN_HR': {
-        'generator': spec_gan.Generator(
-            channels=2, activation=activations.tanh, in_shape=[4, 8, 1024]
+            spectogram, FFT_FRAME_LENGTHS[0], FFT_FRAME_STEPS[0], LOG_MAGNITUDE[0],
+            INSTANTANEOUS_FREQUENCY[0]
         ),
-        'checkpoint_path':\
-            '_results/representation_study/SpecPhaseGAN_HR/training_checkpoints/ckpt-18',
-        'preprocess': {
-            'unnormalize_magnitude': False,
-            'unnormalize_spectogram': True,
-        },
-        'fft_config': 1,
-        'generate_fn': lambda spectogram: spectral.spectogram_2_waveform(
-            spectogram, FFT_FRAME_LENGTHS[1], FFT_FRAME_STEPS[1], LOG_MAGNITUDE,
-            INSTANTANEOUS_FREQUENCY
-        )[0],
         'waveform': [],
     },
-    'WaveSpecGAN': {
-        'generator': wave_gan.Generator(),
-        'checkpoint_path':\
-            '_results/representation_study/WaveSpecGAN/training_checkpoints/ckpt-30',
-        'preprocess': {
-            'unnormalize_magnitude': False,
-            'unnormalize_spectogram': False,
-        },
-        'generate_fn': lambda x: x,
-        'waveform': [],
-    },
-    'WaveSpecGAN_HR': {
+    'WaveMagGAN_HR': {
         'generator': wave_gan.Generator(),
         'checkpoint_path':\
             '_results/representation_study/WaveSpecGAN_HR/training_checkpoints/ckpt-30',
-        'preprocess': {
-            'unnormalize_magnitude': False,
-            'unnormalize_spectogram': False,
-        },
-        'generate_fn': lambda x: x,
-        'waveform': [],
-    },
-    'melWaveSpecGAN': {
-        'generator': wave_gan.Generator(),
-        'checkpoint_path':\
-            '_results/representation_study/mel_WaveSpecGAN/training_checkpoints/ckpt-30',
         'preprocess': {
             'unnormalize_magnitude': False,
             'unnormalize_spectogram': False,
@@ -226,15 +209,9 @@ MODELS = {
         'generate_fn': lambda x: x,
         'waveform': [],
     },
-    'Waveform_GL': {
-        'data': True,
-        'generate_fn': lambda waveform: _data_waveform_griffin_lim_fn(
-            waveform, FFT_FRAME_LENGTHS[0], FFT_FRAME_STEPS[0]
-        ),
-        'waveform': [],
-    },
     'Waveform_GL_HR': {
         'data': True,
+        'clip_beginning': 240,
         'generate_fn': lambda waveform: _data_waveform_griffin_lim_fn(
             waveform, FFT_FRAME_LENGTHS[1], FFT_FRAME_STEPS[1]
         ),
@@ -271,25 +248,27 @@ def main():
                 MAESTRO_PATH, frame_length, frame_step, LOG_MAGNITUDE,
                 INSTANTANEOUS_FREQUENCY
             )
-        
+
         magnitude_stastics.append(magnitude_stastic)
         phase_stastics.append(phase_stastic)
 
-    maestro = maestro[np.random.randint(low=0, high=len(maestro), size=N_GENERATIONS)]
-    z_gen = tf.random.uniform((N_GENERATIONS, Z_DIM), -1, 1, tf.float32)
+    maestro = maestro[np.random.randint(
+        low=0, high=len(maestro), size=GENERATION_LENGTH * N_GENERATIONS
+    )]
+    z_gen = tf.random.uniform((N_GENERATIONS, GENERATION_LENGTH, Z_DIM), -1, 1, tf.float32)
 
     pb_i = utils.Progbar(N_GENERATIONS)
     for i in range(N_GENERATIONS):
-        z_in = tf.reshape(z_gen[i], (1, Z_DIM))
+        z_in = tf.reshape(z_gen[i], (GENERATION_LENGTH, Z_DIM))
 
         for model_name in MODELS:
             if not MODELS[model_name]['loaded']:
                 continue
-            
+
             # If the model is a generator then produce a random generation,
             # otherwise take the current data point.
             if 'data' in MODELS[model_name] and MODELS[model_name]['data']:
-                generation = maestro[i]
+                generation = maestro[i:i+GENERATION_LENGTH]
             else:
                 generation = MODELS[model_name]['generator'](z_in)
                 generation = np.squeeze(generation)
@@ -310,18 +289,24 @@ def main():
             waveform = MODELS[model_name]['generate_fn'](generation)
 
             # Clip waveform to desired length and save
-            waveform = waveform[0:WAVEFORM_LENGTH]
+            waveform = waveform[:, 0:WAVEFORM_LENGTH]
             MODELS[model_name]['waveform'].append(waveform)
 
         pb_i.add(1)
 
-    # Save the waveforms for each model as one long audio clip
     for model_name in MODELS:
         if not MODELS[model_name]['loaded']:
             continue
-        
-        wav = np.reshape(MODELS[model_name]['waveform'], (-1))
-        sf.write(os.path.join(RESULTS_PATH, model_name + '.wav'), wav, SAMPLING_RATE)
+
+        path = os.path.join(RESULTS_PATH, model_name)
+        mkdir(path)
+        for i, generation in enumerate(MODELS[model_name]['waveform']):
+            generation = np.pad(generation, [[0, 0], [0, SILENCE_PADDING]])
+            if 'clip_beginning' in MODELS[model_name]:
+                generation = generation[:, MODELS[model_name]['clip_beginning']:]
+                
+            wav = np.reshape(generation, (-1))
+            sf.write(os.path.join(path, model_name + '_{}.wav'.format(i)), wav, SAMPLING_RATE)
 
 if __name__ == '__main__':
     main()
