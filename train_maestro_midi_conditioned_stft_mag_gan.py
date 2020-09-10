@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Training script for the MIDI conditioned WaveSpecGAN Model."""
+"""Training script for the MIDI conditioned STFTMagGAN Model."""
 
 import os
 import tensorflow as tf
