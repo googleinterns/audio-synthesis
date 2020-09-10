@@ -60,20 +60,25 @@ class Generator(keras.Model):
         self.c_pre_process_1x1 = keras.Sequential(c_pre_process_1x1)
         
         sequential = []
-        sequential.append(layers.Conv2D(filters=512, kernel_size=(6, 6),
-                                                 strides=(2, 2), padding='same'))
+        sequential.append(layers.Conv2D(
+            filters=512, kernel_size=(6, 6), strides=(2, 2), padding='same'
+        ))
         sequential.append(layers.ReLU())
-        sequential.append(layers.Conv2D(filters=256, kernel_size=(6, 6),
-                                                 strides=(2, 1), padding='same'))
+        sequential.append(layers.Conv2D(
+            filters=256, kernel_size=(6, 6), strides=(2, 1), padding='same'
+        ))
         sequential.append(layers.ReLU())
-        sequential.append(layers.Conv2D(filters=128, kernel_size=(6, 6),
-                                                 strides=(1, 1), padding='same'))
+        sequential.append(layers.Conv2D(
+            filters=128, kernel_size=(6, 6), strides=(1, 1), padding='same'
+        ))
         sequential.append(layers.ReLU())
-        sequential.append(layers.Conv2D(filters=64, kernel_size=(6, 6),
-                                                 strides=(1, 1), padding='same'))
+        sequential.append(layers.Conv2D(
+            filters=64, kernel_size=(6, 6), strides=(1, 1), padding='same'
+        ))
         sequential.append(layers.ReLU())
-        sequential.append(layers.Conv2D(filters=channels, kernel_size=(6, 6),
-                                                 strides=(1, 1), padding='same'))
+        sequential.append(layers.Conv2D(
+            filters=channels, kernel_size=(6, 6), strides=(1, 1), padding='same'
+        ))
 
         self.l = keras.Sequential(sequential)
 
@@ -82,7 +87,10 @@ class Generator(keras.Model):
 
         Args:
             z_in: A batch of random noise vectors. Expected shape
-            is (batch_size, z_dim).
+                is (batch_size, z_dim).
+            c_in: A batch of midi conditioning. Expected shape is
+                (batch_size, num_states, 89), where 89 represents the 88
+                piano keys plus the sustain pedal. 
 
         Returns:
             The output from the generator network. Same number of
@@ -93,9 +101,9 @@ class Generator(keras.Model):
         c_pre_processed = self.c_pre_process_1x1(c_in)
         z_pre_processed = tf.expand_dims(z_pre_processed, axis=-1)
         c_pre_processed = tf.expand_dims(c_pre_processed, axis=-1)
-        zc = tf.concat([z_pre_processed, c_pre_processed], axis=-1)
+        zc_in = tf.concat([z_pre_processed, c_pre_processed], axis=-1)
         
-        output = self.activation(self.l(zc))
+        output = self.activation(self.l(zc_in))
         return output
 
 class Discriminator(keras.Model):
@@ -118,29 +126,39 @@ class Discriminator(keras.Model):
 
         # Pre-processing stack for the conditioning information.
         c_pre_process = []
-        c_pre_process.append(layers.Conv1D(128, kernel_size=36, strides=2, padding='same'))
+        c_pre_process.append(layers.Conv1D(
+            128, kernel_size=36, strides=2, padding='same'
+        ))
         c_pre_process.append(layers.LeakyReLU(alpha=0.2))
-        c_pre_process.append(layers.Conv1D(256, kernel_size=36, strides=2, padding='same'))
+        c_pre_process.append(layers.Conv1D(
+            256, kernel_size=36, strides=2, padding='same'
+        ))
         c_pre_process.append(layers.LeakyReLU(alpha=0.2))
         self.c_pre_process = keras.Sequential(c_pre_process)
 
         sequential = []
-        sequential.append(layers.Conv2D(filters=64, kernel_size=(6, 6),
-                                        strides=(2, 2), padding='same'))
+        sequential.append(layers.Conv2D(
+            filters=64, kernel_size=(6, 6), strides=(2, 2), padding='same'
+        ))
         sequential.append(layers.LeakyReLU(alpha=0.2))
-        sequential.append(layers.Conv2D(filters=128, kernel_size=(6, 6),
-                                        strides=(2, 2), padding='same'))
+        sequential.append(layers.Conv2D(
+            filters=128, kernel_size=(6, 6), strides=(2, 2), padding='same'
+        ))
         sequential.append(layers.LeakyReLU(alpha=0.2))
-        sequential.append(layers.Conv2D(filters=256, kernel_size=(6, 6),
-                                        strides=(2, 2), padding='same'))
+        sequential.append(layers.Conv2D(
+            filters=256, kernel_size=(6, 6), strides=(2, 2), padding='same'
+        ))
         sequential.append(layers.LeakyReLU(alpha=0.2))
-        sequential.append(layers.Conv2D(filters=512, kernel_size=(6, 6),
-                                        strides=(2, 2), padding='same'))
+        sequential.append(layers.Conv2D(
+            filters=512, kernel_size=(6, 6), strides=(2, 2), padding='same'
+        ))
         sequential.append(layers.LeakyReLU(alpha=0.2))
-        sequential.append(layers.Conv2D(filters=512, kernel_size=(6, 6),
-                                        strides=(2, 2), padding='same'))
-        sequential.append(layers.Conv2D(filters=3, kernel_size=(6, 6),
-                                        strides=(1, 1), padding='same'))
+        sequential.append(layers.Conv2D(
+            filters=512, kernel_size=(6, 6), strides=(2, 2), padding='same'
+        ))
+        sequential.append(layers.Conv2D(
+            filters=3, kernel_size=(6, 6), strides=(1, 1), padding='same'
+        ))
         sequential.append(layers.LeakyReLU(alpha=0.2))
         sequential.append(layers.Flatten())
         sequential.append(layers.Dense(1))
@@ -152,7 +170,10 @@ class Discriminator(keras.Model):
 
         Args:
             x_in: A batch of input data. Expected shape
-            is expected to be consistant with self.in_shape.
+                is expected to be consistant with self.in_shape.
+            c_in: A batch of midi conditioning. Expected shape is
+                (batch_size, num_states, 89), where 89 represents the 88
+                piano keys plus the sustain pedal. 
 
         Returns:
             A batch of real valued scores. This is inlign with
