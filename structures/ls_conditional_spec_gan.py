@@ -12,15 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""An implemementation of the Generator and Discriminator for SpecGAN.
-
-This file contains an implementation of the generator and discriminator
-components for SpecGAN [https://arxiv.org/abs/1802.04208].
-The official implementation of SpecGAN can be found online
-(https://github.com/chrisdonahue/wavegan). The key difference between this implementation
-and the offical one is that we use a larger kenel size to keep the model balanced
-with our implementation of WaveGAN. We choose a kernel size of 6x6 (instead of 5x5),
-such that it is divisible by the stride.
+"""An implemementation of the Generator and Discriminator for
+Last Second conditional SpecGAN.
 """
 
 import numpy as np
@@ -48,61 +41,69 @@ class Generator(keras.Model):
         super(Generator, self).__init__()
 
         self.activation = activation
-        
+
         z_preprocess = []
         z_preprocess.append(layers.Dense(np.prod(in_shape)))
         z_preprocess.append(layers.Reshape((in_shape)))
         z_preprocess.append(layers.ReLU())
         self.z_preprocess = keras.Sequential(z_preprocess)
-        
+
         c_preprocess = []
-        c_preprocess.append(layers.Conv2D(filters=128, kernel_size=(6, 6),
-                                        strides=(4, 4), padding='same'))
+        c_preprocess.append(layers.Conv2D(
+            filters=128, kernel_size=(6, 6), strides=(4, 4), padding='same'
+        ))
         c_preprocess.append(layers.ReLU())
-        c_preprocess.append(layers.Conv2D(filters=256, kernel_size=(6, 6),
-                                        strides=(4, 4), padding='same'))
+        c_preprocess.append(layers.Conv2D(
+            filters=256, kernel_size=(6, 6), strides=(4, 4), padding='same'
+        ))
         c_preprocess.append(layers.ReLU())
-        c_preprocess.append(layers.Conv2D(filters=512, kernel_size=(6, 6),
-                                        strides=(2, 2), padding='same'))
+        c_preprocess.append(layers.Conv2D(
+            filters=512, kernel_size=(6, 6), strides=(2, 2), padding='same'
+        ))
         c_preprocess.append(layers.ReLU())
         self.c_preprocess = keras.Sequential(c_preprocess)
 
-
         sequential = []
-        sequential.append(layers.Conv2DTranspose(filters=512, kernel_size=(6, 6),
-                                                 strides=(2, 2), padding='same'))
+        sequential.append(layers.Conv2DTranspose(
+            filters=512, kernel_size=(6, 6), strides=(2, 2), padding='same'
+        ))
         sequential.append(layers.ReLU())
-        sequential.append(layers.Conv2DTranspose(filters=256, kernel_size=(6, 6),
-                                                 strides=(2, 2), padding='same'))
+        sequential.append(layers.Conv2DTranspose(
+            filters=256, kernel_size=(6, 6), strides=(2, 2), padding='same'
+        ))
         sequential.append(layers.ReLU())
-        sequential.append(layers.Conv2DTranspose(filters=128, kernel_size=(6, 6),
-                                                 strides=(2, 2), padding='same'))
+        sequential.append(layers.Conv2DTranspose(
+            filters=128, kernel_size=(6, 6), strides=(2, 2), padding='same'
+        ))
         sequential.append(layers.ReLU())
-        sequential.append(layers.Conv2DTranspose(filters=64, kernel_size=(6, 6),
-                                                 strides=(2, 2), padding='same'))
+        sequential.append(layers.Conv2DTranspose(
+            filters=64, kernel_size=(6, 6), strides=(2, 2), padding='same'
+        ))
         sequential.append(layers.ReLU())
-        sequential.append(layers.Conv2DTranspose(filters=channels, kernel_size=(6, 6),
-                                                 strides=(2, 2), padding='same'))
+        sequential.append(layers.Conv2DTranspose(
+            filters=channels, kernel_size=(6, 6), strides=(2, 2), padding='same'
+        ))
 
         self.l = keras.Sequential(sequential)
 
-    def call(self, c_in, z_in):
+    def call(self, z_in, c_in):
         """Generates spectograms from input noise vectors.
 
         Args:
             z_in: A batch of random noise vectors. Expected shape
             is (batch_size, z_dim).
+            c_in: 
 
         Returns:
             The output from the generator network. Same number of
             batch elements.
         """
-        
+
         z_pre_processed = self.z_preprocess(z_in)
         c_pre_processed = self.c_preprocess(c_in)
-        
+
         zc = tf.concat([c_pre_processed, z_pre_processed], axis=-1)
-        
+
         output = self.activation(self.l(zc))
         return output
 
@@ -111,36 +112,43 @@ class Discriminator(keras.Model):
 
     def __init__(self, input_shape, weighting=1.0):
         """Initilizes the SpecGAN Discriminator function
-        
+
         Args:
             input_shape: The required shape for inputs to the
                 discriminator functions.
             weighting: The relative weighting of this discriminator in
                 the overall loss.
         """
-        
+
         super(Discriminator, self).__init__()
 
         self.in_shape = input_shape
         self.weighting = weighting
-        
-        self.c_pre_process = layers.Conv2DTranspose(1, kernel_size=(6,6), strides=(2,1), padding='same')
-        
+
+        self.c_pre_process = layers.Conv2DTranspose(
+            1, kernel_size=(6, 6), strides=(2, 1), padding='same'
+        )
+
         sequential = []
-        sequential.append(layers.Conv2D(filters=64, kernel_size=(6, 6),
-                                        strides=(2, 2), padding='same'))
+        sequential.append(layers.Conv2D(
+            filters=64, kernel_size=(6, 6), strides=(2, 2), padding='same'
+        ))
         sequential.append(layers.LeakyReLU(alpha=0.2))
-        sequential.append(layers.Conv2D(filters=128, kernel_size=(6, 6),
-                                        strides=(2, 2), padding='same'))
+        sequential.append(layers.Conv2D(
+            filters=128, kernel_size=(6, 6), strides=(2, 2), padding='same'
+        ))
         sequential.append(layers.LeakyReLU(alpha=0.2))
-        sequential.append(layers.Conv2D(filters=256, kernel_size=(6, 6),
-                                        strides=(2, 2), padding='same'))
+        sequential.append(layers.Conv2D(
+            filters=256, kernel_size=(6, 6), strides=(2, 2), padding='same'
+        ))
         sequential.append(layers.LeakyReLU(alpha=0.2))
-        sequential.append(layers.Conv2D(filters=512, kernel_size=(6, 6),
-                                        strides=(2, 2), padding='same'))
+        sequential.append(layers.Conv2D(
+            filters=512, kernel_size=(6, 6), strides=(2, 2), padding='same'
+        ))
         sequential.append(layers.LeakyReLU(alpha=0.2))
-        sequential.append(layers.Conv2D(filters=1024, kernel_size=(6, 6),
-                                        strides=(2, 2), padding='same'))
+        sequential.append(layers.Conv2D(
+            filters=1024, kernel_size=(6, 6), strides=(2, 2), padding='same'
+        ))
         sequential.append(layers.LeakyReLU(alpha=0.2))
         sequential.append(layers.Flatten())
         sequential.append(layers.Dense(1))
@@ -152,16 +160,17 @@ class Discriminator(keras.Model):
 
         Args:
             x_in: A batch of input data. Expected shape
-            is expected to be consistant with self.in_shape.
+                is expected to be consistant with self.in_shape.
+            c_in:
 
         Returns:
             A batch of real valued scores. This is inlign with
             the WGAN setup.
         """
-        
+
         x_in = tf.reshape(x_in, self.in_shape)
         c_pre_processed = self.c_pre_process(c_in)
-        
+
         xc_in = tf.concat([c_pre_processed, x_in], axis=1)
-        
+
         return self.l(xc_in)

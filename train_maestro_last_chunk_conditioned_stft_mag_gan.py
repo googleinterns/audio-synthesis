@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Training script for the last second (i.e., historically)
+conditioned STFTMagGAN Model.
+"""
+
 import os
 import tensorflow as tf
-import soundfile as sf
-import numpy as np
-from audio_synthesis.structures import conditional_spec_gan
-from audio_synthesis.datasets import maestro_dataset
-from audio_synthesis.models import conditional_wgan as wgan
-from audio_synthesis.utils import maestro_save_helper as save_helper
+from audio_synthesis.structures import ls_conditional_spec_gan
+from audio_synthesis.datasets import waveform_dataset
+from audio_synthesis.models import conditional_wgan
+from audio_synthesis.utils import waveform_save_helper as save_helper
 from audio_synthesis.utils import spectral
 
 os.environ["CUDA_VISIBLE_DEVICES"] = '3'
@@ -37,7 +39,6 @@ SIGNAL_LENGTH = 2**14
 WAVEFORM_SHAPE = [-1, SIGNAL_LENGTH, 1]
 SPECTOGRAM_IMAGE_SHAPE = [-1, 128, 256, 2]
 MAGNITUDE_IMAGE_SHAPE = [-1, 128, 256, 1]
-CRITIC_WEIGHTINGS=[1.0, 1.0]
 CHECKPOINT_DIR = '_results/conditioning/LSC_STFTMagGAN_HR/training_checkpoints/'
 RESULT_DIR = '_results/conditioning/LSC_STFTMagGAN_HR/audio/'
 MAESTRO_PATH = 'data/MAESTRO_ls_6h.npz'
@@ -54,7 +55,7 @@ def _get_discriminator_input_representations(stft_in):
         A tuple containing the stft and log magnitude spectrum representaions of
         x_in.
     """
-    
+
     real = stft_in[:, :, :, 0]
     imag = stft_in[:, :, :, 1]
     magnitude = tf.sqrt(tf.square(real) + tf.square(imag))
@@ -63,20 +64,20 @@ def _get_discriminator_input_representations(stft_in):
     return (stft_in, magnitude)
 
 def main():
-    raw_maestro = maestro_dataset.get_maestro_stft_dataset(
+    raw_maestro = waveform_dataset.get_stft_dataset(
         MAESTRO_PATH, frame_length=FFT_FRAME_LENGTH, frame_step=FFT_FRAME_STEP
     )
-    raw_maestro_conditioning = maestro_dataset.get_maestro_stft_dataset(
+    raw_maestro_conditioning = waveform_dataset.get_stft_dataset(
         MAESTRO_CONDITIONING_PATH, frame_length=FFT_FRAME_LENGTH, frame_step=FFT_FRAME_STEP
     )
 
-    generator = conditional_spec_gan.Generator(channels=2)
-    stft_discriminator = conditional_spec_gan.Discriminator(input_shape=SPECTOGRAM_IMAGE_SHAPE)
-    mag_discriminator = conditional_spec_gan.Discriminator(input_shape=MAGNITUDE_IMAGE_SHAPE)
+    generator = ls_conditional_spec_gan.Generator(channels=2)
+    stft_discriminator = ls_conditional_spec_gan.Discriminator(input_shape=SPECTOGRAM_IMAGE_SHAPE)
+    mag_discriminator = ls_conditional_spec_gan.Discriminator(input_shape=MAGNITUDE_IMAGE_SHAPE)
 
     generator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
     discriminator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
-    
+
     get_waveform = lambda stft:\
         spectral.stft_2_waveform(
             stft, FFT_FRAME_LENGTH, FFT_FRAME_STEP
@@ -86,8 +87,8 @@ def main():
         save_helper.save_wav_data(
             epoch, real, generated, SAMPLING_RATE, RESULT_DIR, get_waveform
         )
-    
-    wave_gan_model = wgan.WGAN(
+
+    stft_mag_gan_model = conditional_wgan.ConditionalWGAN(
         (raw_maestro, raw_maestro_conditioning), [SPECTOGRAM_IMAGE_SHAPE, MAGNITUDE_IMAGE_SHAPE],
         [(-1, 64, 256, 2), (-1, 64, 256, 1)], generator,
         [stft_discriminator, mag_discriminator], Z_DIM, generator_optimizer,
@@ -97,7 +98,7 @@ def main():
         fn_get_discriminator_input_representations=_get_discriminator_input_representations
     )
 
-    wave_gan_model.train()
+    stft_mag_gan_model.train()
     
 if __name__ == '__main__':
     main()
