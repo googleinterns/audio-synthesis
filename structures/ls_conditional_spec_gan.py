@@ -92,7 +92,8 @@ class Generator(keras.Model):
         Args:
             z_in: A batch of random noise vectors. Expected shape
             is (batch_size, z_dim).
-            c_in: 
+            c_in: A batch of conditioning information. Expected shape
+                is (batch_size, c_signal_length)
 
         Returns:
             The output from the generator network. Same number of
@@ -161,7 +162,8 @@ class Discriminator(keras.Model):
         Args:
             x_in: A batch of input data. Expected shape
                 is expected to be consistant with self.in_shape.
-            c_in:
+            c_in: A batch of conditioning information. Expected
+                shape is (batch_size, c_signal_length)
 
         Returns:
             A batch of real valued scores. This is inlign with
