@@ -4,6 +4,17 @@ This repository contains an exploration of generative models for audio synthesis
 
 **This is not an officially supported Google product.**
 
+## Instructions
+This project is setup so that componet files can be included through the
+audio_synthesis package. Hence, to execute scripts, you must ensure that the
+directory containing this cloned repostory is in the Python path. This can
+be done temporarly using the following command:
+
+```export PYTHONPATH="${PYTHONPATH}:/my/other/path"```
+
+
+
+
 
 ## Source Code Headers
 
