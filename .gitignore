@@ -470,5 +470,5 @@ Created by https://www.toptal.com/developers/gitignore/api/bazel
 *.log
 *.wav
 # Ignore results folder, can add exceptions if necessary
-results/*
+_results/*
 data/*
