@@ -5,20 +5,20 @@ This repository contains an exploration of generative models for audio synthesis
 **This is not an officially supported Google product.**
 
 ## Instructions
-This section contains the instructions for setting up the cloned reposotory
+This section contains the instructions for setting up the cloned repository
 and running experiments. **NOTE:** It is intended that all files are executed
-root directory of this reposotory.
+root directory of this repository.
 
 ### Setup
-This project is setup so that componet files can be included through the
+This project is setup so that component files can be included through the
 audio_synthesis package. Hence, to execute scripts, you must ensure that the
-directory containing this cloned repostory is in the Python path. This can
-be done temporarly using the following command:
+directory containing this cloned repository is in the Python path. This can
+be done temporarily using the following command:
 
 ```export PYTHONPATH="${PYTHONPATH}:/my/other/path"```
 
 ### Datasets
-This reposotory contains scripts for pre-processing two datasets, MAESTRO and SpeechMNIST.
+This repository contains scripts for pre-processing two datasets, MAESTRO and SpeechMNIST.
 These scripts are contained in the ```setup/``` folder.
 
 For MAESTRO, the script ```setup/preprocess_maestro_with_midi_dataset.py``` processes the 
@@ -27,7 +27,7 @@ hours of data you wish to load as well as how to quantize the MIDI data. The pro
 constructing the dataset is:
  - Download the dataset from https://magenta.tensorflow.org/datasets/maestro and unzip it. 
    - **NOTE:** If you only want a small amount of data then it is probably more efficient
-   to download the MIDI separatly, extract all that (fast) and then only extract as much audio
+   to download the MIDI separately, extract all that (fast) and then only extract as much audio
    you need.
  - Configure the script:
    - APPROX_TOTAL_HOURS: How many hours to extract.
@@ -45,18 +45,18 @@ Follow the steps below:
 
 ### Experiments
 The experiments folder contains all the experiment scripts. There are three main folders:
- - Representation Study: These experiments pertain to the experimenal application of GANs
+ - Representation Study: These experiments pertain to the experimental application of GANs
     to audio synthesis using various signal representations.
- - Conditional: These experiments are for the conditional GANs models, using auxiliry historical
+ - Conditional: These experiments are for the conditional GANs models, using auxiliary historical
     data and MIDI information.
  - Basis Functions: The learned signal decomposition experiments.
 
 **NOTE:** In all experiment scripts, there is a line of code at the top of ```main()```, that looks
-like ```os.environ["CUDA_VISIBLE_DEVICES"] = '2'```. This is used to specify the visability of GPUs
+like ```os.environ["CUDA_VISIBLE_DEVICES"] = '2'```. This is used to specify the visibility of GPUs
 to TensorFlow. Since, these programs are only configured for one GPU, this prevents TF from locking up
 the others but leaving them unused.
 
-All experiments typically specify all their paramaters up the top. To restore an experiment from a checkpoint,
+All experiments typically specify all their parameters up the top. To restore an experiment from a checkpoint,
 add ```model.restore('ckpt-<number>', <num_elapsed_epochs>)``` just above ```model.train()```. Ensure that CHECKPOINT_DIR
 is pointing to the correct location.
 
@@ -90,3 +90,6 @@ Apache header:
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
     See the License for the specific language governing permissions and
     limitations under the License.
+
+
+
