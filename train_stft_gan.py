@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Training Script for STFTGAN on a waveform dataset.
+"""Training Script for STFTGAN on a dataset.
 
 Follows the same setup as SpecPhaseGAN, but
 generates STFTs instead of Magnitude and Instantaneous
@@ -33,16 +33,16 @@ Z_DIM = 64
 BATCH_SIZE = 64
 EPOCHS = 300
 SAMPLING_RATE = 16000
-FFT_FRAME_LENGTH = 512
+FFT_FRAME_LENGTH = 1024
 FFT_FRAME_STEP = 128
-Z_IN_SHAPE = [4, 8, 1024]
-SPECTOGRAM_IMAGE_SHAPE = [-1, 128, 256, 2]
-CHECKPOINT_DIR = '_results/representation_study/SpeechMNIST/STFTGAN_HR/training_checkpoints/'
-RESULT_DIR = '_results/representation_study/SpeechMNIST/STFTGAN_HR/audio/'
-DATASET_PATH = 'data/SpeechMNIST_1850.npz'
+Z_IN_SHAPE = [4, 16, 1024]
+SPECTOGRAM_IMAGE_SHAPE = [-1, 128, 512, 2]
+CHECKPOINT_DIR = '_results/representation_study/STFTGAN_SHR/training_checkpoints/'
+RESULT_DIR = '_results/representation_study/STFTGAN_SHR/audio/'
+DATASET_PATH = 'data/MAESTRO_6h.npz'
 
 def main():
-    os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     print('Num GPUs Available: ', len(tf.config.experimental.list_physical_devices('GPU')))
 
     raw_dataset = waveform_dataset.get_stft_dataset(
@@ -72,7 +72,6 @@ def main():
         fn_save_examples=save_examples
     )
 
-    stft_gan_model.restore('ckpt-20', 200)
     stft_gan_model.train()
 
 if __name__ == '__main__':

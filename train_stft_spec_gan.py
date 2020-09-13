@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Training Script for STFTSpecGAN on a waveform dataset.
+"""Training Script for STFTSpecGAN on a dataset.
 
 Follows the same setup as SpecPhaseGAN, but
 generates STFTs instead of Magnitude and Instantaneous
@@ -40,10 +40,9 @@ SPECTOGRAM_IMAGE_SHAPE = [-1, 128, 256, 2]
 MAGNITUDE_IMAGE_SHAPE = [-1, 128, 256, 1]
 SIGNAL_LENGTH = 2**14
 WAVEFORM_SHAPE = [-1, SIGNAL_LENGTH, 1]
-CRITIC_WEIGHTINGS = [1.0, 1.0/1000.0]
-CHECKPOINT_DIR = '_results/representation_study/SpeechMNIST/STFTSpecGAN_HR/training_checkpoints/'
-RESULT_DIR = '_results/representation_study/SpeechMNIST/STFTSpecGAN_HR/audio/'
-DATASET_PATH = 'data/SpeechMNIST_1850.npz'
+CHECKPOINT_DIR = '_results/representation_study/STFTSpecGAN_HR/training_checkpoints/'
+RESULT_DIR = '_results/representation_study/STFTSpecGAN_HR/audio/'
+DATASET_PATH = 'data/MAESTRO_6h.npz'
 
 def _get_discriminator_input_representations(stft_in):
     """Computes the input representations for the STFTSpecGAN discriminator models,
@@ -56,7 +55,7 @@ def _get_discriminator_input_representations(stft_in):
         A tuple containing the stft and log magnitude spectrum representaions of
         x_in.
     """
-    
+
     real = stft_in[:, :, :, 0]
     imag = stft_in[:, :, :, 1]
     magnitude = tf.sqrt(tf.square(real) + tf.square(imag))
@@ -66,7 +65,7 @@ def _get_discriminator_input_representations(stft_in):
 
 
 def main():
-    os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+    os.environ['CUDA_VISIBLE_DEVICES'] = ''
     print('Num GPUs Available: ', len(tf.config.experimental.list_physical_devices('GPU')))
 
     raw_dataset = waveform_dataset.get_stft_dataset(
@@ -93,11 +92,11 @@ def main():
     stft_spec_gan_model = wgan.WGAN(
         raw_dataset, generator, [discriminator, magnitude_discriminator], Z_DIM,
         generator_optimizer, discriminator_optimizer, discriminator_training_ratio=D_UPDATES_PER_G,
-        batch_size=BATCH_SIZE, epochs=EPOCHS, checkpoint_dir=CHECKPOINT_DIR, fn_save_examples=save_examples,
+        batch_size=BATCH_SIZE, epochs=EPOCHS, checkpoint_dir=CHECKPOINT_DIR,
+        fn_save_examples=save_examples,
         fn_get_discriminator_input_representations=_get_discriminator_input_representations
     )
 
-    stft_spec_gan_model.restore('ckpt-11', 110)
     stft_spec_gan_model.train()
 
 if __name__ == '__main__':
