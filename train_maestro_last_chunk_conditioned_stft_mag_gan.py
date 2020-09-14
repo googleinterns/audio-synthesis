@@ -47,7 +47,7 @@ def _get_discriminator_input_representations(stft_in):
     returning the input waveform and coresponding spectogram representations
 
     Args:
-        stft_in: A batch of stft with shape (-1, time, frequency_dims).
+        stft_in: A batch of stft with shape (-1, time, frequency_dims, 2).
 
     Returns:
         A tuple containing the stft and log magnitude spectrum representaions of
