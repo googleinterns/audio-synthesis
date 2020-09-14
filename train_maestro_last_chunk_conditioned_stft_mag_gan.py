@@ -35,8 +35,6 @@ EPOCHS = 300
 SAMPLING_RATE = 16000
 FFT_FRAME_LENGTH = 512
 FFT_FRAME_STEP = 128
-SIGNAL_LENGTH = 2**14
-WAVEFORM_SHAPE = [-1, SIGNAL_LENGTH, 1]
 SPECTOGRAM_IMAGE_SHAPE = [-1, 128, 256, 2]
 MAGNITUDE_IMAGE_SHAPE = [-1, 128, 256, 1]
 CHECKPOINT_DIR = '_results/conditioning/LSC_STFTMagGAN_HR/training_checkpoints/'
@@ -45,11 +43,11 @@ MAESTRO_PATH = 'data/MAESTRO_ls_6h.npz'
 MAESTRO_CONDITIONING_PATH = 'data/MAESTRO_ls_cond_6h.npz'
 
 def _get_discriminator_input_representations(stft_in):
-    """Computes the input representations for the STFTSpecGAN discriminator models,
+    """Computes the input representations for the STFTMagGAN discriminator models,
     returning the input waveform and coresponding spectogram representations
 
     Args:
-        x_in: A batch of stft with shape (-1, time, frequency_dims).
+        stft_in: A batch of stft with shape (-1, time, frequency_dims).
 
     Returns:
         A tuple containing the stft and log magnitude spectrum representaions of
@@ -59,7 +57,7 @@ def _get_discriminator_input_representations(stft_in):
     real = stft_in[:, :, :, 0]
     imag = stft_in[:, :, :, 1]
     magnitude = tf.sqrt(tf.square(real) + tf.square(imag))
-    magnitude = tf.math.log(magnitude + 1e-6)
+    magnitude = tf.math.log(magnitude + _EPSILON)
 
     return (stft_in, magnitude)
 

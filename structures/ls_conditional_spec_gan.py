@@ -32,7 +32,7 @@ class Generator(keras.Model):
                 For example, for SpecGAN there is one
                 output channel, and for SpecPhaseGAN there
                 are two output channels.
-            acitvation: Activation function applied to generation
+            activation: Activation function applied to generation
                 before being returned. Default is linear.
             in_shape: Transformed noise shape as input to the
                 generator function.
