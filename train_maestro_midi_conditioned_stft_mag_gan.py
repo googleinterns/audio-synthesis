@@ -30,8 +30,6 @@ EPOCHS = 300
 SAMPLING_RATE = 16000
 FFT_FRAME_LENGTH = 512
 FFT_FRAME_STEP = 128
-SIGNAL_LENGTH = 2**14
-WAVEFORM_SHAPE = [-1, SIGNAL_LENGTH, 1]
 STFT_IMAGE_SHAPE = [-1, 128, FFT_FRAME_LENGTH // 2, 2]
 MAGNITUDE_IMAGE_SHAPE = [-1, 128, FFT_FRAME_LENGTH // 2, 1]
 CRITIC_WEIGHTINGS = [1.0, 1.0 / 1000.0]
@@ -41,11 +39,11 @@ MAESTRO_PATH = 'data/MAESTRO_6h_old.npz'
 MAESTRO_MIDI_PATH = 'data/MAESTRO_midi_6h_old.npz'
 
 def _get_discriminator_input_representations(stft_in):
-    """Computes the input representations for the STFTSpecGAN discriminator models,
+    """Computes the input representations for the STFTMagGAN discriminator models,
     returning the input waveform and coresponding spectogram representations
 
     Args:
-        x_in: A batch of stft with shape (-1, time, frequency_dims).
+        stft_in: A batch of stft with shape (-1, time, frequency_dims).
 
     Returns:
         A tuple containing the stft and log magnitude spectrum representaions of
@@ -90,7 +88,7 @@ def main():
             epoch, real, generated, SAMPLING_RATE, RESULT_DIR, get_waveform
         )
 
-    wave_gan_model = conditional_wgan.ConditionalWGAN(
+    stft_gan_model = conditional_wgan.ConditionalWGAN(
         raw_maestro, raw_maestro_conditioning, generator, [discriminator, spec_discriminator],
         Z_DIM, generator_optimizer, discriminator_optimizer,
         discriminator_training_ratio=D_UPDATES_PER_G, batch_size=BATCH_SIZE, epochs=EPOCHS,
@@ -98,7 +96,7 @@ def main():
         fn_get_discriminator_input_representations=_get_discriminator_input_representations
     )
 
-    wave_gan_model.train()
+    stft_gan_model.train()
 
 if __name__ == '__main__':
     main()
