@@ -105,8 +105,8 @@ def piano_midi_2_chunks(midi, padded_wav_length, chunk_length, num_states_per_ch
     ticks_per_state = chunk_length_in_ticks / num_states_per_chunk
     
     end_tick_indicies = np.arange(
-        chunk_length_in_ticks,
-        total_time_in_ticks + chunk_length_in_ticks,
+        ticks_per_state,
+        total_time_in_ticks + ticks_per_state,
         ticks_per_state, dtype=np.float32
     )
     
@@ -141,6 +141,6 @@ def piano_midi_2_chunks(midi, padded_wav_length, chunk_length, num_states_per_ch
 
             event_idx += 1
         states.append(copy.deepcopy(state))
-
+    
     states = np.reshape(states, (-1, num_states_per_chunk, N_STATE_SLOTS))
     return states

@@ -1,14 +1,14 @@
 # Lint as: python3
-"""Tests for maestro dataset."""
+"""Tests for waveform dataset."""
 
 import tensorflow as tf
 import numpy as np
 import os
 
-import maestro_dataset
+import waveform_dataset
 
 
-class MaestroDatasetTest(tf.test.TestCase):
+class WaveformDatasetTest(tf.test.TestCase):
 
     def test_normalize_shape(self):
         inputs = np.random.normal(size=(10, 128, 256)).astype(np.float32)
