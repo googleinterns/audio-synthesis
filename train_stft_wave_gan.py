@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Training Script for STFTWaveGAN on a waveform dataset.
+"""Training Script for STFTWaveGAN on a dataset.
 
 Follows the same setup as SpecPhaseGAN, but
 generates STFTs instead of Magnitude and Instantaneous
@@ -74,8 +74,12 @@ def main():
     )
 
     generator = spec_gan.Generator(channels=2, in_shape=Z_IN_SHAPE)
-    discriminator = spec_gan.Discriminator(input_shape=SPECTOGRAM_IMAGE_SHAPE, weighting=CRITIC_WEIGHTINGS[1])
-    waveform_discriminator = wave_gan.Discriminator(input_shape=WAVEFORM_SHAPE, weighting=CRITIC_WEIGHTINGS[0])
+    discriminator = spec_gan.Discriminator(
+        input_shape=SPECTOGRAM_IMAGE_SHAPE, weighting=CRITIC_WEIGHTINGS[1]
+    )
+    waveform_discriminator = wave_gan.Discriminator(
+        input_shape=WAVEFORM_SHAPE, weighting=CRITIC_WEIGHTINGS[0]
+    )
 
     generator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
     discriminator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
@@ -93,7 +97,8 @@ def main():
     stft_wave_gan_model = wgan.WGAN(
         raw_dataset, generator, [discriminator, waveform_discriminator], Z_DIM,
         generator_optimizer, discriminator_optimizer, discriminator_training_ratio=D_UPDATES_PER_G,
-        batch_size=BATCH_SIZE, epochs=EPOCHS, checkpoint_dir=CHECKPOINT_DIR, fn_save_examples=save_examples,
+        batch_size=BATCH_SIZE, epochs=EPOCHS, checkpoint_dir=CHECKPOINT_DIR,
+        fn_save_examples=save_examples,
         fn_get_discriminator_input_representations=_get_discriminator_input_representations
     )
 

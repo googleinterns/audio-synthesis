@@ -103,12 +103,17 @@ def piano_midi_2_chunks(midi, padded_wav_length, chunk_length, num_states_per_ch
         padded_wav_length / sample_rate, midi.ticks_per_beat, TEMPO
     )
     ticks_per_state = chunk_length_in_ticks / num_states_per_chunk
-
+    
     end_tick_indicies = np.arange(
         chunk_length_in_ticks,
         total_time_in_ticks + chunk_length_in_ticks,
         ticks_per_state, dtype=np.float32
     )
+    
+    # Account for a small rounding issue at the end of songs.
+    end_tick_indicies = end_tick_indicies[
+        :round(total_time_in_ticks / float(ticks_per_state))
+    ]
 
     states = []
     state = np.zeros((N_STATE_SLOTS))
