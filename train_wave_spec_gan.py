@@ -31,21 +31,13 @@ EPOCHS = 300
 SAMPLING_RATE = 16000
 FFT_FRAME_LENGTH = 512
 FFT_FRAME_STEP = 128
-MEL_SPECTROGRAM = False
-MEL_LOWER_HERTZ_EDGE = 80.
-MEL_UPPER_HERTZ_EDGE = 7600.
-NUM_MEL_BINS = 96
 SIGNAL_LENGTH = 2**14
 WAVEFORM_SHAPE = [-1, SIGNAL_LENGTH, 1]
 CRITIC_WEIGHTINGS = [1.0, 1.0/1000.0]
 CHECKPOINT_DIR = '_results/representation_study/SpeechMNIST/WaveMagGAN_HR/training_checkpoints/'
 RESULT_DIR = '_results/representation_study/SpeechMNIST/WaveMagGAN_HR/audio/'
 DATASET_PATH = 'data/SpeechMNIST_1850.npz'
-
-if MEL_SPECTROGRAM:
-    MAGNITUDE_IMAGE_SHAPE = [-1, 128, NUM_MEL_BINS, 1]
-else:
-    MAGNITUDE_IMAGE_SHAPE = [-1, 128, 256, 1]
+MAGNITUDE_IMAGE_SHAPE = [-1, 128, 256, 1]
 
 def _get_discriminator_input_representations(x_in):
     """Computes the input representations for the WaveSpecGAN discriminator models,
@@ -60,16 +52,9 @@ def _get_discriminator_input_representations(x_in):
     """
 
     x_in = tf.squeeze(x_in)
-
-    if MEL_SPECTROGRAM:
-        magnitude = spectral.waveform_2_magnitude(
-            x_in, FFT_FRAME_LENGTH, FFT_FRAME_STEP, True,
-            NUM_MEL_BINS, MEL_LOWER_HERTZ_EDGE, MEL_UPPER_HERTZ_EDGE
-        )
-    else:
-        magnitude = spectral.waveform_2_magnitude(
-            x_in, FFT_FRAME_LENGTH, FFT_FRAME_STEP, True
-        )
+    magnitude = spectral.waveform_2_magnitude(
+        x_in, FFT_FRAME_LENGTH, FFT_FRAME_STEP, True
+    )
 
     return (x_in, magnitude)
 
@@ -105,7 +90,6 @@ def main():
         fn_get_discriminator_input_representations=_get_discriminator_input_representations
     )
 
-    wave_gan_model.restore('ckpt-14', 140)
     wave_gan_model.train()
 
 if __name__ == '__main__':

@@ -33,8 +33,8 @@ SILENCE_PADDING = 2**13
 Z_DIM = 64
 WAVEFORM_LENGTH = 2**14
 SAMPLING_RATE = 16000
-RESULTS_PATH = '_results/representation_study/listening_test/MAESTRO/'
-MAESTRO_PATH = 'data/MAESTRO_6h.npz'
+RESULTS_PATH = '_results/representation_study/listening_test/SpeechMNIST/'
+MAESTRO_PATH = 'data/SpeechMNIST_1850.npz'
 GRIFFIN_LIM_ITERATIONS = 32
 FFT_FRAME_LENGTHS = [512, 512]
 FFT_FRAME_STEPS = [128, 128]
@@ -93,7 +93,7 @@ MODELS = {
     'WaveGAN': {
         'generator': wave_gan.Generator(),
         'checkpoint_path':\
-            '_results/representation_study/WaveGAN/training_checkpoints/ckpt-30',
+            '_results/representation_study/SpeechMNIST/WaveGAN/training_checkpoints/ckpt-30',
         'preprocess': {
             'unnormalize_magnitude': False,
             'unnormalize_spectogram': False,
@@ -104,7 +104,7 @@ MODELS = {
     'STFTGAN_HR': {
         'generator': spec_gan.Generator(channels=2, in_shape=[4, 8, 1024]),
         'checkpoint_path':\
-            '_results/representation_study/STFTGAN_HR/training_checkpoints/ckpt-30',
+            '_results/representation_study/SpeechMNIST//training_checkpoints/ckpt-30',
         'preprocess': {
             'unnormalize_magnitude': False,
             'unnormalize_spectogram': False,
@@ -118,7 +118,7 @@ MODELS = {
     'STFTWaveGAN_HR': {
         'generator': spec_gan.Generator(channels=2, in_shape=[4, 8, 1024]),
         'checkpoint_path':\
-            '_results/representation_study/STFTWaveGAN_HR/training_checkpoints/ckpt-30',
+            '_results/representation_study/SpeechMNIST/STFTWaveGAN_HR/training_checkpoints/ckpt-30',
         'preprocess': {
             'unnormalize_magnitude': False,
             'unnormalize_spectogram': False,
@@ -132,7 +132,7 @@ MODELS = {
     'STFTMagGAN_HR': {
         'generator': spec_gan.Generator(channels=2, in_shape=[4, 8, 1024]),
         'checkpoint_path':\
-            '_results/representation_study/STFTSpecGAN_HR/training_checkpoints/ckpt-30',
+            '_results/representation_study/SpeechMNIST/STFTSpecGAN_HR/training_checkpoints/ckpt-30',
         'preprocess': {
             'unnormalize_magnitude': False,
             'unnormalize_spectogram': False,
@@ -146,7 +146,7 @@ MODELS = {
     'MagGAN_HR': {
         'generator': spec_gan.Generator(activation=activations.tanh, in_shape=[4, 8, 1024]),
         'checkpoint_path':\
-            '_results/representation_study/SpecGAN_HR/training_checkpoints/ckpt-30',
+            '_results/representation_study/SpeechMNIST/SpecGAN_HR/training_checkpoints/ckpt-30',
         'preprocess': {
             'unnormalize_magnitude': True,
             'unnormalize_spectogram': False,
@@ -164,7 +164,7 @@ MODELS = {
             channels=2, activation=activations.tanh, in_shape=[4, 8, 1024]
         ),
         'checkpoint_path':\
-            '_results/representation_study/MagPhaseGAN_HR/training_checkpoints/ckpt-30',
+            '_results/representation_study/SpeechMNIST/MagPhaseGAN_HR/training_checkpoints/ckpt-30',
         'preprocess': {
             'unnormalize_magnitude': False,
             'unnormalize_spectogram': True,
@@ -181,7 +181,7 @@ MODELS = {
             channels=2, activation=activations.tanh, in_shape=[4, 8, 1024]
         ),
         'checkpoint_path':\
-            '_results/representation_study/SpecPhaseGAN_HR/training_checkpoints/ckpt-30',
+            '_results/representation_study/SpeechMNIST/SpecPhaseGAN_HR/training_checkpoints/ckpt-30',
         'preprocess': {
             'unnormalize_magnitude': False,
             'unnormalize_spectogram': True,
@@ -196,7 +196,7 @@ MODELS = {
     'WaveMagGAN_HR': {
         'generator': wave_gan.Generator(),
         'checkpoint_path':\
-            '_results/representation_study/WaveSpecGAN_HR/training_checkpoints/ckpt-30',
+            '_results/representation_study/SpeechMNIST/WaveSpecGAN_HR/training_checkpoints/ckpt-30',
         'preprocess': {
             'unnormalize_magnitude': False,
             'unnormalize_spectogram': False,

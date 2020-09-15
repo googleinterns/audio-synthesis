@@ -33,12 +33,12 @@ Z_DIM = 64
 BATCH_SIZE = 64
 EPOCHS = 300
 SAMPLING_RATE = 16000
-FFT_FRAME_LENGTH = 1024
+FFT_FRAME_LENGTH = 512
 FFT_FRAME_STEP = 128
-Z_IN_SHAPE = [4, 16, 1024]
-SPECTOGRAM_IMAGE_SHAPE = [-1, 128, 512, 2]
-CHECKPOINT_DIR = '_results/representation_study/STFTGAN_SHR/training_checkpoints/'
-RESULT_DIR = '_results/representation_study/STFTGAN_SHR/audio/'
+Z_IN_SHAPE = [4, 8, 1024]
+SPECTOGRAM_IMAGE_SHAPE = [-1, 128, 256, 2]
+CHECKPOINT_DIR = '_results/representation_study/SpeechMNIST/STFTGAN_HR/training_checkpoints/'
+RESULT_DIR = '_results/representation_study/SpeechMNIST/STFTGAN_HR/audio/'
 DATASET_PATH = 'data/MAESTRO_6h.npz'
 
 def main():
