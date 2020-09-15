@@ -26,15 +26,15 @@ from audio_synthesis.utils import waveform_save_helper as save_helper
 D_UPDATES_PER_G = 5
 Z_DIM = 64
 BATCH_SIZE = 64
-EPOCHS = 3000
+EPOCHS = 2500
 SAMPLING_RATE = 16000
 WAVEFORM_SHAPE = [-1, 2**14, 1]
-CHECKPOINT_DIR = '_results/representation_study/WaveGAN/training_checkpoints/'
-RESULT_DIR = '_results/representation_study/WaveGAN/audio/'
-DATASET_PATH = 'data/MAESTRO_6h.npz'
+CHECKPOINT_DIR = '_results/representation_study/SpeechMNIST/WaveGAN/training_checkpoints/'
+RESULT_DIR = '_results/representation_study/SpeechMNIST/WaveGAN/audio/'
+DATASET_PATH = 'data/SpeechMNIST_1850.npz'
 
 def main():
-    os.environ['CUDA_VISIBLE_DEVICES'] = ''
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
     print('Num GPUs Available: ', len(tf.config.experimental.list_physical_devices('GPU')))
 
     raw_dataset = waveform_dataset.get_waveform_dataset(DATASET_PATH)
@@ -59,6 +59,7 @@ def main():
         fn_save_examples=save_examples
     )
 
+    wave_gan_model.restore('ckpt-180', 1800)
     wave_gan_model.train()
 
 if __name__ == '__main__':

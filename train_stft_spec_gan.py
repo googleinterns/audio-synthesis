@@ -31,7 +31,7 @@ from audio_synthesis.utils import spectral
 D_UPDATES_PER_G = 5
 Z_DIM = 64
 BATCH_SIZE = 64
-EPOCHS = 300
+EPOCHS = 1800
 SAMPLING_RATE = 16000
 FFT_FRAME_LENGTH = 512
 FFT_FRAME_STEP = 128
@@ -97,7 +97,7 @@ def main():
         fn_get_discriminator_input_representations=_get_discriminator_input_representations
     )
 
-    stft_spec_gan_model.restore('ckpt-11', 110)
+    stft_spec_gan_model.restore('ckpt-65', 650)
     stft_spec_gan_model.train()
 
 if __name__ == '__main__':

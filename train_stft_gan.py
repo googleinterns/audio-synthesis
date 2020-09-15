@@ -31,7 +31,7 @@ from audio_synthesis.utils import spectral
 D_UPDATES_PER_G = 5
 Z_DIM = 64
 BATCH_SIZE = 64
-EPOCHS = 300
+EPOCHS = 1800
 SAMPLING_RATE = 16000
 FFT_FRAME_LENGTH = 512
 FFT_FRAME_STEP = 128
@@ -42,7 +42,7 @@ RESULT_DIR = '_results/representation_study/SpeechMNIST/STFTGAN_HR/audio/'
 DATASET_PATH = 'data/SpeechMNIST_1850.npz'
 
 def main():
-    os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     print('Num GPUs Available: ', len(tf.config.experimental.list_physical_devices('GPU')))
 
     raw_dataset = waveform_dataset.get_stft_dataset(
@@ -72,7 +72,7 @@ def main():
         fn_save_examples=save_examples
     )
 
-    stft_gan_model.restore('ckpt-20', 200)
+    stft_gan_model.restore('ckpt-100', 1000)
     stft_gan_model.train()
 
 if __name__ == '__main__':
