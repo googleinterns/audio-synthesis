@@ -156,9 +156,9 @@ class Discriminator(keras.Model):
         sequential.append(layers.Conv2D(
             filters=512, kernel_size=(6, 6), strides=(2, 2), padding='same'
         ))
-        sequential.append(layers.Conv2D(
-            filters=3, kernel_size=(6, 6), strides=(1, 1), padding='same'
-        ))
+        #sequential.append(layers.Conv2D(
+        #    filters=3, kernel_size=(6, 6), strides=(1, 1), padding='same'
+        #))
         sequential.append(layers.LeakyReLU(alpha=0.2))
         sequential.append(layers.Flatten())
         sequential.append(layers.Dense(1))
