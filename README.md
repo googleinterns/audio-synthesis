@@ -15,7 +15,9 @@ audio_synthesis package. Hence, to execute scripts, you must ensure that the
 directory containing this cloned repository is in the Python path. This can
 be done temporarily using the following command:
 
-```export PYTHONPATH="${PYTHONPATH}:/my/other/path"```
+```export PYTHONPATH="${PYTHONPATH}:/path/to/containing/folder"```
+
+To clarify, this should be the path to the folder that contains the audio_synthesis directory.
 
 ### Datasets
 This repository contains scripts for pre-processing two datasets, MAESTRO and SpeechMNIST.
@@ -50,6 +52,10 @@ The experiments folder contains all the experiment scripts. There are three main
  - Conditional: These experiments are for the conditional GANs models, using auxiliary historical
     data and MIDI information.
  - Basis Functions: The learned signal decomposition experiments.
+ 
+ 
+To expecute an expeirment, simply run ```python <path/to/experiment.py>```. However, often you will want
+to execute the command in the background. In this situation, use ```nohup python -u <path/to/experiment.py> > log_file.log &```
 
 **NOTE:** In all experiment scripts, there is a line of code at the top of ```main()```, that looks
 like ```os.environ["CUDA_VISIBLE_DEVICES"] = '2'```. This is used to specify the visibility of GPUs
