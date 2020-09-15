@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Training Script for STFTSpecGAN on a dataset.
+"""Training Script for STFTSpecGAN on a waveform dataset.
 
 Follows the same setup as SpecPhaseGAN, but
 generates STFTs instead of Magnitude and Instantaneous
@@ -31,7 +31,7 @@ from audio_synthesis.utils import spectral
 D_UPDATES_PER_G = 5
 Z_DIM = 64
 BATCH_SIZE = 64
-EPOCHS = 300
+EPOCHS = 1800
 SAMPLING_RATE = 16000
 FFT_FRAME_LENGTH = 512
 FFT_FRAME_STEP = 128
@@ -40,9 +40,10 @@ SPECTOGRAM_IMAGE_SHAPE = [-1, 128, 256, 2]
 MAGNITUDE_IMAGE_SHAPE = [-1, 128, 256, 1]
 SIGNAL_LENGTH = 2**14
 WAVEFORM_SHAPE = [-1, SIGNAL_LENGTH, 1]
-CHECKPOINT_DIR = '_results/representation_study/STFTSpecGAN_HR/training_checkpoints/'
-RESULT_DIR = '_results/representation_study/STFTSpecGAN_HR/audio/'
-DATASET_PATH = 'data/MAESTRO_6h.npz'
+CRITIC_WEIGHTINGS = [1.0, 1.0/1000.0]
+CHECKPOINT_DIR = '_results/representation_study/SpeechMNIST/STFTSpecGAN_HR/training_checkpoints/'
+RESULT_DIR = '_results/representation_study/SpeechMNIST/STFTSpecGAN_HR/audio/'
+DATASET_PATH = 'data/SpeechMNIST_1850.npz'
 
 def _get_discriminator_input_representations(stft_in):
     """Computes the input representations for the STFTSpecGAN discriminator models,
@@ -55,7 +56,7 @@ def _get_discriminator_input_representations(stft_in):
         A tuple containing the stft and log magnitude spectrum representaions of
         x_in.
     """
-
+    
     real = stft_in[:, :, :, 0]
     imag = stft_in[:, :, :, 1]
     magnitude = tf.sqrt(tf.square(real) + tf.square(imag))
@@ -65,7 +66,7 @@ def _get_discriminator_input_representations(stft_in):
 
 
 def main():
-    os.environ['CUDA_VISIBLE_DEVICES'] = ''
+    os.environ['CUDA_VISIBLE_DEVICES'] = '3'
     print('Num GPUs Available: ', len(tf.config.experimental.list_physical_devices('GPU')))
 
     raw_dataset = waveform_dataset.get_stft_dataset(
@@ -92,11 +93,11 @@ def main():
     stft_spec_gan_model = wgan.WGAN(
         raw_dataset, generator, [discriminator, magnitude_discriminator], Z_DIM,
         generator_optimizer, discriminator_optimizer, discriminator_training_ratio=D_UPDATES_PER_G,
-        batch_size=BATCH_SIZE, epochs=EPOCHS, checkpoint_dir=CHECKPOINT_DIR,
-        fn_save_examples=save_examples,
+        batch_size=BATCH_SIZE, epochs=EPOCHS, checkpoint_dir=CHECKPOINT_DIR, fn_save_examples=save_examples,
         fn_get_discriminator_input_representations=_get_discriminator_input_representations
     )
 
+    stft_spec_gan_model.restore('ckpt-65', 650)
     stft_spec_gan_model.train()
 
 if __name__ == '__main__':
