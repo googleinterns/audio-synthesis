@@ -7,7 +7,7 @@ This repository contains an exploration of generative models for audio synthesis
 ## Instructions
 This section contains the instructions for setting up the cloned repository
 and running experiments. **NOTE:** It is intended that all files are executed
-root directory of this repository.
+from the root directory of this repository.
 
 ### Setup
 This project is setup so that component files can be included through the
@@ -24,7 +24,7 @@ This repository contains scripts for pre-processing two datasets, MAESTRO and Sp
 These scripts are contained in the ```setup/``` folder.
 
 For MAESTRO, the script ```setup/preprocess_maestro_with_midi_dataset.py``` processes the 
-audio and algiend MIDI into chunks of a desired size. The script allows you to set how many
+audio and aligned MIDI into chunks of a desired size. The script allows you to set how many
 hours of data you wish to load as well as how to quantize the MIDI data. The process for
 constructing the dataset is:
  - Download the dataset from https://magenta.tensorflow.org/datasets/maestro and unzip it. 
@@ -54,7 +54,7 @@ The experiments folder contains all the experiment scripts. There are three main
  - Basis Functions: The learned signal decomposition experiments.
  
  
-To expecute an expeirment, simply run ```python <path/to/experiment.py>```. However, often you will want
+To execute an experiment, simply run ```python <path/to/experiment.py>```. However, often you will want
 to execute the command in the background. In this situation, use ```nohup python -u <path/to/experiment.py> > log_file.log &```
 
 **NOTE:** In all experiment scripts, there is a line of code at the top of ```main()```, that looks
@@ -96,6 +96,3 @@ Apache header:
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
     See the License for the specific language governing permissions and
     limitations under the License.
-
-
-
