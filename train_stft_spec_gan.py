@@ -40,7 +40,6 @@ SPECTOGRAM_IMAGE_SHAPE = [-1, 128, 256, 2]
 MAGNITUDE_IMAGE_SHAPE = [-1, 128, 256, 1]
 SIGNAL_LENGTH = 2**14
 WAVEFORM_SHAPE = [-1, SIGNAL_LENGTH, 1]
-CRITIC_WEIGHTINGS = [1.0, 1.0/1000.0]
 CHECKPOINT_DIR = '_results/representation_study/SpeechMNIST/STFTSpecGAN_HR/training_checkpoints/'
 RESULT_DIR = '_results/representation_study/SpeechMNIST/STFTSpecGAN_HR/audio/'
 DATASET_PATH = 'data/SpeechMNIST_1850.npz'

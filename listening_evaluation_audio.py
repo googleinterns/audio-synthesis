@@ -104,7 +104,7 @@ MODELS = {
     'STFTGAN_HR': {
         'generator': spec_gan.Generator(channels=2, in_shape=[4, 8, 1024]),
         'checkpoint_path':\
-            '_results/representation_study/SpeechMNIST//training_checkpoints/ckpt-30',
+            '_results/representation_study/SpeechMNIST/STFTGAN_HR/training_checkpoints/ckpt-30',
         'preprocess': {
             'unnormalize_magnitude': False,
             'unnormalize_spectogram': False,
