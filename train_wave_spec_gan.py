@@ -31,21 +31,13 @@ EPOCHS = 300
 SAMPLING_RATE = 16000
 FFT_FRAME_LENGTH = 512
 FFT_FRAME_STEP = 128
-MEL_SPECTROGRAM = False
-MEL_LOWER_HERTZ_EDGE = 80.
-MEL_UPPER_HERTZ_EDGE = 7600.
-NUM_MEL_BINS = 96
 SIGNAL_LENGTH = 2**14
 WAVEFORM_SHAPE = [-1, SIGNAL_LENGTH, 1]
 CRITIC_WEIGHTINGS = [1.0, 1.0/1000.0]
-CHECKPOINT_DIR = '_results/representation_study/WaveSpecGAN/training_checkpoints/'
-RESULT_DIR = '_results/representation_study/WaveSpecGAN/audio/'
-DATASET_PATH = 'data/MAESTRO_6h.npz'
-
-if MEL_SPECTROGRAM:
-    MAGNITUDE_IMAGE_SHAPE = [-1, 128, NUM_MEL_BINS, 1]
-else:
-    MAGNITUDE_IMAGE_SHAPE = [-1, 128, FFT_FRAME_LENGTH // 2, 1]
+CHECKPOINT_DIR = '_results/representation_study/SpeechMNIST/WaveMagGAN_HR/training_checkpoints/'
+RESULT_DIR = '_results/representation_study/SpeechMNIST/WaveMagGAN_HR/audio/'
+DATASET_PATH = 'data/SpeechMNIST_1850.npz'
+MAGNITUDE_IMAGE_SHAPE = [-1, 128, 256, 1]
 
 def _get_discriminator_input_representations(x_in):
     """Computes the input representations for the WaveSpecGAN discriminator models,
@@ -60,21 +52,14 @@ def _get_discriminator_input_representations(x_in):
     """
 
     x_in = tf.squeeze(x_in)
-
-    if MEL_SPECTROGRAM:
-        magnitude = spectral.waveform_2_magnitude(
-            x_in, FFT_FRAME_LENGTH, FFT_FRAME_STEP, True,
-            NUM_MEL_BINS, MEL_LOWER_HERTZ_EDGE, MEL_UPPER_HERTZ_EDGE
-        )
-    else:
-        magnitude = spectral.waveform_2_magnitude(
-            x_in, FFT_FRAME_LENGTH, FFT_FRAME_STEP, True
-        )
+    magnitude = spectral.waveform_2_magnitude(
+        x_in, FFT_FRAME_LENGTH, FFT_FRAME_STEP, True
+    )
 
     return (x_in, magnitude)
 
 def main():
-    os.environ["CUDA_VISIBLE_DEVICES"] = ''
+    os.environ["CUDA_VISIBLE_DEVICES"] = '0'
     print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
     raw_dataset = waveform_dataset.get_waveform_dataset(DATASET_PATH)

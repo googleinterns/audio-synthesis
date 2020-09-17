@@ -27,6 +27,7 @@ from audio_synthesis.utils import spectral
 # standard deviations from the mean.
 _CLIP_NUMBER_STD = 3.
 _PROCESSING_BATCH_SIZE = 100
+_EPSILON = 1e-6
 
 def get_waveform_dataset(path):
     """Loads the waveform dataset from a given path.
@@ -160,7 +161,7 @@ def normalize(spectrum, mean, std):
         [-1, time, frequency]
     """
 
-    norm = (spectrum - mean) / std
+    norm = (spectrum - mean) / (std + _EPSILON)
     norm /= _CLIP_NUMBER_STD
     norm = np.clip(norm, -1., 1.)
     return norm
@@ -182,7 +183,7 @@ def un_normalize(spectrum, mean, std):
     """
 
     if len(spectrum.shape) == 2:
-        spectrum = tf.expand_dims(spectrum, 0)
+        spectrum = np.expand_dims(spectrum, 0)
         
     assert len(spectrum.shape) == 3
     spectrum = spectrum * _CLIP_NUMBER_STD
@@ -208,7 +209,7 @@ def un_normalize_spectogram(spectogram, magnitude_stats, phase_stats):
     """
 
     if len(spectogram.shape) == 3:
-        spectogram = tf.expand_dims(spectogram, 0)
+        spectogram = np.expand_dims(spectogram, 0)
     
     magnitude = un_normalize(spectogram[:, :, :, 0], *magnitude_stats)
     phase = un_normalize(spectogram[:, :, :, 1], *phase_stats)
