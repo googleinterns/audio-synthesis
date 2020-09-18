@@ -91,7 +91,8 @@ def get_magnitude_phase_dataset(path, frame_length=512, frame_step=128,
     magnitude_stats, phase_stats = _get_spectogram_normalizing_constants(processed_dataset)
     return processed_dataset, magnitude_stats, phase_stats
 
-def get_stft_dataset(path, frame_length=512, frame_step=128):
+def get_stft_dataset(path, frame_length=512, frame_step=128, n_mel_bins=None,
+                    mel_lower_hertz_edge=0.0, mel_upper_hertz_edge=8000.0):
     """Loads the STFT representation of the dataset.
     Args:
         path: The path to the .npz file containing
@@ -106,7 +107,10 @@ def get_stft_dataset(path, frame_length=512, frame_step=128):
     process_stft = lambda x: spectral.waveform_2_stft(
         x,
         frame_length=frame_length,
-        frame_step=frame_step
+        frame_step=frame_step,
+        n_mel_bins=n_mel_bins,
+        mel_lower_hertz_edge=mel_lower_hertz_edge,
+        mel_upper_hertz_edge=mel_upper_hertz_edge
     )
 
     processed_dataset = _get_pre_processed_dataset(path, process_stft)
