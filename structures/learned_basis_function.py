@@ -21,7 +21,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 from audio_synthesis.utils import layers as layer_util
-from audio_synthesis.third_party import gammatone_filterbank
+from audio_synthesis.third_party.mp_gtf import multiphase_gammatone_filterbank
 
 # Controlls the amount of overlap between adjacent windows.
 # An overlap factor of 2 means a 50 percent overlap, this is following
@@ -56,11 +56,11 @@ class Encoder(keras.Model):
     def call(self, x_in):
         """Applies the Encoder model, decomposing the input signals
         onto the learned basis functions.
-        
+
         Args:
             x_in: A batch of time domain signals. Expected shape is
                 (batch_size, signal_duration, 1).
-                
+
         Returns:
             The signals decomposed onto the encoder basis functions.
             Shape is (batch_size, signal_duration // self.stride, num_filters),
@@ -71,19 +71,19 @@ class Encoder(keras.Model):
 
         encoded_signals = self.conv_layer(x_in)
         return tf.nn.relu(encoded_signals)
-    
+
 class MPGFBEncoder(keras.Model):
     def __init__(self, length, num_filters, stride=128, sr=16000.0):
         super(MPGFBEncoder, self).__init__()
-        
+
         self.length = length
         self.num_filters = num_filters
         self.stride = stride
         self.sr = sr
-        self.filterbank = gammatone_filterbank.generate_mpgtf(sr, length/sr, num_filters)
+        self.filterbank = multiphase_gammatone_filterbank.generate_mpgtf(sr, length/sr, num_filters)
         self.filterbank = np.transpose(self.filterbank)
         self.filterbank = np.expand_dims(self.filterbank, 1).astype(np.float32)
-        
+
     def call(self, x_in):
         x_in = tf.expand_dims(x_in, axis=2)
         encoded_signals = tf.nn.conv1d(x_in, tf.stop_gradient(self.filterbank), stride=self.stride, padding='SAME')
@@ -103,14 +103,14 @@ class Decoder(keras.Model):
 
         self.length = length
         self.stride = stride
-        
-        filterbank = gammatone_filterbank.generate_mpgtf(sr, length/sr, num_filters).astype(np.float32)
+
+        filterbank = multiphase_gammatone_filterbank.generate_mpgtf(sr, length/sr, num_filters).astype(np.float32)
         filterbank_inv = tf.linalg.pinv(tf.expand_dims(filterbank, 0))[0]
         conv_filterbank_inv = tf.expand_dims(filterbank_inv, 1)
-        
+
         self.filterbank = tf.Variable(initial_value=conv_filterbank_inv, trainable=True)
-        
-    
+
+
         #self.transpose_conv_layer = layer_util.Conv1DTranspose(
         #    1, kernel_size=length, strides=self.stride,
         #    use_bias=False, padding='SAME'
@@ -119,17 +119,17 @@ class Decoder(keras.Model):
     def call(self, x_in):
         """Applys the decoder function to the input. Reconstructing the
         signal domain representation.
-        
+
         Args:
-            x_in: Signals in a decomposed representation. 
+            x_in: Signals in a decomposed representation.
                 Shape is (batch_size, signal_duration // self.stride,
                 num_filters).
-            
+
         Returns:
             A batch of time-domain waveforms. Shape is
             (batch_size, signal_duration, 1).
         """
-        
+
         reconstructed = tf.nn.conv1d_transpose(
             x_in, self.filterbank, (x_in.shape[0], self.stride * x_in.shape[1], 1),
             strides=self.stride, padding='SAME'
@@ -163,25 +163,25 @@ class NLDecoder(keras.Model):
         #sequential.append(layer_util.Conv1DTranspose(filters=self.num_filters//4, strides=1, kernel_size=length))
         #sequential.append(layers.LeakyReLU())
         sequential.append(layer_util.Conv1DTranspose(filters=1, strides=1, kernel_size=length))
-        
+
         self.l = keras.Sequential(sequential)
 
     def call(self, x_in):
         """Applys the decoder function to the input. Reconstructing the
         signal domain representation.
-        
+
         Args:
-            x_in: Signals in a decomposed representation. 
+            x_in: Signals in a decomposed representation.
                 Shape is (batch_size, signal_duration // self.stride,
                 num_filters).
-            
+
         Returns:
             A batch of time-domain waveforms. Shape is
             (batch_size, signal_duration, 1).
         """
-        
+
         return self.l(x_in)
-    
+
 class Classifier(keras.Model):
     """The classifier used in some learned decomposition experiments.
     Used for classifing the midi data from the decomposed representation.
@@ -214,14 +214,14 @@ class Classifier(keras.Model):
     def call(self, blocks):
         """Takes in decomposed signal representation and produces a
         classification.
-        
+
         Args:
             blocks: The blocks to be classified. Shape is
                 (-1, self.num_keys)
-                
+
         Returns:
             logits: The logit output from the classifier.
-            probabilities: The probability output from the 
+            probabilities: The probability output from the
                 classifier, logits after a sigmoid activation.
         """
 
@@ -253,11 +253,11 @@ class Discriminator(keras.Model):
 
     def call(self, x_in):
         """Applies the discriminator network.
-        
+
         Args:
             x_in: A batch of time-domain waveforms. Expected shape
                 is (batch_size, signal_duration, 1).
-                
+
         Returns:
             Real-valued scores, according to the WGAN implementation.
             Shape is (batch_size, 1).

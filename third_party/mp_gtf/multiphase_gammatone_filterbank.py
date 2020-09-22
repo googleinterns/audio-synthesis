@@ -1,11 +1,12 @@
-# [1] David Ditter, Timo Gerkmann,
-# "A Multi-Phase Gammatone Filterbank for Speech Separation via TasNet",
-# IEEE Int. Conf. Acoust., Speech, Signal Process. (ICASSP), Barcelona, Spain, May 2020.
-# Available: https://arxiv.org/abs/1910.11615
+### This Python script generates the Multi-Phase Gammatone Filterbank as described in [1]
+#    for usage with Conv-TasNet
+#
+#    [1] David Ditter, Timo Gerkmann, "A Multi-Phase Gammatone Filterbank for Speech
+#        Separation via TasNet",  IEEE Int. Conf. Acoust., Speech, Signal Process. (ICASSP),
+#        Barcelona, Spain, May 2020.
+#        Available: https://ieeexplore.ieee.org/document/9053602/
 
-import tensorflow as tf
 import numpy as np
-import matplotlib.pyplot as plt
 
 ### UTILITY FUNCTIONS ###
 

@@ -1,0 +1,21 @@
+name: "Multi-Phase Gammatone Filterbank"
+description:
+    "A Python script to generate the Multi-Phase Gammatone Filterbank as "
+    "described in [1] for usage with Conv-TasNet."
+    "[1] David Ditter, Timo Gerkmann, 'A Multi-Phase Gammatone Filterbank "
+    "for Speech Separation via TasNet', IEEE Int. Conf. Acoust., Speech, "
+    "Signal Process. (ICASSP), Barcelona, Spain, May 2020. Available: "
+    "https://arxiv.org/abs/1910.11615"
+
+third_party {
+  url {
+    type: GIT
+    value: "https://github.com/sp-uhh/mp-gtf"
+  }
+  version: "45ae203"
+  last_upgrade_date { year: 2020 month: 9 day: 22 }
+  license_type: NOTICE
+  local_modifications:
+    "Removed plotting functions and changed some default parameters."
+}
+
