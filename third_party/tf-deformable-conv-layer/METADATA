@@ -1,0 +1,17 @@
+name: "TensorFlow implementation of Deformable Convolution"
+description:
+    "A TensorFlow implementation of the following paper: "
+    "Dai, Jifeng, Haozhi Qi, Yuwen Xiong, Yi Li, Guodong Zhang, Han Hu, and "
+    "Yichen Wei. 2017. Deformable Convolutional Networks. arXiv [cs.CV]. "
+    "arXiv. https://arxiv.org/abs/1703.06211"
+
+third_party {
+  url {
+    type: GIT
+    value: "https://github.com/DHZS/tf-deformable-conv-layer"
+  }
+  version: "68ff714"
+  last_upgrade_date { year: 2020 month: 9 day: 23 }
+  license_type: NOTICE
+}
+

@@ -1,25 +1,7 @@
-# MIT License
-#
-# Copyright (c) 2020 Jiaoyang An
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
+############
+# AUTHOR: An Jiaoyang
+# DATE: 2018-10-11
+############
 """Deformable Convolutional Layer
 """
 import tensorflow as tf
@@ -47,6 +29,7 @@ class DeformableConvLayer(Conv2D):
                  bias_constraint=None,
                  **kwargs):
         """`kernel_size`, `strides` and `dilation_rate` must have the same value in both axis.
+
         :param num_deformable_group: split output channels into groups, offset shared in each group. If
         this parameter is None, then set  num_deformable_group=filters.
         """
@@ -202,6 +185,7 @@ class DeformableConvLayer(Conv2D):
 
     def _pad_input(self, inputs):
         """Check if input feature map needs padding, because we don't use the standard Conv() function.
+
         :param inputs:
         :return: padded input feature map
         """
@@ -232,6 +216,7 @@ class DeformableConvLayer(Conv2D):
 
     def _get_conv_indices(self, feature_map_size):
         """the x, y coordinates in the window when a filter sliding on the feature map
+
         :param feature_map_size:
         :return: y, x with shape [1, out_h, out_w, filter_h * filter_w]
         """
@@ -250,6 +235,7 @@ class DeformableConvLayer(Conv2D):
     @staticmethod
     def _get_pixel_values_at_point(inputs, indices):
         """get pixel values
+
         :param inputs:
         :param indices: shape [batch_size, H, W, I], I = filter_h * filter_w * channel_out
         :return:
@@ -261,3 +247,4 @@ class DeformableConvLayer(Conv2D):
         b = tf.tile(batch_idx, (1, h, w, n))
         pixel_idx = tf.stack([b, y, x], axis=-1)
         return tf.gather_nd(inputs, pixel_idx)
+
