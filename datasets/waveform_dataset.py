@@ -39,7 +39,7 @@ def get_waveform_dataset(path):
         An array of waveform chunks loaded from the given path.
     """
 
-    dataset = np.load(path)['arr_0']
+    dataset = np.load(path)['arr_0'][0:1000]
     return dataset
 
 def _get_pre_processed_dataset(path, pre_process_fn):
@@ -110,6 +110,22 @@ def get_stft_dataset(path, frame_length=512, frame_step=128):
     )
 
     processed_dataset = _get_pre_processed_dataset(path, process_stft)
+
+    return processed_dataset
+
+def get_fb_dataset(path, process_fn):
+    """Loads the STFT representation of the dataset.
+    Args:
+        path: The path to the .npz file containing
+            the dataset.
+        frame_length (samples): Length of the FFT windows.
+        frame_step (samples): The shift in time after each
+            FFT window.
+    Returns:
+        The dataset as an array of spectograms.
+    """
+
+    processed_dataset = _get_pre_processed_dataset(path, process_fn)
 
     return processed_dataset
 
