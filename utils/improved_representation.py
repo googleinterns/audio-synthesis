@@ -33,7 +33,6 @@ def _get_window(frame_length):
     """
 
     window = scipy.signal.triang(frame_length)
-    #window = window / np.sum(window)
     window = np.sqrt(window)
     return window
 
@@ -42,12 +41,14 @@ def _frame_signal(x_signal, frame_length, frame_step):
     and applys a window.
 
     Args:
-
+        x_signal: The signal to be converted into frames.
+        frame_length: The length of each window
+        frame_step: The step 
     """
 
     window = _get_window(frame_length)
 
-    framed_signal = tf_signal.shape_ops.frame(x_signal, frame_length, frame_step)
+    framed_signal = tf_signal.shape_ops.frame(x_signal, frame_length, frame_step, pad_end=True)
     return framed_signal * window
 
 def _overlap_and_add(framed_signal, frame_length, frame_step):
@@ -117,18 +118,19 @@ def get_filterbank(n_filters, filter_length, max_frequency):
     np.random.seed(1234)
     # Numbers refer to step in Basitaans algorythm
     max_erbs = erbs(max_frequency) #1
-    erbs_frequencies = np.linspace(0, max_erbs, num=n_filters) #3
-    #print(erbs_frequencies.shape)
+    erbs_frequencies = np.linspace(1.0, max_erbs, num=n_filters) #3
     cfreqs = inverse_erbs(erbs_frequencies) #4
-    #print(cfreqs.shape)
     bwidths = erb(cfreqs) #5
-    #print(list(zip(cfreqs, bwidths)))
 
     filter_mat = np.zeros((len(cfreqs), filter_length))
     for i in range(0, len(cfreqs)): #7
         h_bp = band_pass_filter(cfreqs[i], bwidths[i], filter_length) #7.1 & #7.2
         filter_mat[i] = h_bp #10
 
-    return filter_mat.astype(np.float32), bwidths, cfreqs
+    return filter_mat.astype(np.float32)
 
 
+def get_noise_weighting(n_filters, max_frequency):
+    max_erbs = erbs(max_frequency) #1
+    erbs_frequencies = np.linspace(1.0, max_erbs, num=n_filters)
+    return 1.0 / erbs_frequencies
