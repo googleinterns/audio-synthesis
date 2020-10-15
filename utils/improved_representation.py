@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+"""Adds functionality for the improved representation. Filters are spaced uniformly
+on the ERBS scale, with the bandwidth specified by ERB.
 """
 
 import tensorflow as tf
@@ -43,7 +44,7 @@ def _frame_signal(x_signal, frame_length, frame_step):
     Args:
         x_signal: The signal to be converted into frames.
         frame_length: The length of each window
-        frame_step: The step 
+        frame_step: The step size
     """
 
     window = _get_window(frame_length)
