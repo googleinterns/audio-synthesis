@@ -99,23 +99,21 @@ def erb(f):
     return 24.7 * (4.37 * f_khz + 1)
 
 def band_pass_filter(center_freq, bandwidth, filter_length, sr=16000.0):
-    bandwidth = bandwidth# + np.random.uniform(low=-0.05 * bandwidth, high=0.05 * bandwidth)
     bw = bandwidth / 2.0
     N = filter_length
     n = np.arange(-(N//2), N//2)
 
-    k = np.sinc(2 * bw / sr * n + np.random.uniform(low=0, high=2*np.pi))
+    k = np.sinc(2 * bw / sr * n + np.random.uniform(low=-2*np.pi, high=2*np.pi))
 
-    w = np.hamming(N)
-    h = k# * w
-
-    s = np.sin(center_freq / sr * 2 * np.pi * n + np.random.uniform(low=0, high=2*np.pi))
+    h = k
+    s = np.sin(center_freq / sr * 2 * np.pi * n + np.random.uniform(low=-2 * np.pi, high=2*np.pi))
 
     bp = h * s
 
     return bp
 
-def get_filterbank(n_filters, filter_length, max_frequency):
+
+def get_filterbank_unscaled(n_filters, filter_length, max_frequency):
     np.random.seed(1234)
     # Numbers refer to step in Basitaans algorythm
     max_erbs = erbs(max_frequency) #1
@@ -134,4 +132,9 @@ def get_filterbank(n_filters, filter_length, max_frequency):
 def get_noise_weighting(n_filters, max_frequency):
     max_erbs = erbs(max_frequency) #1
     erbs_frequencies = np.linspace(1.0, max_erbs, num=n_filters)
-    return 1.0 / erbs_frequencies
+    return 1.0 / np.sqrt(erbs_frequencies)
+
+
+def restore_scaled_filterbank(path):
+    filter_mat = np.load(path)['Phi_scaled']
+    return filter_mat.astype(np.float32)
