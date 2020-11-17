@@ -79,26 +79,6 @@ def add_noise_at_snr(channel_in, snr):
 
     return channel_in + np.random.normal(size=channel_in.shape, scale=noise_std)
 
-def add_weighted_noise_at_snr(channel_in, snr, weighting):
-    """Distortes the given input by adding noise to achieve a given SNR,
-    also applying a given weighting.
-
-    Args:
-        channel_in: The channel to be distorted.
-        snr: The desired SNR.
-        weighting: The desired weighting of the noise.
-
-    Returns:
-        Sum of channel_in and white Gaussian noise. Shape is
-        channel_in.shape
-    """
-
-    rms_channel = np.sqrt(np.mean(channel_in ** 2.0))
-    noise_std = rms_channel / np.sqrt(10.0 ** (snr/10.0))
-
-    return channel_in + np.random.normal(size=channel_in.shape, scale=noise_std) * weighting
-
-
 def distort_multiple_channel_representation(representation, snr, n_avg=1):
     """Independently distort each channel of the representation.
 
